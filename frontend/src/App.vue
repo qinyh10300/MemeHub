@@ -1,87 +1,32 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+import { ref } from 'vue'
+import LoginModal from './components/LoginModal.vue'
+
+const showLogin = ref(false)
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-      <!-- <HelloWorld msg="秦一骅" /> -->
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-        <RouterLink to="/login">Login</RouterLink>
-      </nav>
-    </div>
-  </header>
-
-  <RouterView />
+  <button @click="showLogin = true" class="fixed-button">登录</button>
+  <LoginModal v-if="showLogin" @close="showLogin = false" />
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
+.fixed-button {    /* 一个固定在页面右上角的按钮 */
+  position: fixed;    /* 固定定位 */
+  top: 20px;      /* 离浏览器窗口顶部 20 像素 */
+  right: 20px;     /* 离浏览器窗口右边 20 像素 */
+  background-color: #42b983; /* Vue 绿色 */
+  color: black;    /* 按钮文字颜色是黑色 */
+  border: none;    /* 去掉默认的按钮边框 */
+  border-radius: 6px;    /* 让按钮的边角变得 圆润，半径是 6px */
+  padding: 0.6rem 1rem;    /* 按钮内部的内边距：上下 0.6rem（约 10px），左右 1rem（约 16px）。使得按钮内容不贴边，看起来更舒展。 */
+  font-size: 1.0rem;    /* 设置文字大小，大约相当于 14–15px */
+  cursor: pointer;    /* 鼠标悬停在按钮上时，显示手型光标 */
+  z-index: 1000;    /* 让按钮浮在最上层，避免被其他元素遮挡 */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);    /* 给按钮添加一个柔和的阴影，提升立体感；阴影向下偏移 2px，模糊程度 5px，颜色是半透明黑 */
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
+.fixed-button:hover {    /* 当鼠标悬停在按钮上时的样式 */
+  background-color: #2c9c6a;    /* 悬停时背景变为更深的绿色，让用户有交互反馈 */
 }
 </style>
