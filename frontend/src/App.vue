@@ -219,6 +219,7 @@ const showLogin = ref(false)
   .content-header h1 {
     font-size: 24px;
   }
+}
   
   .fixed-button {    /* 一个固定在页面右上角的按钮 */
     position: fixed;    /* 固定定位 */
