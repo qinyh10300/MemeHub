@@ -6,11 +6,12 @@ import HelloWorld from './components/HelloWorld.vue'
 import HomeView from './views/HomeView.vue';
 import Search from './components/Search.vue';
 
+
 const showLogin = ref(false)
 </script>
 
 <template>
-  <button @click="showLogin = true" class="fixed-button">登录</button>
+  <button @click="showLogin = true" class="fixed-button">注册</button>
   <LoginModal v-if="showLogin" @close="showLogin = false" />
 
   <div class="app-container">
@@ -43,7 +44,7 @@ const showLogin = ref(false)
         <h1>Welcome to Vue App</h1>
         <p>Manage your application from here</p>
       </header>
-      66666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
+      66666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
       <Search />
       <!-- 路由视图 -->
       <!-- <RouterView /> -->

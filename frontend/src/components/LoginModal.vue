@@ -43,6 +43,10 @@
         <label for="regUsername">用户名</label>
       </div>
       <div class="input-group">
+        <input id="regPhoneNumber" v-model="registerForm.phoneNumber" type="text" required />
+        <label for="regPhoneNumber">手机号</label>
+      </div>
+      <div class="input-group">
         <input id="regPassword" v-model="registerForm.password" type="password" required minlength="6" />
         <label for="regPassword">密码</label>
       </div>
@@ -115,6 +119,8 @@
 <script setup>
     import { ref, reactive, onMounted } from 'vue'
 
+    const server_ip = 'http://localhost:3000' // 后端服务器地址
+
     const emit = defineEmits(['close'])
 
     const isLogin = ref(true) // true=登录, false=注册
@@ -122,6 +128,7 @@
     // 登录表单
     const loginForm = reactive({
     username: '',
+    phoneNumber: '',
     password: ''
     })
     const errorMsg = ref('')
@@ -140,16 +147,53 @@
     }
 
     // 登录提交
-    const handleLogin = () => {
-    console.log('登录', loginForm)
-    // 登录逻辑，比如发送请求
+    const handleLogin = async () => {
+      try {
+        console.log('登录', loginForm)
+        // 登录逻辑，比如发送请求
+        const response = await fetch(`${server_ip}/api/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(loginForm)
+        });
+        const data = await response.json();
+        if (response.ok) {
+          alert('登录成功！');
+          closeModal();
+        } else {
+          errorMsg.value = data.message || '登录失败，请重试！';
+        }
+      } catch (error) {
+        console.error('登录时发生错误:', error);
+      }
     }
 
     // 注册提交
-    const handleRegister = () => {
-    console.log('注册', registerForm)
-    // 注册逻辑，比如发送请求
-    }
+    const handleRegister = async () => {
+      try {
+        const response = await fetch(`${server_ip}/api/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(registerForm)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert('注册成功！');
+          switchForm(); // 切换回登录表单
+        } else {
+          alert(data.message || '注册失败，请重试！');
+        }
+      } catch (error) {
+        console.error('注册时发生错误:', error);
+        alert('服务器连接失败，请稍后再试！');
+      }
+    };
 
     // 切换登录/注册表单
     const switchForm = () => {
