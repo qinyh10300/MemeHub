@@ -44,8 +44,10 @@ const showLogin = ref(false)
         <h1>Welcome to Vue App</h1>
         <p>Manage your application from here</p>
       </header>
-      66666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
-      <Search />
+      6666
+      <div class="search-wrapper">
+        <Search />
+      </div>
       <!-- 路由视图 -->
       <!-- <RouterView /> -->
     </main>
@@ -108,7 +110,7 @@ const showLogin = ref(false)
   font-weight: bold;
   font-size: 18px;
   margin-left: 12px;
-}
+} 
 
 .nav-container {
   display: flex;
@@ -151,13 +153,28 @@ const showLogin = ref(false)
 
 /* 主内容区域样式 */
 .main-content {
-  flex: 1;
-  margin-left: 220px;
+  position: absolute;
+  left: 220px;
+  right: 0;
+  top: 0;
+  bottom: 0;
   padding: 40px;
   min-height: 100vh;
+  background-color: #000000; 
+  color: #ffffff; 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.search-wrapper {
+  width: 100%;
+  max-width: 500px;
+  margin-top: 30px;
 }
 
 .content-header {
+  text-align: center;
   margin-bottom: 30px;
 }
 
