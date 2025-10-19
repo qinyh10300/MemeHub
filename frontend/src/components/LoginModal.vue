@@ -42,10 +42,10 @@
         <input id="regUsername" v-model="registerForm.username" type="text" required />
         <label for="regUsername">用户名</label>
       </div>
-      <div class="input-group">
+      <!-- <div class="input-group">
         <input id="regPhoneNumber" v-model="registerForm.phoneNumber" type="text" required />
         <label for="regPhoneNumber">手机号</label>
-      </div>
+      </div> -->
       <div class="input-group">
         <input id="regPassword" v-model="registerForm.password" type="password" required minlength="6" />
         <label for="regPassword">密码</label>
@@ -62,59 +62,6 @@
     </div>
 </div>
 </template>
-  
-<!-- <script setup>
-  import { ref, reactive, onMounted } from 'vue'
-  import { useRouter } from 'vue-router'
-  
-  const emit = defineEmits(['close'])
-  const router = useRouter()
-  
-  const loginForm = reactive({
-    username: '',
-    password: ''
-  })
-  const errorMsg = ref('')
-  const isFormValid = ref(false)
-  
-  const validateInput = () => {
-    if (loginForm.username && loginForm.password) {
-      isFormValid.value = true
-      errorMsg.value = ''
-    } else {
-      isFormValid.value = false
-    }
-  }
-  
-  const handleLogin = async () => {
-    const xssPattern = /(~|\{|\}|"|'|<|>|\?)/
-    if (xssPattern.test(loginForm.username) || xssPattern.test(loginForm.password)) {
-      return errorMessage('警告: 输入内容包含非法字符')
-    }
-  
-    try {
-      const safeUsername = encodeURIComponent(loginForm.username)
-      const safePassword = encodeURIComponent(loginForm.password)
-      console.log('登录请求:', { username: safeUsername, password: safePassword })
-  
-      const expires = new Date(Date.now() + 3600 * 1000).toUTCString()
-      document.cookie = `authToken=yourAuthToken; path=/; expires=${expires}`
-  
-      router.push('/home')
-    } catch (error) {
-      errorMessage('登录失败，请稍后重试')
-    }
-  }
-  
-  const errorMessage = (text) => {
-    errorMsg.value = text
-    setTimeout(() => (errorMsg.value = ''), 3000)
-  }
-  
-  const closeModal = () => emit('close')
-  
-  onMounted(validateInput)
-</script> -->
 
 <script setup>
     import { ref, reactive, onMounted } from 'vue'
@@ -128,7 +75,7 @@
     // 登录表单
     const loginForm = reactive({
     username: '',
-    phoneNumber: '',
+    // phoneNumber: '',
     password: ''
     })
     const errorMsg = ref('')
