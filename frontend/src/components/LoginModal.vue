@@ -43,10 +43,6 @@
         <label for="regUsername">用户名</label>
       </div>
       <div class="input-group">
-        <input id="regPhoneNumber" v-model="registerForm.phoneNumber" type="text" required />
-        <label for="regPhoneNumber">手机号</label>
-      </div>
-      <div class="input-group">
         <input id="regPassword" v-model="registerForm.password" type="password" required minlength="6" />
         <label for="regPassword">密码</label>
       </div>
@@ -128,7 +124,6 @@
     // 登录表单
     const loginForm = reactive({
     username: '',
-    phoneNumber: '',
     password: ''
     })
     const errorMsg = ref('')
@@ -142,7 +137,7 @@
 
     // 验证登录表单
     const validateInput = () => {
-    isFormValid.value = loginForm.username && loginForm.password
+    isFormValid.value = true
     if (isFormValid.value) errorMsg.value = ''
     }
 
