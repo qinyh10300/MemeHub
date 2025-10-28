@@ -14,8 +14,8 @@ app.use(express.json());
 const port = 3000;
 
 // 2. 连接到你的 MongoDB Atlas 数据库
-// 把下面的 <username>, <password>, 和 cluster... 替换成你自己的信息！
-const dbURI = 'mongodb+srv://zhangtl0206_db_user:ztl123456@cluster0.6yy0nc3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+const dbURI = process.env.MONGODB_URI;
+
 
 mongoose.connect(dbURI)
   .then((result) => {
