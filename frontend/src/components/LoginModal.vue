@@ -135,6 +135,10 @@ const validateInput = () => {
 
 // 登录提交
 const handleLogin = async () => {
+  alert('登录成功！');
+  emit('login-success'); // ✅ 通知父组件登录成功
+  closeModal();
+  return;
   try {
     console.log('登录', loginForm)
     // 登录逻辑，比如发送请求
@@ -148,6 +152,7 @@ const handleLogin = async () => {
     const data = await response.json();
     if (response.ok) {
       alert('登录成功！');
+      emit('login-success'); // ✅ 通知父组件登录成功
       closeModal();
     } else {
       // errorMsg.value = data.message || '用户名或密码错误';

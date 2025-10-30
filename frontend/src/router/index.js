@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import CreateMemeView from '../views/CreateMeme.vue';
+import ProfileView from '../views/Profile.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -8,6 +10,16 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
+    },
+    {
+      path: '/create-meme',
+      name: 'CreateMeme',
+      component: CreateMemeView,
+    },
+    {
+      path: '/profile',
+      name: 'Profile',
+      component: ProfileView,
     },
     {
       path: '/about',
