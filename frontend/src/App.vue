@@ -5,6 +5,7 @@ import { RouterLink, RouterView } from 'vue-router'
 import HelloWorld from './components/HelloWorld.vue'
 import HomeView from './views/HomeView.vue';
 import Search from './components/Search.vue';
+import FeaturedProjects from './components/FeaturedProject.vue'
 
 
 const showLogin = ref(false)
@@ -41,12 +42,14 @@ const showLogin = ref(false)
     <!-- 主内容区域 -->
     <main class="main-content">
       <header class="content-header">
-        <h1>Welcome to Vue App</h1>
-        <p>Manage your application from here</p>
+        <h1>Welcome to our platform</h1>
+        <p>Explore and discover amazing projects</p>
       </header>
-      6666
       <div class="search-wrapper">
         <Search />
+      </div>
+      <div class="content-card">
+        <FeaturedProjects />
       </div>
       <!-- 路由视图 -->
       <!-- <RouterView /> -->
@@ -158,7 +161,7 @@ const showLogin = ref(false)
   right: 0;
   top: 0;
   bottom: 0;
-  padding: 40px;
+  padding: 0px;
   min-height: 100vh;
   background-color: #000000; 
   color: #ffffff; 
@@ -190,11 +193,14 @@ const showLogin = ref(false)
 }
 
 .content-card {
-  background: white;
-  border-radius: 10px;
-  padding: 30px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  margin-bottom: 30px;
+  width: 100%;
+  max-width: 1200px; 
+  margin: 0 auto;    
+  box-sizing: border-box;
+  background-color: #0b0b0b;
+  color: white;
+  padding: 20px 30px;
+  border-radius: 12px;
 }
 
 .wrapper {

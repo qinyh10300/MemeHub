@@ -34,7 +34,7 @@ const searchQuery = ref('')
 }
 
 .search-label {
-  background: #10b981;
+  background: #65c281;
   color: black;
   padding: 8px 16px;
   border-radius: 6px;
@@ -71,7 +71,7 @@ const searchQuery = ref('')
 }
 
 .search-input:focus {
-  border-color: #10b981;
+  border-color: #65c281;
 }
 
 .search-input::placeholder {
