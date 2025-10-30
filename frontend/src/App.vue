@@ -1,8 +1,13 @@
 <script setup>
 import { ref } from 'vue'
 import LoginModal from './components/LoginModal.vue'
-import { RouterLink } from 'vue-router'
-import Search from './components/Search.vue'
+
+import { RouterLink, RouterView } from 'vue-router'
+import HelloWorld from './components/HelloWorld.vue'
+import HomeView from './views/HomeView.vue';
+import Search from './components/Search.vue';
+import FeaturedProjects from './components/FeaturedProject.vue'
+
 
 const showLogin = ref(false)
 const isLoggedIn = ref(false) // ✅ 登录状态
@@ -56,11 +61,15 @@ const handleLoginSuccess = () => {
     <!-- 主内容区域 -->
     <main class="main-content">
       <header class="content-header">
-        <h1>Welcome to Vue App</h1>
-        <p>Manage your application from here</p>
+        <h1>Welcome to our platform</h1>
+        <p>Explore and discover amazing projects</p>
       </header>
-      66666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
-      <Search />
+      <div class="search-wrapper">
+        <Search />
+      </div>
+      <div class="content-card">
+        <FeaturedProjects />
+      </div>
       <!-- 路由视图 -->
       <!-- <RouterView /> -->
     </main>
@@ -123,7 +132,7 @@ const handleLoginSuccess = () => {
   font-weight: bold;
   font-size: 18px;
   margin-left: 12px;
-}
+} 
 
 .nav-container {
   display: flex;
@@ -166,13 +175,28 @@ const handleLoginSuccess = () => {
 
 /* 主内容区域样式 */
 .main-content {
-  flex: 1;
-  margin-left: 220px;
-  padding: 40px;
+  position: absolute;
+  left: 220px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  padding: 0px;
   min-height: 100vh;
+  background-color: #000000; 
+  color: #ffffff; 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.search-wrapper {
+  width: 100%;
+  max-width: 500px;
+  margin-top: 30px;
 }
 
 .content-header {
+  text-align: center;
   margin-bottom: 30px;
 }
 
@@ -188,11 +212,14 @@ const handleLoginSuccess = () => {
 }
 
 .content-card {
-  background: white;
-  border-radius: 10px;
-  padding: 30px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  margin-bottom: 30px;
+  width: 100%;
+  max-width: 1200px; 
+  margin: 0 auto;    
+  box-sizing: border-box;
+  background-color: #0b0b0b;
+  color: white;
+  padding: 20px 30px;
+  border-radius: 12px;
 }
 
 .wrapper {

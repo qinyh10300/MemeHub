@@ -34,7 +34,7 @@ const searchQuery = ref('')
 }
 
 .search-label {
-  background: #10b981;
+  background: #65c281;
   color: black;
   padding: 8px 16px;
   border-radius: 6px;
@@ -54,7 +54,7 @@ const searchQuery = ref('')
   position: absolute;
   left: 0px;
   top: 50%;
-  transform: translateY(-50%) scale(0.8);
+  transform: translateY(-50%) scale(0.6);
   font-size: 16px;
   color: #6b7280;
 }
@@ -62,7 +62,7 @@ const searchQuery = ref('')
 .search-input {
   width: 100%;
   padding: 12px 12px 12px 40px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid #3a3b3b;
   border-radius: 6px;
   font-size: 14px;
   outline: none;
@@ -71,7 +71,7 @@ const searchQuery = ref('')
 }
 
 .search-input:focus {
-  border-color: #10b981;
+  border-color: #65c281;
 }
 
 .search-input::placeholder {
