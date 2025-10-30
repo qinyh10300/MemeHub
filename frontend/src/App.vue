@@ -11,7 +11,7 @@ const showLogin = ref(false)
 </script>
 
 <template>
-  <button @click="showLogin = true" class="fixed-button">注册</button>
+  <button @click="showLogin = true" class="fixed-button">登录</button>
   <LoginModal v-if="showLogin" @close="showLogin = false" />
 
   <div class="app-container">
