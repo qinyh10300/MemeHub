@@ -1,13 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import LoginModal from './components/LoginModal.vue'
-
 import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
-import HomeView from './views/HomeView.vue';
-import Search from './components/Search.vue';
-import FeaturedProjects from './components/FeaturedProject.vue'
-
 
 const showLogin = ref(false)
 const isLoggedIn = ref(false) // ✅ 登录状态
@@ -60,18 +54,8 @@ const handleLoginSuccess = () => {
 
     <!-- 主内容区域 -->
     <main class="main-content">
-      <header class="content-header">
-        <h1>Welcome to our platform</h1>
-        <p>Explore and discover amazing projects</p>
-      </header>
-      <div class="search-wrapper">
-        <Search />
-      </div>
-      <div class="content-card">
-        <FeaturedProjects />
-      </div>
       <!-- 路由视图 -->
-      <!-- <RouterView /> -->
+      <RouterView />
     </main>
   </div>
 </template>
@@ -187,46 +171,6 @@ const handleLoginSuccess = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-.search-wrapper {
-  width: 100%;
-  max-width: 500px;
-  margin-top: 30px;
-}
-
-.content-header {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.content-header h1 {
-  font-size: 32px;
-  color: #2c3e50;
-  margin-bottom: 10px;
-}
-
-.content-header p {
-  color: #7f8c8d;
-  font-size: 16px;
-}
-
-.content-card {
-  width: 100%;
-  max-width: 1200px; 
-  margin: 0 auto;    
-  box-sizing: border-box;
-  background-color: #0b0b0b;
-  color: white;
-  padding: 20px 30px;
-  border-radius: 12px;
-}
-
-.wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
 }
 
 /* 响应式设计 */
