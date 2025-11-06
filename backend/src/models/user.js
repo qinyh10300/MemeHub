@@ -6,7 +6,7 @@ const userSchema = new Schema({
   // ... username, password 字段不变
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  // --- 新增字段 ---
+
   verificationCode: String,
   verificationCodeExpiresAt: Date,
 }, { timestamps: true });
