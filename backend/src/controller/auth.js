@@ -31,7 +31,7 @@ export async function register(req, res) {
   }
 }
 
-// 登录
+// 登录   // TODO: 登录时返回id加密信息，敏感操作需要解密后比对
 export async function login(req, res) {
   try {
     const { username, password } = req.body;

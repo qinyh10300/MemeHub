@@ -8,11 +8,9 @@ const memeSchema = new mongoose.Schema({
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   createdAt: { type: Date, default: Date.now },
   likes: { type: Number, default: 0 },
-  comments: [{ 
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    content: String,
-    createdAt: { type: Date, default: Date.now }
-  }]
+  like_list: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
+  status: { type: String, enum: ['inreview', 'active', 'banned'], default: 'active' },
 });
 
 export const Meme = mongoose.model('Meme', memeSchema);

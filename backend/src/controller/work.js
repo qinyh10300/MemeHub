@@ -82,13 +82,37 @@ export const createMeme = async (req, res) => {
 export const getMemeDetail = async (req, res) => {
   try {
     const memeId = req.params.id;
+    const token = req.token;
+    const username = token ? token.user.username : null;// TODO:暂时用username作为token内容
+
     const meme = await Meme.findById(memeId)
-      .select('title imageUrl description author createdAt likes')
+      .select('title imageUrl description author createdAt likes comments status')
       .populate('author', 'username -_id');
     if (!meme) {
       return res.status(404).json({ message: '模因不存在' });
     }
-    res.status(200).json(meme);
+
+    // 先声明变量
+    let is_author = false;
+    let is_liked = false;
+    let is_favorited = false;
+
+    // 当前用户关于该模因的信息
+    const user = await User.findOne({ username });
+    if (user) {
+      is_author = meme.author.username === username;
+      is_liked = meme.like_list.some(userId => userId.toString() === user._id.toString());
+      is_favorited = user.favorites && user.favorites.includes(meme._id);
+    }
+
+    res.status(200).json({
+      ...meme.toObject(),
+      userinfo: {
+        is_author,
+        is_liked,
+        is_favorited
+      }
+    });
   } catch (error) {
     res.status(500).json({
       message: '获取模因详情失败',
