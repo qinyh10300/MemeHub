@@ -2,13 +2,13 @@
 
 const express = require('express');     // 引入 express 框架
 const mongoose = require('mongoose');   // 用于操作mongodb的库
-
+const cors = require('cors');
 const app = express();
 app.use(express.json());
+app.use(cors());
 const port = 3000;
 
 // 2. 连接到你的 MongoDB Atlas 数据库
-// 把下面的 <username>, <password>, 和 cluster... 替换成你自己的信息！
 const dbURI = 'mongodb+srv://zhangtl0206_db_user:ztl123456@cluster0.6yy0nc3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 
 mongoose.connect(dbURI)
@@ -48,9 +48,9 @@ app.post('/api/register', async (req, res) => {
   try {
     const { username, phoneNumber, password } = req.body;
 
-    // (未来：在这里加入服务器端验证逻辑，比如检查手机号格式、密码强度等)
+    // TODO:在这里加入服务器端验证逻辑，比如检查手机号格式、密码强度等
 
-    // (未来：在这里加入密码加密逻辑)
+    // TODO:在这里加入密码加密逻辑
 
     // 创建一个新的用户实例
     const newUser = new User({
