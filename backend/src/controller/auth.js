@@ -31,7 +31,7 @@ export async function register(req, res) {
   }
 }
 
-// 登录
+// 登录 
 export async function login(req, res) {
   try {
     const { username, password } = req.body;
@@ -44,19 +44,15 @@ export async function login(req, res) {
       return res.status(401).json({ code: 1002, message: '用户名或密码错误' });
     }
     const payload = { user: { id: user.id } };
-    sign(
-      payload,
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' },
-      (err, token) => {
-        if (err) throw err;
-        res.status(201).json({
-          code: 0,
-          message: '登录成功',
-          token
-        });
-      }
-    );
+    const token = sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    user.login_token = token;
+    await user.save();
+    res.status(201).json({
+      code: 0,
+      message: '登录成功',
+      token
+    });
+      
   } catch (error) {
     console.error('登录时发生错误:', error);
     res.status(500).json({ code: 5000, message: '服务器内部错误' });

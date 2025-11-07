@@ -6,6 +6,12 @@ const userSchema = new Schema({
   // ... username, password 字段不变
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  nickname: { type: String },
+  loginToken: { type: String },
+  coins: { type: Number, default: 0 },
+  workList: { type: [Schema.Types.ObjectId], ref: 'Meme', default: [] },
+  favoriteList: { type: [Schema.Types.ObjectId], ref: 'Meme', default: [] },
+  status: { type: String, enum: ['active', 'banned'], default: 'active' },
 
   verificationCode: String,
   verificationCodeExpiresAt: Date,
