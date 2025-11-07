@@ -7,7 +7,7 @@ const commentSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   reference: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment' },
   likes: { type: Number, default: 0 },
-  like_list: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  likeList: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] }
 });
 
 export const Comment = mongoose.model('Comment', commentSchema);

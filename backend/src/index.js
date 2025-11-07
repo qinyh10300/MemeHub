@@ -53,6 +53,18 @@ app.post('/api/upload-meme', upload.single('file'), Work.createMeme);
 app.get('/api/meme/:id', Work.getMemeDetail);
 // 返回预览页的模因列表
 app.get('/api/meme-list', Work.getMemeList);
+// 删除模因
+app.delete('/api/meme/:id', Work.deleteMeme);
+// 点赞模因
+app.post('/api/meme/:id/like', Work.likeMeme);
+// 收藏模因
+app.post('/api/meme/:id/favorite', Work.favoriteMeme);
+// 评论模因
+app.post('/api/meme/:id/comment', Work.commentMeme);
+// 读取指定模因的评论区
+app.get('/api/meme/:id/comments', Work.getMemeComments);
+// 点赞评论
+app.post('/api/comment/:id/like', Work.likeComment);
 
 // 2. 连接到MongoDB数据库
 const dbURI = process.env.MONGODB_URI;
