@@ -338,7 +338,7 @@ export const commentMeme = async (req, res) => {
         content: comment.content,
         reference: comment.reference,
         meme: comment.meme,
-        author: user.nickname
+        user: user.nickname
       }
     });
   } catch (error) {
@@ -364,9 +364,16 @@ export const getMemeComments = async (req, res) => {
       .populate('user', 'username nickname -_id')
       .sort({ [sortBy]: sortOrder });
 
+    // 替换每个 comment 的 user 字段为 user.nickname
+    const commentsWithNickname = comments.map(comment => {
+      const obj = comment.toObject();
+      obj.user = obj.user?.nickname || obj.user?.username || ''; // 若无nickname则为空字符串
+      return obj;
+    });
+
     res.status(200).json({
       message: '获取模因评论成功',
-      comments
+      comments: commentsWithNickname
     });
   } catch (error) {
     res.status(500).json({
@@ -419,6 +426,52 @@ export const likeComment = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: '点赞评论失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const deleteComment = async (req, res) => {
+  try {
+    const commentId = req.params.id;
+    const token = req.headers.token;
+    const username = token; // TODO:暂时用username作为token内容
+
+    // 查找评论
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ message: `评论${commentId}不存在` });
+    }
+
+    // 查找用户
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: `用户${username}不存在` });
+    }
+
+    // 检查用户权限
+    if (comment.user.toString() !== user._id.toString()) {
+      return res.status(403).json({ message: `没有权限删除评论${commentId}` });
+    }
+
+    // 从模因的评论列表中移除
+    const meme = await Meme.findById(comment.meme);
+    if (meme) {
+      meme.comments.pull(comment._id);
+      await meme.save();
+    }
+
+    // 删除评论
+    await Comment.findByIdAndDelete(commentId);
+    res.status(200).json({ message: `评论${commentId}已删除` });
+  } catch (error) {
+    res.status(500).json({
+      message: '删除评论失败',
       error: {
         name: error.name,
         message: error.message,

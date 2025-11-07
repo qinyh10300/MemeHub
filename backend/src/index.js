@@ -65,6 +65,8 @@ app.post('/api/meme/:id/comment', Work.commentMeme);
 app.get('/api/meme/:id/comments', Work.getMemeComments);
 // 点赞评论
 app.post('/api/comment/:id/like', Work.likeComment);
+// 删除评论
+app.delete('/api/comment/:id', Work.deleteComment);
 
 // 2. 连接到MongoDB数据库
 const dbURI = process.env.MONGODB_URI;
