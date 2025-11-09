@@ -2,7 +2,7 @@
 
 ## 一、登录注册
 
-1. **用户注册**
+### 1. **用户注册**
   - 方法：POST
   - 路径：/api/register
   - 请求体：
@@ -13,7 +13,7 @@
     - 400：用户名已被注册
     - 500：服务器错误
 
-2. **用户登录**
+### 2. **用户登录**
   - 方法：POST
   - 路径：/api/login
   - 请求体：
@@ -22,13 +22,13 @@
   - 响应体：
     - 201：成功
 
-3. **重设密码**
+### 3. **重设密码**
   - 方法：POST
   - 路径：/api/reset-password
   - 请求体：
   - 响应体：
 
-4. **更新昵称**
+### 4. **更新昵称**
 - 方法：PUT 或 PATCH
   - 路径：/api/update-nicknam
 - 请求头：token：认证令牌，String（临时测试时使用用户名username）
@@ -43,7 +43,7 @@
 
 ## 二、模因信息
 
-1. **获取模因信息**
+### 1. **获取模因信息**
   - 方法：GET
   - 路径：/api/meme/:id
     - :id替换为指定模因对象的id
@@ -56,6 +56,7 @@
       - 404：id不存在
       - 500：失败
     - title：标题，String
+    - ticker：代号，String
     - description：描述，String
     - author：作者信息
       - username：用户名，String
@@ -67,14 +68,14 @@
       - is_liked：已经点赞
       - is_favorited：已经收藏
 
-2. **获取模因文件**
+### 2. **获取模因文件**
   - 方法：GET
   - 路径：/:imageUrl
     - :imageUrl替换为访问模因对象的imageUrl属性
     - 查询iamgeUrl请使用获取模因信息
     - 注意不需要加/api
 
-3. **获取模因列表**
+### 3. **获取模因列表**
   - 方法：GET
   - 路径：/api/meme-list
   - Params：在路径后添加对应字符串，例如：/api/meme-list?sortBy=hot&sortOrder=asc -> 按热度升序排序
@@ -92,7 +93,7 @@
 
 ## 三、模因操作
 
-1. **上传模因**
+### 1. **上传模因**
   - 方法：POST
   - 路径：/api/upload-meme
   - 请求体：
@@ -112,7 +113,7 @@
     - _id：模因id
     - createdAt：创作时间
 
-2. **删除模因**
+### 2. **删除模因**
   - 方法：DELETE
   - 路径：/api/meme/:id
   - Headers：
@@ -125,7 +126,7 @@
       - 500：服务器内部错误
     - message
 
-3. **点赞模因**
+### 3. **点赞模因**
   - 方法：POST
   - 路径：/api/meme/:id/like
   - Headers：
@@ -142,7 +143,7 @@
       - likes
       - imageUrl
 
-4. **收藏模因**
+### 4. **收藏模因**
   - 方法：POST
   - 路径：/api/meme/:id/favorite
   - Headers：
@@ -160,7 +161,7 @@
 
 ## 四、评论
 
-1. **评论模因**
+### 1. **评论模因**
   - 方法：POST
   - 路径：/api/meme/:id/comment
   - Headers：
@@ -181,7 +182,7 @@
       - meme：
       - user：评论用户的nickname
 
-2. **获取模因的评论区**
+### 2. **获取模因的评论区**
   - 方法：GET
   - 路径：/api/meme/:id/comments
   - Params：
@@ -203,7 +204,7 @@
       - likes：点赞数
       - createdAt：
 
-3. **点赞评论**
+### 3. **点赞评论**
   - 方法：POST
   - 路径：/api/comment/:id/like
   - Headers：
@@ -216,7 +217,7 @@
       - content：
       - likes：
 
-4. **删除评论**
+### 4. **删除评论**
   - 方法：DELETE
   - 路径：/api/comment/:id
   - Headers：
