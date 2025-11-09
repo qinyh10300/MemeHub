@@ -8,15 +8,15 @@
           :class="{ active: currentFilter === 'featured' }"
           @click="changeFilter('featured')"
         >
-          Featured 🔥
+          热门 🔥
         </button>
-        <label class="toggle">
+        <!-- <label class="toggle">
           <input type="checkbox" v-model="nsfw" @change="fetchProjects" />
           <span>NSFW</span>
-        </label>
+        </label> -->
         <label class="toggle">
           <input type="checkbox" v-model="animations" @change="fetchProjects" />
-          <span>Animations</span>
+          <span>动画</span>
         </label>
       </div>
 
@@ -130,38 +130,39 @@ const fetchProjects = async () => {
     const res = {
       data: [
         {
-          name: "ZOPA",
-          symbol: "ZOPA",
+          name: "Dogecoin",
+          symbol: "DOGE",
           creator: "2r5Vfc",
           time: "1h ago",
-          mc: "60.7K",
+          mc: "18.2B",
           mcPercent: 80,
-          change: -10.53,
+          change: +2.34,
           image: new URL('@/assets/doge.png', import.meta.url).href,
-          desc: "DAO-powered LTC & DOGE mining on Solana."
+          desc: "Dogecoin（狗狗币）是一种以Doge表情包为灵感的加密货币，以社区驱动和趣味性著称，旨在让数字货币变得更加亲民有趣。"
         },
         {
-          name: "KitDog",
-          symbol: "KITDOG",
-          creator: "78N177",
-          time: "2m ago",
-          mc: "6.7K",
-          mcPercent: 75,
-          change: -15.05,
-          image: new URL('@/assets/btc.png', import.meta.url).href,
-          desc: "A meme project inspired by KitKat and Doge."
+          name: "Pepe the Frog",
+          symbol: "PEPE",
+          creator: "Matt Furie",
+          time: "1h ago",
+          mc: "653M",
+          mcPercent: 91,
+          change: +3.17,
+          image: new URL('@/assets/pepe.avif', import.meta.url).href,
+          desc: "Pepe the Frog（青蛙佩佩）起源于网络漫画，是网络文化中最具影响力的表情之一，后来被加密社区赋予象征幽默与团结的精神。"
         },
         {
-          name: "KitDog",
-          symbol: "KITDOG",
-          creator: "78N177",
-          time: "2m ago",
-          mc: "6.7K",
-          mcPercent: 75,
-          change: -15.05,
-          image: new URL('@/assets/bnb.png', import.meta.url).href,
-          desc: "A meme project inspired by KitKat and Doge."
+          name: "Bored Ape Yacht Club",
+          symbol: "BAYC",
+          creator: "Yuga Labs",
+          time: "3h ago",
+          mc: "590M",
+          mcPercent: 89,
+          change: -1.24,
+          image: new URL('@/assets/bayc.webp', import.meta.url).href,
+          desc: "Bored Ape Yacht Club（无聊猿游艇俱乐部）是由Yuga Labs推出的知名NFT系列，共有1万只独特猿猴形象，象征数字身份、艺术品位与专属社群。"
         }
+
       ]
     };
     projects.value = res.data;
@@ -233,22 +234,28 @@ onMounted(() => {
 
 .card-grid.list .project-card {
   display: flex;
-  flex-direction: row;   /* 横向布局 */
+  flex-direction: row;
   align-items: center;
   gap: 20px;
+  width: 75vw; /* ✅ 占据整个主页面宽度 */
+  box-sizing: border-box;
 }
 
 .card-grid.list .thumb {
-    width: 160px;       /* 增加宽度 */
-    height: 160px;      /* 增加高度 */
-    flex-shrink: 0;
+  width: 160px;
+  height: 160px;
+  flex-shrink: 0;
+  display: flex;              /* ✅ 启用flex布局 */
+  align-items: center;        /* ✅ 垂直居中 */
+  justify-content: center;    /* ✅ 水平居中 */
 }
 
+
 .card-grid.list .thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;  /* 保证图片填充整个thumb容器 */
-    border-radius: 8px;
+  width: 70%;     /* ✅ 缩放为原图大小的 70% */
+  height: auto;   /* ✅ 保持比例 */
+  object-fit: contain;  /* ✅ 不裁剪原图 */
+  border-radius: 8px;
 }
 
 .card-grid.list .info {

@@ -1,23 +1,23 @@
 <template>
     <div class="coin-details">
-        <h2>Coin details</h2>
-        <p class="sub">Choose carefully, these can't be changed once the coin is created</p>
+        <h2>模因币详情</h2>
+        <p class="sub">请谨慎选择，这些在创建币种后无法更改</p>
 
 
         <div class="row">
-            <field-input label="Coin name" placeholder="Name your coin" class="half" />
-            <field-input label="Ticker" placeholder="Add a coin ticker (e.g. DOGE)" class="half" />
+            <field-input label="名称" placeholder="命名你的币种" class="half" />
+            <field-input label="代号" placeholder="添加币种代号（例如：DOGE）" class="half" />
         </div>
 
 
-        <text-area label="Description (Optional)" placeholder="Write a short description" />
+        <text-area label="描述（可选）" placeholder="写一个简短的描述" />
 
 
-        <expandable-section title="Add social links">
+        <expandable-section title="添加社交链接">
             <div class="social-grid">
-                <field-input label="Website" placeholder="Add URL" />
-                <field-input label="X" placeholder="Add URL" />
-                <field-input label="Telegram" placeholder="Add URL" />
+                <field-input label="个人网站" placeholder="添加网址" />
+                <field-input label="X" placeholder="添加网址" />
+                <field-input label="Telegram" placeholder="添加网址" />
             </div>
         </expandable-section>
     </div>
