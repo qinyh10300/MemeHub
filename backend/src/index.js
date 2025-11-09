@@ -12,7 +12,7 @@ import * as Const from './configs/const.js';
 
 const app = express();
 app.use(cors());
-app.use(json());
+app.use(express.json());
 const port = 3000;
 
 // 确保 uploads 文件夹存在

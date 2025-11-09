@@ -1,7 +1,7 @@
 <template>
     <div class="preview">
-        <div class="panel-title">Preview</div>
-        <div class="preview-box">A preview of how the coin will look like</div>
+        <div class="panel-title">预览</div>
+        <div class="preview-box">这是对该币种外观的预览</div>
     </div>
 </template>
 
