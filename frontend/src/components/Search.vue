@@ -7,10 +7,10 @@
           v-model="searchQuery"
           type="text"
           class="search-input"
-          placeholder="Search..."
+          placeholder="请输入关键词..."
         />
       </div>
-      <span class="search-label">Search</span>
+      <span class="search-label">搜索</span>
     </div>
   </div>
 </template>

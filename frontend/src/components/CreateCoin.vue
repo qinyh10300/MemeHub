@@ -1,5 +1,6 @@
 <template>
     <div class="create-coin-card">
+
         <coin-details-form v-model="coinForm" />
 
         <upload-box
@@ -54,3 +55,8 @@ async function onUpload() {
     selectedFile.value = null
 }
 </script>
+
+<style scoped>
+.create-coin-card{ background:var(--panel); padding:18px; border-radius:12px; box-shadow:var(--shadow); }
+</style>
+

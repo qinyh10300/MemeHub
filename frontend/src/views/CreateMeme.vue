@@ -1,14 +1,14 @@
 <template>
   <div class="app-root">
     <header class="topbar">
-      <h1>Create new coin</h1>
+      <h1>创建新的模因币</h1>
     </header>
 
     <main class="container">
       <section class="left">
         <create-coin />
-        <div class="notice">Coin data (social links, banner, etc) can only be added now, and can't be changed or edited after creation</div>
-        <primary-button class="create-btn">Login to create coin</primary-button>
+        <div class="notice">模因币数据（社交链接、横幅等）只能在此时添加，创建后无法更改或编辑</div>
+        <primary-button class="create-btn">登录以创建模因</primary-button>
       </section>
 
       <aside class="right">

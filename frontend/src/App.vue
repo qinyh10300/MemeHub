@@ -33,22 +33,22 @@ const handleLoginSuccess = () => {
     <aside class="sidebar">
       <div class="logo-container">
         <img class="logo" src="@/assets/pumpfun.png" alt="Pumpfun Logo" />
-        <span class="logo-text">Pump.fun</span>
+        <span class="logo-text">中文模因社区</span>
       </div>
 
       <nav class="nav-container">
         <RouterLink to="/" class="nav-item" active-class="active">
           <img class="nav-icon" src="@/assets/home.png" alt="Home" />
-          <span class="nav-text">Home</span>
+          <span class="nav-text">主页面</span>
         </RouterLink>
         <RouterLink to="/about" class="nav-item" active-class="active">
           <img class="nav-icon" src="@/assets/profile.png" alt="Profile" />
-          <span class="nav-text">Profile</span>
+          <span class="nav-text">个人主页</span>
         </RouterLink>
-        <RouterLink to="/login" class="nav-item" active-class="active">
+        <!-- <RouterLink to="/login" class="nav-item" active-class="active">
           <span class="nav-icon">🔑</span>
           <span class="nav-text">Login</span>
-        </RouterLink>
+        </RouterLink> -->
       </nav>
     </aside>
 
