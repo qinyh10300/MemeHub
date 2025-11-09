@@ -11,19 +11,21 @@ import { title } from 'process';
 // 创建模因
 export const createMeme = async (req, res) => {
   try {
-    const { title, description } = req.body;
+    const { title, ticker, description } = req.body;
     const file = req.file;
     const token = req.headers.token;
     const username = token;// TODO:暂时用username作为token内容
-    // // 检查标题是否重复
-    // const exist = await Meme.findOne({ title });
-    // if (exist) {
-    //   // 删除已上传的文件
-    //   if (file) {
-    //     fs.unlink(path.join(file.destination, file.filename), () => {});
-    //   }
-    //   return res.status(400).json({ message: '该标题已存在，请更换标题' });
-    // }
+    // 检查title和ticker是否已存在
+    const existTitle = await Meme.findOne({ title });
+    if (existTitle) {
+      if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
+      return res.status(400).json({ message: '该标题已存在，请更换标题' });
+    }
+    const existTicker = await Meme.findOne({ ticker });
+    if (existTicker) {
+      if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
+      return res.status(400).json({ message: '该ticker已存在，请更换ticker' });
+    }
 
     // 检查是否上传图片
     if (!file) {
@@ -40,7 +42,7 @@ export const createMeme = async (req, res) => {
     }
 
     // 先用原文件名创建meme，后续再重命名
-    const newMeme = new Meme({ title, description, author: user._id });
+    const newMeme = new Meme({ title, ticker, description, author: user._id });
     await newMeme.save();
 
     // 只有创建成功后才重命名文件
@@ -94,7 +96,7 @@ export const getMemeDetail = async (req, res) => {
     const username = token;// TODO:暂时用username作为token内容
 
     const meme = await Meme.findById(memeId)
-      .select('title imageUrl description author createdAt likes comments status likeList')
+      .select('title imageUrl ticker description author createdAt likes comments status likeList')
       .populate('author', 'username nickname -_id');
     if (!meme) {
       return res.status(404).json({ message: '模因不存在' });

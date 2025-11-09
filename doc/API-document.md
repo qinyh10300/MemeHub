@@ -98,6 +98,7 @@
   - 路径：/api/upload-meme
   - 请求体：
     - title：标题，String
+    - ticker：代号，String
     - description：简介，String
     - file：模因文件，File(.jpg, .png, .gif, ...)
   - Headers
