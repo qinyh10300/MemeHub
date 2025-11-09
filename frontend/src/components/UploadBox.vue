@@ -8,8 +8,8 @@
                 aria-label="Upload or drag and drop files"
             >
                 <div class="icon" aria-hidden="true">🖼️</div>
-                <div class="title">Select video or image to upload</div>
-                <div class="sub">or drag and drop it here</div>
+                <div class="title">选择要上传的视频或图片</div>
+                <div class="sub">或将其拖放到此处</div>
 
                 <input
                     id="fileInput"
@@ -19,30 +19,30 @@
                     hidden
                 />
                 <div style="display:flex;gap:8px;margin-top:12px;">
-                    <label for="fileInput" class="login" style="cursor:pointer;">Choose files</label>
-                    <button class="login" type="button">Log in</button>
+                    <label for="fileInput" class="login" style="cursor:pointer;">选择文件</label>
+                    <button class="login" type="button">登录</button>
                 </div>
             </div>
 
             <div class="hints" style="margin-top:18px; display:grid; grid-template-columns:1fr 1fr; gap:18px;">
                 <div class="hint">
-                    <strong>File size and type</strong>
+                    <strong>文件大小和类型</strong>
                     <ul>
-                        <li>Image - max 15 MB. .jpg, .gif, .png recommended</li>
-                        <li>Video - max 30 MB. .mp4 recommended</li>
+                        <li>图片 - 最大 15 MB。推荐使用 .jpg, .gif, .png 格式</li>
+                        <li>视频 - 最大 30 MB。推荐使用 .mp4 格式</li>
                     </ul>
                 </div>
 
                 <div class="hint">
-                    <strong>Resolution and aspect ratio</strong>
+                    <strong>分辨率和纵横比</strong>
                     <ul>
-                        <li>Image - min. 1000×1000 px; 1:1 square recommended</li>
-                        <li>Video - 16:9 or 9:16; 1080p+ recommended</li>
+                        <li>图片 - 最小 1000×1000 px; 推荐使用 1:1 正方形</li>
+                        <li>视频 - 16:9 或 9:16; 推荐使用 1080p 及以上</li>
                     </ul>
                 </div>
             </div>
 
-            <div class="add-banner">Add banner (optional)</div>
+            <div class="add-banner">添加横幅（可选）</div>
         </div>
     </div>
 </template>
