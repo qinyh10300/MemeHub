@@ -152,7 +152,10 @@ export const getMemeList = async (req, res) => {
       .select('_id likes createdAt')
       .sort({ [sortBy]: sortOrder });
 
-    res.status(200).json(memes);
+    // res.status(200).json(memes);
+    
+    const memeIds = memes.map(meme => meme._id);
+    res.status(200).json({ memeIds });
   } catch (error) {
     res.status(500).json({
       message: '获取模因列表失败',

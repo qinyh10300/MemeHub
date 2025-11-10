@@ -86,10 +86,7 @@
       - des：降序排序（默认）
       - asc：升序排序
   - 响应体：
-    - 模因id的列表，每个元素包括：
-      - _id：模因id
-      - likes：点赞数
-      - createdAt：创建时间
+    - 模因id的列表，List(String)，每个元素是Meme的_id
 
 ## 三、模因操作
 
@@ -230,3 +227,19 @@
       - 403：无权限
       - 500：服务器内部错误
     - message
+
+## 五、搜索
+
+### 1. **搜索模因**
+  - 方法：GET
+  - 路径：/api/search-meme
+  - Params：
+    - keyword：搜索关键词，String
+    - sortBy
+      - time：按模因创建时间排序（默认），排序准则createdAt
+      - hot：按热度排序，排序准则likes
+    - sortOrder
+      - des：降序排序（默认）
+      - asc：升序排序
+  - 响应体：
+    - 模因id的列表，List(String)，每个元素是Meme的_id

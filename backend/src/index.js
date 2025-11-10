@@ -8,6 +8,7 @@ import fs from 'fs';
 
 import * as Auth from './controller/auth.js';
 import * as Work from './controller/work.js';
+import * as Search from './controller/search.js';
 import * as Const from './configs/const.js';
 
 const app = express();
@@ -59,6 +60,12 @@ app.delete('/api/meme/:id', Work.deleteMeme);
 app.post('/api/meme/:id/like', Work.likeMeme);
 // 收藏模因
 app.post('/api/meme/:id/favorite', Work.favoriteMeme);
+
+// 搜索模因
+app.get('/api/search-meme', Search.searchMeme);
+
+// 评论操作
+
 // 评论模因
 app.post('/api/meme/:id/comment', Work.commentMeme);
 // 读取指定模因的评论区
