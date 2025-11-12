@@ -229,6 +229,7 @@ onMounted(() => {
 .card-grid.list {
   display: flex;
   flex-direction: column;
+  width: 100%;
   gap: 10px;
 }
 
@@ -236,8 +237,9 @@ onMounted(() => {
   display: flex;
   flex-direction: row;
   align-items: center;
+  background: var(--my-bg-soft);
   gap: 20px;
-  width: 75vw; /* ✅ 占据整个主页面宽度 */
+  width: 100%; /* ✅ 占据整个主页面宽度 */
   box-sizing: border-box;
 }
 
@@ -270,7 +272,7 @@ onMounted(() => {
 
 .featured-container {
     position: relative;
-    background-color: #0b0b0b;
+    background-color: #000000;
     color: white;
     /* padding: 20px 30px; */
     border-radius: 12px;

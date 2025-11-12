@@ -57,6 +57,6 @@ async function onUpload() {
 </script>
 
 <style scoped>
-.create-coin-card{ background:var(--panel); padding:18px; border-radius:12px; box-shadow:var(--shadow); }
+.create-coin-card{ background:var(--panel); padding:0 0 0 18px; border-radius:12px; box-shadow:var(--shadow); }
 </style>
 
