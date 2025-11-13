@@ -1,28 +1,39 @@
+<script setup>
+import { ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+
+const searchQuery = ref('')
+const router = useRouter()
+
+// 点击“搜索”按钮后的处理逻辑
+const handleSearch = () => {
+  if (searchQuery.value.trim()) {
+    router.push({ path: '/search', query: { q: searchQuery.value.trim() } })
+  }
+}
+</script>
+
 <template>
   <div class="search-container">
     <div class="search-box">
       <div class="input-wrapper">
-        <img class="search-icon" src="@/assets/search.png" alt="Search"/>
+        <img class="search-icon" src="@/assets/search.png" alt="Search" />
         <input
           v-model="searchQuery"
           type="text"
           class="search-input"
-          placeholder="Search..."
+          placeholder="请输入关键词..."
+          @keyup.enter="handleSearch"
         />
       </div>
-      <span class="search-label">Search</span>
+      <span class="search-label" @click="handleSearch">搜索</span>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue'
-
-const searchQuery = ref('')
-</script>
-
 <style scoped>
 .search-container {
+  /* background: 000; */
   width: 100%;
   max-width: 500px;
 }
@@ -34,13 +45,19 @@ const searchQuery = ref('')
 }
 
 .search-label {
-  background: #10b981;
+  background: #65c281;
   color: black;
   padding: 8px 16px;
   border-radius: 6px;
   font-weight: bold;
   font-size: 14px;
   white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.search-label:hover {
+  background: #4fad6e;
 }
 
 .input-wrapper {
@@ -54,7 +71,7 @@ const searchQuery = ref('')
   position: absolute;
   left: 0px;
   top: 50%;
-  transform: translateY(-50%) scale(0.8);
+  transform: translateY(-50%) scale(0.6);
   font-size: 16px;
   color: #6b7280;
 }
@@ -62,7 +79,7 @@ const searchQuery = ref('')
 .search-input {
   width: 100%;
   padding: 12px 12px 12px 40px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid #3a3b3b;
   border-radius: 6px;
   font-size: 14px;
   outline: none;
@@ -71,7 +88,7 @@ const searchQuery = ref('')
 }
 
 .search-input:focus {
-  border-color: #10b981;
+  border-color: #65c281;
 }
 
 .search-input::placeholder {
