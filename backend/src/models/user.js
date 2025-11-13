@@ -5,7 +5,7 @@ import { Schema, model } from 'mongoose'; // 1. 引入 mongoose
 const userSchema = new Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  nickname: { type: String },
+  nickname: { type: String, unique: true, sparse: true },
   loginToken: { type: String },
   coins: { type: Number, default: 0 },
   workList: { type: [Schema.Types.ObjectId], ref: 'Meme', default: [] },

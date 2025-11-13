@@ -43,6 +43,16 @@ app.post('/api/register', Auth.register);
 app.post('/api/login', Auth.login);
 // 重设密码
 app.post('/api/reset-password', Auth.resetPassword);
+// 更新昵称
+app.put('/api/update-nickname', Auth.updateNickname);
+app.patch('/api/update-nickname', Auth.updateNickname); // 也支持 PATCH 方法
+// 临时添加 GET 方法用于测试（仅测试用，生产环境应移除）
+app.get('/api/update-nickname', (req, res) => {
+  res.status(405).json({ 
+    code: 1007, 
+    message: '请使用 PUT 或 PATCH 方法更新昵称，GET 方法不支持。请在 Postman 中使用 PUT 方法，并设置 Body 为 JSON 格式。' 
+  });
+});
 
 
 // 模因操作
