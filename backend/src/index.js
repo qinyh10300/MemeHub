@@ -8,6 +8,7 @@ import fs from 'fs';
 
 import * as Auth from './controller/auth.js';
 import * as Work from './controller/work.js';
+import * as Search from './controller/search.js';
 import * as Const from './configs/const.js';
 
 const app = express();
@@ -42,6 +43,16 @@ app.post('/api/register', Auth.register);
 app.post('/api/login', Auth.login);
 // 重设密码
 app.post('/api/reset-password', Auth.resetPassword);
+// 更新昵称
+app.put('/api/update-nickname', Auth.updateNickname);
+app.patch('/api/update-nickname', Auth.updateNickname); // 也支持 PATCH 方法
+// 临时添加 GET 方法用于测试（仅测试用，生产环境应移除）
+app.get('/api/update-nickname', (req, res) => {
+  res.status(405).json({ 
+    code: 1007, 
+    message: '请使用 PUT 或 PATCH 方法更新昵称，GET 方法不支持。请在 Postman 中使用 PUT 方法，并设置 Body 为 JSON 格式。' 
+  });
+});
 
 
 // 模因操作
@@ -59,12 +70,20 @@ app.delete('/api/meme/:id', Work.deleteMeme);
 app.post('/api/meme/:id/like', Work.likeMeme);
 // 收藏模因
 app.post('/api/meme/:id/favorite', Work.favoriteMeme);
+
+// 搜索模因
+app.get('/api/search-meme', Search.searchMeme);
+
+// 评论操作
+
 // 评论模因
 app.post('/api/meme/:id/comment', Work.commentMeme);
 // 读取指定模因的评论区
 app.get('/api/meme/:id/comments', Work.getMemeComments);
 // 点赞评论
 app.post('/api/comment/:id/like', Work.likeComment);
+// 删除评论
+app.delete('/api/comment/:id', Work.deleteComment);
 
 // 2. 连接到MongoDB数据库
 const dbURI = process.env.MONGODB_URI;
