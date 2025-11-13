@@ -11,19 +11,21 @@ import { title } from 'process';
 // 创建模因
 export const createMeme = async (req, res) => {
   try {
-    const { title, description } = req.body;
+    const { title, ticker, description } = req.body;
     const file = req.file;
     const token = req.headers.token;
     const username = token;// TODO:暂时用username作为token内容
-    // // 检查标题是否重复
-    // const exist = await Meme.findOne({ title });
-    // if (exist) {
-    //   // 删除已上传的文件
-    //   if (file) {
-    //     fs.unlink(path.join(file.destination, file.filename), () => {});
-    //   }
-    //   return res.status(400).json({ message: '该标题已存在，请更换标题' });
-    // }
+    // 检查title和ticker是否已存在
+    const existTitle = await Meme.findOne({ title });
+    if (existTitle) {
+      if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
+      return res.status(400).json({ message: '该标题已存在，请更换标题' });
+    }
+    const existTicker = await Meme.findOne({ ticker });
+    if (existTicker) {
+      if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
+      return res.status(400).json({ message: '该ticker已存在，请更换ticker' });
+    }
 
     // 检查是否上传图片
     if (!file) {
@@ -40,7 +42,7 @@ export const createMeme = async (req, res) => {
     }
 
     // 先用原文件名创建meme，后续再重命名
-    const newMeme = new Meme({ title, description, author: user._id });
+    const newMeme = new Meme({ title, ticker, description, author: user._id });
     await newMeme.save();
 
     // 只有创建成功后才重命名文件
@@ -94,7 +96,7 @@ export const getMemeDetail = async (req, res) => {
     const username = token;// TODO:暂时用username作为token内容
 
     const meme = await Meme.findById(memeId)
-      .select('title imageUrl description author createdAt likes comments status likeList')
+      .select('title imageUrl ticker description author createdAt likes comments status likeList')
       .populate('author', 'username nickname -_id');
     if (!meme) {
       return res.status(404).json({ message: '模因不存在' });
@@ -150,7 +152,10 @@ export const getMemeList = async (req, res) => {
       .select('_id likes createdAt')
       .sort({ [sortBy]: sortOrder });
 
-    res.status(200).json(memes);
+    // res.status(200).json(memes);
+    
+    const memeIds = memes.map(meme => meme._id);
+    res.status(200).json({ memeIds });
   } catch (error) {
     res.status(500).json({
       message: '获取模因列表失败',
@@ -338,7 +343,7 @@ export const commentMeme = async (req, res) => {
         content: comment.content,
         reference: comment.reference,
         meme: comment.meme,
-        author: user.nickname
+        user: user.nickname
       }
     });
   } catch (error) {
@@ -364,9 +369,16 @@ export const getMemeComments = async (req, res) => {
       .populate('user', 'username nickname -_id')
       .sort({ [sortBy]: sortOrder });
 
+    // 替换每个 comment 的 user 字段为 user.nickname
+    const commentsWithNickname = comments.map(comment => {
+      const obj = comment.toObject();
+      obj.user = obj.user?.nickname || obj.user?.username || ''; // 若无nickname则为空字符串
+      return obj;
+    });
+
     res.status(200).json({
       message: '获取模因评论成功',
-      comments
+      comments: commentsWithNickname
     });
   } catch (error) {
     res.status(500).json({
@@ -419,6 +431,52 @@ export const likeComment = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: '点赞评论失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const deleteComment = async (req, res) => {
+  try {
+    const commentId = req.params.id;
+    const token = req.headers.token;
+    const username = token; // TODO:暂时用username作为token内容
+
+    // 查找评论
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ message: `评论${commentId}不存在` });
+    }
+
+    // 查找用户
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: `用户${username}不存在` });
+    }
+
+    // 检查用户权限
+    if (comment.user.toString() !== user._id.toString()) {
+      return res.status(403).json({ message: `没有权限删除评论${commentId}` });
+    }
+
+    // 从模因的评论列表中移除
+    const meme = await Meme.findById(comment.meme);
+    if (meme) {
+      meme.comments.pull(comment._id);
+      await meme.save();
+    }
+
+    // 删除评论
+    await Comment.findByIdAndDelete(commentId);
+    res.status(200).json({ message: `评论${commentId}已删除` });
+  } catch (error) {
+    res.status(500).json({
+      message: '删除评论失败',
       error: {
         name: error.name,
         message: error.message,
