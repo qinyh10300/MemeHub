@@ -226,6 +226,15 @@ onMounted(() => {
   gap: 16px;
 }
 
+.card-grid .thumb img{
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+  /* display: flex;        */
+  align-items: center;      
+  justify-content: center;   
+}
+
 .card-grid.list {
   display: flex;
   flex-direction: column;
@@ -390,6 +399,7 @@ onMounted(() => {
 .info h3 {
   font-size: 16px;
   margin-bottom: 2px;
+  margin-top: 0px;
 }
 
 .symbol {
@@ -403,6 +413,13 @@ onMounted(() => {
   font-size: 12px;
   color: #bbb;
   line-height: 1.4;
+
+  /* ✅ 限制最多显示两行，超出部分显示省略号 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;   /* 限制显示 2 行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .meta {
