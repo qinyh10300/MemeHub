@@ -27,7 +27,7 @@ import PrimaryButton from '../components/PrimaryButton.vue'
 
 
 <style scoped>
-.app-root{ min-height:100vh; background:var(--bg); color:var(--fg); font-family:Inter,system-ui,Arial; }
+.app-root{ min-height:100vh; background:var(--bg); color:var(--fg); font-family:Inter,system-ui,Arial; overflow-y: auto;  }
 .topbar{ padding:24px 40px; border-bottom:1px solid rgba(255, 255, 255, 0.03)}
 .topbar h1{ margin:0; font-size:20px; font-weight:600}
 .container{ display:flex; gap:28px; padding:28px 40px; max-width:1200px; margin:0 auto }

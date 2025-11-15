@@ -133,12 +133,16 @@ const validateInput = () => {
   if (isFormValid.value) errorMsg.value = ''
 }
 
+import { useAuthStore } from '@/stores/auth';
+
+const authStore = useAuthStore();
+
 // 登录提交
 const handleLogin = async () => {
-  alert('登录成功！');
-  emit('login-success'); // ✅ 通知父组件登录成功
-  closeModal();
-  return;
+  // alert('登录成功！');
+  // emit('login-success'); // ✅ 通知父组件登录成功
+  // closeModal();
+  // return;
   try {
     console.log('登录', loginForm)
     // 登录逻辑，比如发送请求
@@ -150,10 +154,14 @@ const handleLogin = async () => {
       body: JSON.stringify(loginForm)
     });
     const data = await response.json();
-    if (response.ok) {
+    // if (response.ok) {
+    if (response.status == 201) {
       alert('登录成功！');
+      authStore.setToken(data.token); // 设置全局 token
       emit('login-success'); // ✅ 通知父组件登录成功
       closeModal();
+    } else if (response.status == 500){
+      errorMsg.value = '服务器运行错误';
     } else {
       // errorMsg.value = data.message || '用户名或密码错误';
       errorMsg.value = '用户名或密码错误';
@@ -169,9 +177,6 @@ const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[-_*^#])[A-Za-z\d-_*^
 
 // 注册提交
 const handleRegister = async () => {
-  // 2.3 秒后清空错误信息
-  errorMsg.value = '用户名已被占用';
-  return;
   // 验证用户名和密码
   if (!isUsernameValid.value || !isPasswordValid.value) {
     triggerShake();
@@ -188,13 +193,15 @@ const handleRegister = async () => {
 
     const data = await response.json();
 
-    if (response.ok) {
+    // if (response.ok) {
+    if (response.status == 201) {
       alert('注册成功！');
       switchForm(); // 切换回登录表单
+    } else if (response.status == 400){
+      errorMsg.value = '用户名已被注册';
     } else {
-      // alert(data.message || '注册失败，请重试！');
-      // errorMsg.value = data.message || '用户名已被占用';
-      errorMsg.value = '用户名已被占用';
+      // errorMsg.value = data.message || '用户名或密码错误';
+      errorMsg.value = '服务器错误';
     }
   } catch (error) {
     console.error('注册时发生错误:', error);

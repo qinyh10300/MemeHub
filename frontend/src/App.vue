@@ -6,6 +6,8 @@ import { RouterLink, RouterView } from 'vue-router'
 const showLogin = ref(false)
 const isLoggedIn = ref(false) // ✅ 登录状态
 
+const userId = ref('123'); // 当前用户的 ID，假设为 123
+
 // 登录成功后的回调
 const handleLoginSuccess = () => {
   isLoggedIn.value = true   // ✅ 登录成功后显示两个按钮
@@ -22,7 +24,7 @@ const handleLoginSuccess = () => {
   <!-- 登录成功后显示的两个按钮 -->
   <div v-else class="fixed-buttons">
     <RouterLink to="/create-meme" class="fixed-button2">创建模因</RouterLink>
-    <RouterLink to="/profile" class="fixed-button2">个人主页</RouterLink>
+    <RouterLink :to="`/profile/${userId}`"  class="fixed-button2">个人主页</RouterLink>
   </div>
 
   <!-- 登录弹窗 -->
@@ -41,7 +43,7 @@ const handleLoginSuccess = () => {
           <img class="nav-icon" src="@/assets/home.png" alt="Home" />
           <span class="nav-text">主页面</span>
         </RouterLink>
-        <RouterLink to="/about" class="nav-item" active-class="active">
+        <RouterLink :to="`/profile/${userId}`" class="nav-item" active-class="active">
           <img class="nav-icon" src="@/assets/profile.png" alt="Profile" />
           <span class="nav-text">个人主页</span>
         </RouterLink>
