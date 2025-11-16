@@ -1,32 +1,17 @@
 <template>
   <div>
-    <!-- 加载中 -->
-    <div v-if="loading" style="text-align: center; padding: 50px; color: #fff;">
-      加载中...
-    </div>
-
     <!-- 错误提示 -->
-    <div v-else-if="error" style="text-align: center; padding: 50px; color: #f56c6c;">
+    <div v-if="error" style="text-align: center; padding: 50px; color: #f56c6c;">
       {{ error }}
     </div>
 
-    <!-- 正常显示 -->
+    <!-- 正常显示（包括加载时也显示默认头像） -->
     <div v-else>
-      <ProfileHeader
-        :avatar="user.avatar"
-        :nickname="user.nickname"
-        :username="user.username"
-        :bio="user.bio"
-      />
+      <ProfileHeader :userData="userData" />
 
-      <ProfileStats
-        :followers="user.followers"
-        :following="user.following"
-        :likes="user.likes"
-        :collections="user.collections"
-      />
+      <ProfileStats :userData="userData" />
 
-      <Tabs :memesData="memesData" />
+      <Tabs :userData="userData" />
     </div>
   </div>
 </template>
@@ -45,10 +30,13 @@ const authStore = useAuthStore()
 
 const server_ip = 'http://localhost:3000' // 后端服务器地址
 
-// 用户数据
-const user = ref({
+// 默认头像URL
+const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
+
+// 用户数据（包含所有信息）
+const userData = ref({
   id: '',
-  avatar: '',
+  avatar: defaultAvatar, // 默认头像
   nickname: '',
   username: '',
   bio: '',
@@ -56,14 +44,12 @@ const user = ref({
   following: 0,
   likes: 0,
   collections: 0,
-})
-
-// 模因数据
-const memesData = ref({
-  '我创作的模因': [],
-  '我的模因币': [],
-  '我的收藏': [],
-  '粉丝': [],
+  memesData: {
+    '我创作的模因': [],
+    '我的模因币': [],
+    '我的收藏': [],
+    '粉丝': [],
+  }
 })
 
 // 加载状态
@@ -76,7 +62,11 @@ const fetchUserProfile = async () => {
     loading.value = true
     error.value = ''
     
-    const response = await fetch(`${server_ip}/api/user/${username}`, {
+    console.log('正在获取用户信息，用户名/ID:', username)
+    const url = `${server_ip}/api/user/${username}`
+    console.log('请求URL:', url)
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -84,30 +74,32 @@ const fetchUserProfile = async () => {
       },
     })
 
+    console.log('响应状态:', response.status, response.statusText)
     const result = await response.json()
+    console.log('API返回结果:', result)
 
     if (response.ok && result.code === 0) {
-      // 更新用户数据
-      const userData = result.data
-      user.value = {
-        id: userData.id,
-        avatar: userData.avatar,
-        nickname: userData.nickname,
-        username: userData.username,
-        bio: userData.bio,
-        followers: userData.followers,
-        following: userData.following,
-        likes: userData.likes,
-        collections: userData.memesData['我的收藏']?.length || 0,
+      // 更新用户数据（包含所有信息）
+      const data = result.data
+      console.log('用户数据:', data)
+      userData.value = {
+        id: data.id,
+        avatar: data.avatar || defaultAvatar, // 如果没有头像，使用默认头像
+        nickname: data.nickname,
+        username: data.username,
+        bio: data.bio,
+        followers: data.followers,
+        following: data.following,
+        likes: data.likes,
+        collections: data.memesData['我的收藏']?.length || 0,
+        memesData: data.memesData || {
+          '我创作的模因': [],
+          '我的模因币': [],
+          '我的收藏': [],
+          '粉丝': [],
+        }
       }
-
-      // 更新模因数据
-      memesData.value = userData.memesData || {
-        '我创作的模因': [],
-        '我的模因币': [],
-        '我的收藏': [],
-        '粉丝': [],
-      }
+      console.log('更新后的userData:', userData.value)
     } else {
       error.value = result.message || '获取用户信息失败'
       console.error('获取用户信息失败:', result)

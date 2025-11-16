@@ -1,6 +1,11 @@
 <template>
-  <div class="profile-header">
-    <img :src="userData.avatar" alt="avatar" class="avatar" />
+  <div v-if="userData" class="profile-header">
+    <img 
+      :src="avatarUrl" 
+      alt="avatar" 
+      class="avatar" 
+      @error="handleAvatarError"
+    />
     <div class="user-info">
       <h2 class="nickname">{{ userData.nickname }}</h2>
       <p class="username">{{ userData.username }}</p>
@@ -20,12 +25,30 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import EditModal from './EditModal.vue' // 和你登录注册弹窗同样结构
 
-const { userData } = defineProps({
+const props = defineProps({
   userData: Object,
 })
+
+const emit = defineEmits(['update:userData'])
+
+// 默认头像URL
+const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
+
+// 计算头像URL，如果为空或加载失败则使用默认头像
+const avatarUrl = computed(() => {
+  return props.userData?.avatar || defaultAvatar
+})
+
+// 头像加载失败时的处理
+const handleAvatarError = (event) => {
+  // 如果当前不是默认头像，则切换到默认头像
+  if (event.target.src !== defaultAvatar) {
+    event.target.src = defaultAvatar
+  }
+}
 
 const isModalOpen = ref(false)
 
@@ -35,6 +58,12 @@ const openModal = () => {
 
 const closeModal = () => {
   isModalOpen.value = false
+}
+
+const handleSave = (data) => {
+  // TODO: 调用API更新用户信息
+  // 暂时只关闭弹窗
+  closeModal()
 }
 </script>
 
