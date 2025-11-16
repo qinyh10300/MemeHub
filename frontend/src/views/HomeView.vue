@@ -45,11 +45,12 @@ import FeaturedProjects from '../components/FeaturedProject.vue'
 }
 
 .content-card {
-  width: 100%;
-  max-width: 1200px; 
+  /* width: 100%; */
+  width: 1250px;
+  /* max-width: 1200px;  */
   margin: 0 auto;    
   box-sizing: border-box;
-  background-color: #0b0b0b;
+  background-color: #000000;
   color: white;
   padding: 20px 30px;
   border-radius: 12px;

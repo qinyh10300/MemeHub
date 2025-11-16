@@ -1,28 +1,39 @@
+<script setup>
+import { ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+
+const searchQuery = ref('')
+const router = useRouter()
+
+// 点击“搜索”按钮后的处理逻辑
+const handleSearch = () => {
+  if (searchQuery.value.trim()) {
+    router.push({ path: '/api/search-meme', query: { keyword: searchQuery.value.trim() } })
+  }
+}
+</script>
+
 <template>
   <div class="search-container">
     <div class="search-box">
       <div class="input-wrapper">
-        <img class="search-icon" src="@/assets/search.png" alt="Search"/>
+        <img class="search-icon" src="@/assets/search.png" alt="Search" />
         <input
           v-model="searchQuery"
           type="text"
           class="search-input"
           placeholder="请输入关键词..."
+          @keyup.enter="handleSearch"
         />
       </div>
-      <span class="search-label">搜索</span>
+      <span class="search-label" @click="handleSearch">搜索</span>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue'
-
-const searchQuery = ref('')
-</script>
-
 <style scoped>
 .search-container {
+  /* background: 000; */
   width: 100%;
   max-width: 500px;
 }
@@ -41,6 +52,12 @@ const searchQuery = ref('')
   font-weight: bold;
   font-size: 14px;
   white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.search-label:hover {
+  background: #4fad6e;
 }
 
 .input-wrapper {
