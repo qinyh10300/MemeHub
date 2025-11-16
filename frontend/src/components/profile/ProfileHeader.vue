@@ -1,15 +1,21 @@
 <template>
   <div class="profile-header">
-    <img :src="avatar" alt="avatar" class="avatar" />
+    <img :src="userData.avatar" alt="avatar" class="avatar" />
     <div class="user-info">
-      <h2 class="nickname">{{ nickname }}</h2>
-      <p class="username">{{ username }}</p>
-      <p class="bio">{{ bio }}</p>
+      <h2 class="nickname">{{ userData.nickname }}</h2>
+      <p class="username">{{ userData.username }}</p>
+      <p class="bio">{{ userData.bio }}</p>
     </div>
     <button class="config-button" @click="openModal">编辑</button>
 
     <!-- 弹窗 -->
-    <EditModal v-if="isModalOpen" @close="closeModal" />
+    <EditModal
+      v-if="isModalOpen"
+      :nickname="userData.nickname"
+      :bio="userData.bio"
+      @close="closeModal"
+      @save="handleSave"
+    />
   </div>
 </template>
 
@@ -17,11 +23,8 @@
 import { ref } from 'vue'
 import EditModal from './EditModal.vue' // 和你登录注册弹窗同样结构
 
-defineProps({
-  avatar: String,
-  nickname: String,
-  username: String,
-  bio: String,
+const { userData } = defineProps({
+  userData: Object,
 })
 
 const isModalOpen = ref(false)

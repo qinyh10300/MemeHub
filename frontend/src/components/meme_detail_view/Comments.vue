@@ -56,24 +56,52 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-const props = defineProps({
-  comments: Array,
-});
+// 删除 props
+// const props = defineProps({
+//   comments: Array,
+// });
 
 const emit = defineEmits(['submit-comment']);
 
+const comments = reactive([
+  {
+    id: 1,
+    userId: 'u001',
+    avatar: 'https://i.pravatar.cc/150?img=12',
+    username: 'user001',
+    nickname: '有趣的用户',
+    content: '这个模因好有趣！',
+    time: '1 小时前',
+    likes: 12,
+    replyTo: null,
+  },
+  {
+    id: 2,
+    userId: 'u002',
+    avatar: 'https://i.pravatar.cc/50?img=2',
+    username: 'user002',
+    nickname: '模因爱好者',
+    content: '哈哈哈，这个模因太搞笑了！',
+    time: '2 小时前',
+    likes: 8,
+    replyTo: null,
+  },
+]);
+
 const newComment = ref('');
-const replyTarget = ref(null);  // ⭐ 当前回复对象
+const replyTarget = ref(null);
 const router = useRouter();
 
+// 获取引用评论的用户名
 const getReplyUsername = (replyToId) => {
-  const replyComment = props.comments.find((c) => c.id === replyToId);
+  const replyComment = comments.find((c) => c.id === replyToId);
   return replyComment ? replyComment.username : '未知用户';
 };
 
+// 点赞功能
 const toggleLike = (comment) => {
   if (comment.isLiked) {
     comment.likes -= 1;
@@ -84,11 +112,12 @@ const toggleLike = (comment) => {
   }
 };
 
+// 跳转到用户个人主页
 const goToProfile = (userId) => {
   router.push(`/profile/${userId}`);
 };
 
-// ⭐ 新增：开始回复某个用户
+// 开始回复某个用户
 const startReply = (comment) => {
   replyTarget.value = {
     id: comment.id,
@@ -96,17 +125,18 @@ const startReply = (comment) => {
   };
 };
 
-// ⭐ 新增：取消回复
+// 取消回复
 const cancelReply = () => {
   replyTarget.value = null;
 };
 
-// ⭐ 修改：提交评论时带上 replyTo
+// 提交评论
 const handleSubmit = () => {
   const content = newComment.value.trim();
   if (!content) return;
 
   const newCommentData = {
+    id: comments.length + 1,
     avatar: 'https://i.pravatar.cc/50?img=4',
     username: 'current_user',
     nickname: '当前用户',
@@ -115,11 +145,9 @@ const handleSubmit = () => {
     likes: 0,
     isLiked: false,
     replyTo: replyTarget.value ? replyTarget.value.id : null,
-    id: Date.now(),
   };
 
-  // emit('submit-comment', newCommentData);
-
+  comments.push(newCommentData); // 将新评论添加到本地状态
   newComment.value = '';
   replyTarget.value = null; // 提交后自动取消回复
 };
