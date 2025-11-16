@@ -56,6 +56,15 @@ app.get('/api/update-nickname', (req, res) => {
 });
 // 获取用户个人主页数据（支持通过用户名或用户ID查询）
 app.get('/api/user/:username', Profile.getUserProfile);
+// 关注/取消关注用户
+app.post('/api/user/:username/follow', Profile.followUser);
+// 如果使用GET方法访问关注API，返回错误提示
+app.get('/api/user/:username/follow', (req, res) => {
+  res.status(405).json({
+    code: 1009,
+    message: '请使用 POST 方法关注用户。在 Postman 中：1. 选择 POST 方法 2. URL: /api/user/:username/follow 3. Headers 中添加 token: 你的用户名'
+  });
+});
 
 
 // 模因操作

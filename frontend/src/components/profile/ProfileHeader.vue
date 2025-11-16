@@ -1,11 +1,16 @@
 <template>
   <div v-if="userData" class="profile-header">
-    <img 
-      :src="avatarUrl" 
-      alt="avatar" 
-      class="avatar" 
-      @error="handleAvatarError"
-    />
+    <div class="avatar-wrapper" @click="openAvatarModal">
+      <img 
+        :src="avatarUrl" 
+        alt="avatar" 
+        class="avatar" 
+        @error="handleAvatarError"
+      />
+      <div class="avatar-overlay">
+        <span class="avatar-hint">点击更换头像</span>
+      </div>
+    </div>
     <div class="user-info">
       <h2 class="nickname">{{ userData.nickname }}</h2>
       <p class="username">{{ userData.username }}</p>
@@ -13,26 +18,38 @@
     </div>
     <button class="config-button" @click="openModal">编辑</button>
 
-    <!-- 弹窗 -->
+    <!-- 编辑资料弹窗 -->
     <EditModal
       v-if="isModalOpen"
-      :nickname="userData.nickname"
-      :bio="userData.bio"
+      :nickname="userData?.nickname || ''"
+      :bio="userData?.bio || ''"
       @close="closeModal"
       @save="handleSave"
+    />
+
+    <!-- 头像选择弹窗 -->
+    <AvatarModal
+      v-if="isAvatarModalOpen"
+      :currentAvatar="userData?.avatar || ''"
+      @close="closeAvatarModal"
+      @save="handleAvatarSave"
     />
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import EditModal from './EditModal.vue' // 和你登录注册弹窗同样结构
+import EditModal from './EditModal.vue'
+import AvatarModal from './AvatarModal.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
   userData: Object,
 })
 
 const emit = defineEmits(['update:userData'])
+
+const authStore = useAuthStore()
 
 // 默认头像URL
 const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
@@ -51,6 +68,7 @@ const handleAvatarError = (event) => {
 }
 
 const isModalOpen = ref(false)
+const isAvatarModalOpen = ref(false)
 
 const openModal = () => {
   isModalOpen.value = true
@@ -60,10 +78,37 @@ const closeModal = () => {
   isModalOpen.value = false
 }
 
+const openAvatarModal = () => {
+  // 只有当前用户才能更换头像
+  const currentUsername = authStore.username
+  const profileUsername = props.userData?.username?.replace('@', '')
+  
+  if (currentUsername === profileUsername) {
+    isAvatarModalOpen.value = true
+  }
+}
+
+const closeAvatarModal = () => {
+  isAvatarModalOpen.value = false
+}
+
 const handleSave = (data) => {
-  // TODO: 调用API更新用户信息
-  // 暂时只关闭弹窗
+  // 通知父组件数据已更新
+  emit('update:userData', {
+    ...props.userData,
+    nickname: data.nickname,
+    bio: data.bio,
+  })
   closeModal()
+}
+
+const handleAvatarSave = (data) => {
+  // 通知父组件头像已更新
+  emit('update:userData', {
+    ...props.userData,
+    avatar: data.avatar,
+  })
+  closeAvatarModal()
 }
 </script>
 
@@ -77,12 +122,49 @@ const handleSave = (data) => {
   /* transform: translateX(-50%); */
 }
 
+.avatar-wrapper {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.avatar-wrapper:hover {
+  transform: scale(1.05);
+}
+
+.avatar-wrapper:hover .avatar-overlay {
+  opacity: 1;
+}
+
 .avatar {
   width: 100px; /* w-20 */
   height: 100px; /* h-20 */
   border-radius: 50%; /* rounded-full */
   border: 1px solid #d1d5db; /* border-gray-300 */
   object-fit: cover;
+  display: block;
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.avatar-hint {
+  color: white;
+  font-size: 12px;
+  text-align: center;
+  padding: 5px;
 }
 
 .user-info {

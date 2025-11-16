@@ -20,21 +20,22 @@
               v-model="form.nickname"
               required
             />
-            <label for="editNickname">昵称</label>
+            <label for="editNickname" :class="{ 'label-up': form.nickname }">昵称</label>
           </div>
 
           <!-- 个人简介 -->
-          <div class="input-group">
-            <input
+          <div class="input-group textarea-group">
+            <textarea
               id="editBio"
-              type="text"
               v-model="form.bio"
-              required
-            />
-            <label for="editBio">个人简介</label>
+              rows="4"
+            ></textarea>
+            <label for="editBio" :class="{ 'label-up': form.bio }">个人简介（可选，最多200字）</label>
           </div>
 
-          <button type="submit" class="submit-btn">保存</button>
+          <button type="submit" class="submit-btn" :disabled="saving">
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
         </form>
 
         <!-- 错误提示 -->
@@ -47,21 +48,38 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue';
+import { reactive, ref, watch, computed } from 'vue';
+import { useAuthStore } from '@/stores/auth';
 
 // 接收父组件传递的初始值
-const form = defineProps({
+const props = defineProps({
   nickname: String,
   bio: String,
 });
 
 const emit = defineEmits(['close', 'save']);
 
+const authStore = useAuthStore();
+const server_ip = 'http://localhost:3000';
+
 const errorMsg = ref('');
+const saving = ref(false);
+
+// 表单数据（使用reactive以便修改）
+const form = reactive({
+  nickname: props.nickname || '',
+  bio: props.bio || '',
+});
+
+// 监听props变化，更新表单数据
+watch(() => [props.nickname, props.bio], ([newNickname, newBio]) => {
+  form.nickname = newNickname || '';
+  form.bio = newBio || '';
+}, { immediate: true });
 
 // 验证正则
-const nicknameRegex = /^[\u4e00-\u9fa5\w]{3,10}$/; // 汉字、英文、数字、下划线，3-10
-const bioRegex = /^[\u4e00-\u9fa5\w]{3,30}$/; // 汉字、英文、数字、下划线，3-30
+const nicknameRegex = /^[\u4e00-\u9fa5\w]{3,10}$/; // 汉字、英文、数字、下划线，3-10个字符
+const bioRegex = /^[\s\S]{0,200}$/; // 允许所有字符（包括换行、空格、标点等），0-200个字符
 
 // 实时清空错误提示
 watch(() => [form.nickname, form.bio], () => {
@@ -69,28 +87,62 @@ watch(() => [form.nickname, form.bio], () => {
 });
 
 // 保存
-const handleSave = () => {
+const handleSave = async () => {
+  // 验证昵称
   if (!nicknameRegex.test(form.nickname)) {
     errorMsg.value = '昵称必须为3-10个字符，只能包含汉字、英文、数字或下划线';
     return;
   }
 
+  // 验证个人简介
   if (!bioRegex.test(form.bio)) {
-    errorMsg.value = '个人简介必须为3-30个字符，只能包含汉字、英文、数字或下划线';
+    errorMsg.value = '个人简介不能超过200个字符';
+    return;
+  }
+  
+  // 检查是否只包含空白字符（如果用户只输入空格或换行）
+  if (form.bio && form.bio.trim().length === 0) {
+    errorMsg.value = '个人简介不能只包含空格';
     return;
   }
 
-  // 模拟保存，可以调用后端 API
-  console.log('保存资料:', form);
+  try {
+    saving.value = true;
+    errorMsg.value = '';
 
-  // 将更新后的数据传递给父组件
-  emit('save', {
-    nickname: form.nickname,
-    bio: form.bio,
-  });
+    // 调用后端 API 更新用户信息
+    const response = await fetch(`${server_ip}/api/update-nickname`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'token': authStore.token || authStore.username || '',
+      },
+      body: JSON.stringify({
+        nickname: form.nickname,
+        bio: form.bio,
+      }),
+    });
 
-  // 关闭弹窗
-  emit('close');
+    const result = await response.json();
+
+    if (response.ok && result.code === 0) {
+      // 保存成功，将更新后的数据传递给父组件
+      emit('save', {
+        nickname: result.nickname || form.nickname,
+        bio: result.bio || form.bio,
+      });
+      // 关闭弹窗
+      emit('close');
+    } else {
+      // 保存失败，显示错误信息
+      errorMsg.value = result.message || '保存失败，请稍后重试';
+    }
+  } catch (err) {
+    console.error('保存用户信息时发生错误:', err);
+    errorMsg.value = '网络错误，请稍后重试';
+  } finally {
+    saving.value = false;
+  }
 };
 </script>
 
@@ -175,7 +227,8 @@ const handleSave = () => {
   margin-bottom: 30px;
 }
 
-.input-group input {
+.input-group input,
+.input-group textarea {
   color: white;
   width: 100%;
   padding: 15px;
@@ -184,6 +237,12 @@ const handleSave = () => {
   font-size: 16px;
   transition: all 0.3s ease;
   background: transparent;
+  font-family: inherit;
+}
+
+.input-group textarea {
+  resize: vertical;
+  min-height: 100px;
 }
 
 .input-group label {
@@ -199,13 +258,31 @@ const handleSave = () => {
   pointer-events: none;
 }
 
+/* textarea 的 label 在顶部 */
+.textarea-group label {
+  top: 20px;
+  transform: translateY(0);
+}
+
 .input-group input:focus,
-.input-group input:valid {
+.input-group input:valid,
+.input-group textarea:focus,
+.input-group textarea:valid {
   border-color: #34db71;
 }
 
 .input-group input:focus+label,
-.input-group input:valid+label {
+.input-group input:valid+label,
+.input-group .label-up {
+  top: -20%;
+  left: 1px;
+  font-size: 14px;
+  color: #aceab5;
+}
+
+.textarea-group textarea:focus+label,
+.textarea-group textarea:valid+label,
+.textarea-group .label-up {
   top: -20%;
   left: 1px;
   font-size: 14px;
@@ -230,9 +307,14 @@ const handleSave = () => {
   gap: 10px;
 }
 
-.submit-btn:hover {
+.submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* 箭头图标 */

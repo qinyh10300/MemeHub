@@ -14,20 +14,44 @@
 
     <!-- Tab 内容 -->
     <div class="tab-content">
-      <!-- ✅ 模因项改为按钮，但外观保持不变 -->
-      <button
-        v-for="meme in pagedMemes"
-        :key="meme.code"
-        class="meme-item"
-        @click="goToMemeDetail(meme.code)"
-      >
-        <img :src="meme.image" alt="meme" class="meme-image" />
-        <div class="meme-info">
-          <h3 class="meme-name">{{ meme.name }}</h3>
-          <p class="meme-code">代号: {{ meme.code }}</p>
-          <p class="meme-desc">{{ meme.description }}</p>
-        </div>
-      </button>
+      <!-- 粉丝列表：显示用户信息 -->
+      <template v-if="activeTab === '粉丝'">
+        <button
+          v-for="follower in pagedMemes"
+          :key="follower.id"
+          class="meme-item"
+          @click="goToUserProfile(follower.username)"
+        >
+          <img 
+            :src="getAvatarUrl(follower.avatar, follower.id)" 
+            alt="avatar" 
+            class="meme-image"
+            @error="handleAvatarError"
+          />
+          <div class="meme-info">
+            <h3 class="meme-name">{{ follower.nickname }}</h3>
+            <p class="meme-code">{{ follower.username }}</p>
+            <p class="meme-desc">粉丝</p>
+          </div>
+        </button>
+      </template>
+
+      <!-- 模因列表：显示模因信息 -->
+      <template v-else>
+        <button
+          v-for="meme in pagedMemes"
+          :key="meme.id || meme.code"
+          class="meme-item"
+          @click="goToMemeDetail(meme.id)"
+        >
+          <img :src="meme.image" alt="meme" class="meme-image" />
+          <div class="meme-info">
+            <h3 class="meme-name">{{ meme.name }}</h3>
+            <p class="meme-code">代号: {{ meme.code }}</p>
+            <p class="meme-desc">{{ meme.description }}</p>
+          </div>
+        </button>
+      </template>
 
       <!-- 分页按钮 -->
       <div class="pagination" v-if="totalPages > 1">
@@ -67,6 +91,44 @@ watch(activeTab, () => {
 // ✅ 点击跳转函数
 const goToMemeDetail = (id) => {
   router.push(`/meme/${id}`)
+}
+
+// 跳转到用户个人主页
+const goToUserProfile = (username) => {
+  // 移除 @ 符号（如果有）
+  const cleanUsername = username.replace('@', '')
+  router.push(`/profile/${cleanUsername}`)
+}
+
+// 默认头像URL
+const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
+
+// 获取头像URL，如果为空则使用默认头像
+const getAvatarUrl = (avatar, id) => {
+  if (avatar && avatar.trim() !== '') {
+    return avatar
+  }
+  // 如果avatar为空，使用ID生成一个简单的头像
+  // 将ID转换为数字用于pravatar.cc
+  if (id) {
+    // 使用ID的hash值生成一个1-70之间的数字
+    let hash = 0
+    for (let i = 0; i < id.length; i++) {
+      hash = ((hash << 5) - hash) + id.charCodeAt(i)
+      hash = hash & hash // Convert to 32bit integer
+    }
+    const imgNum = Math.abs(hash % 70) + 1
+    return `https://i.pravatar.cc/150?img=${imgNum}`
+  }
+  return defaultAvatar
+}
+
+// 头像加载失败时的处理
+const handleAvatarError = (event) => {
+  // 如果当前不是默认头像，则切换到默认头像
+  if (event.target.src !== defaultAvatar) {
+    event.target.src = defaultAvatar
+  }
 }
 
 // 计算当前页数据

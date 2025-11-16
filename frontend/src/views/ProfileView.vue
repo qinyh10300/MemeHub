@@ -7,7 +7,7 @@
 
     <!-- 正常显示（包括加载时也显示默认头像） -->
     <div v-else>
-      <ProfileHeader :userData="userData" />
+      <ProfileHeader :userData="userData" @update:userData="handleUserDataUpdate" />
 
       <ProfileStats :userData="userData" />
 
@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import ProfileHeader from '@/components/profile/ProfileHeader.vue'
 import ProfileStats from '@/components/profile/ProfileStats.vue'
 import Tabs from '@/components/profile/Tabs.vue'
@@ -25,7 +25,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useRoute } from 'vue-router'
 
 const route = useRoute() // 获取路由实例
-const username = route.params.id // 获取动态路由参数 :id（用户名或用户ID）
+const username = ref(route.params.id) // 获取动态路由参数 :id（用户名或用户ID）
 const authStore = useAuthStore()
 
 const server_ip = 'http://localhost:3000' // 后端服务器地址
@@ -62,8 +62,9 @@ const fetchUserProfile = async () => {
     loading.value = true
     error.value = ''
     
-    console.log('正在获取用户信息，用户名/ID:', username)
-    const url = `${server_ip}/api/user/${username}`
+    const currentUsername = username.value // 使用 ref 的值
+    console.log('正在获取用户信息，用户名/ID:', currentUsername)
+    const url = `${server_ip}/api/user/${currentUsername}`
     console.log('请求URL:', url)
     
     const response = await fetch(url, {
@@ -112,8 +113,28 @@ const fetchUserProfile = async () => {
   }
 }
 
+// 处理用户数据更新
+const handleUserDataUpdate = (updatedData) => {
+  // 更新本地数据
+  if (updatedData) {
+    userData.value.nickname = updatedData.nickname || userData.value.nickname
+    userData.value.bio = updatedData.bio || userData.value.bio
+    userData.value.avatar = updatedData.avatar || userData.value.avatar
+  }
+  // 可选：重新获取数据以确保同步（如果需要从服务器获取最新数据）
+  // fetchUserProfile()
+}
+
 // 组件挂载时获取数据
 onMounted(() => {
   fetchUserProfile()
+})
+
+// 监听路由参数变化，当用户名变化时重新获取数据
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    username.value = newId
+    fetchUserProfile()
+  }
 })
 </script>
