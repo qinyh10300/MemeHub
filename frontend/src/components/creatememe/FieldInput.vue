@@ -1,14 +1,28 @@
 <template>
     <div class="field">
         <label>{{ label }}</label>
-        <input :placeholder="placeholder" />
+        <input 
+            :placeholder="placeholder"
+            :value="modelValue"
+            @input="onInput"
+        />
     </div>
 </template>
 
-
 <script setup>
-defineProps({ label: { type: String, default: '' }, placeholder: { type: String, default: '' } })
+const props = defineProps({
+    label: { type: String, default: '' },
+    placeholder: { type: String, default: '' },
+    modelValue: { type: String, default: '' }  // v-model 关键
+})
+
+const emit = defineEmits(['update:modelValue'])
+
+function onInput(e) {
+    emit('update:modelValue', e.target.value)
+}
 </script>
+
 
 
 <style scoped>

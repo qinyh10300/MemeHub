@@ -85,6 +85,7 @@ const handleSearch = () => {
   outline: none;
   transition: border-color 0.3s ease;
   background: rgb(0, 0, 0);
+  color: white;
 }
 
 .search-input:focus {

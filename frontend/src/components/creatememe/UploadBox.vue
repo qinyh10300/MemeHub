@@ -35,8 +35,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import PreviewPanel from './PreviewPanel.vue'
+import { ref, watch } from 'vue'
+const emit = defineEmits(['file-change'])
 
 const previewFile = ref(null)
 const fileInput = ref(null)
@@ -69,6 +69,7 @@ async function onFileChange(e) {
   const file = e.target.files[0]
   if (!file) return
   await handleFile(file)
+  emit('file-change', file)
 }
 
 // -------------------- 文件处理 --------------------
@@ -83,14 +84,13 @@ async function handleFile(file) {
     alert('不支持的文件类型')
     return
   }
-
   const reader = new FileReader()
   reader.onload = () => {
     previewFile.value = reader.result
   }
   reader.readAsDataURL(processedBlob)
 
-  await uploadFile(processedBlob, file.name)
+  emit('file-change', processedBlob)
 }
 
 // 图片裁剪 1:1 并至少 1000×1000
@@ -126,17 +126,6 @@ async function videoToGif(file) {
   return await new Promise(resolve => canvas.toBlob(resolve, 'image/gif'))
 }
 
-//TODO: 上传到后端
-async function uploadFile(blob, filename) {
-  const formData = new FormData()
-  formData.append('file', blob, filename)
-  const res = await fetch('/api/upload', {
-    method: 'POST',
-    body: formData
-  })
-  if (res.ok) alert('上传成功！')
-  else alert('上传失败！')
-}
 </script>
 
 <style scoped>
