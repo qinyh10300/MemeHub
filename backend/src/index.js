@@ -9,6 +9,7 @@ import fs from 'fs';
 import * as Auth from './controller/auth.js';
 import * as Work from './controller/work.js';
 import * as Search from './controller/search.js';
+import * as Profile from './controller/profile.js';
 import * as Const from './configs/const.js';
 
 const app = express();
@@ -53,6 +54,8 @@ app.get('/api/update-nickname', (req, res) => {
     message: '请使用 PUT 或 PATCH 方法更新昵称，GET 方法不支持。请在 Postman 中使用 PUT 方法，并设置 Body 为 JSON 格式。' 
   });
 });
+// 获取用户个人主页数据（支持通过用户名或用户ID查询）
+app.get('/api/user/:username', Profile.getUserProfile);
 
 
 // 模因操作
