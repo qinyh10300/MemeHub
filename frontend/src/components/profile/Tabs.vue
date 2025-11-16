@@ -47,8 +47,8 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 // ✅ 接收 props
-const { memesData } = defineProps({
-  memesData: Object,
+const { userData } = defineProps({
+  userData: Object,
 })
 
 // Tabs
@@ -71,14 +71,14 @@ const goToMemeDetail = (id) => {
 
 // 计算当前页数据
 const pagedMemes = computed(() => {
-  const allMemes = memesData[activeTab.value] || []
+  const allMemes = userData.memesData[activeTab.value] || []
   const start = (currentPage.value - 1) * itemsPerPage
   return allMemes.slice(start, start + itemsPerPage)
 })
 
 // 总页数
 const totalPages = computed(() => {
-  const allMemes = memesData[activeTab.value] || []
+  const allMemes = userData.memesData[activeTab.value] || []
   return Math.ceil(allMemes.length / itemsPerPage)
 })
 </script>

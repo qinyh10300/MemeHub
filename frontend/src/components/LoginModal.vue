@@ -158,6 +158,7 @@ const handleLogin = async () => {
     if (response.status == 201) {
       alert('登录成功！');
       authStore.setToken(data.token); // 设置全局 token
+      authStore.setUsername(loginForm.username); // 设置全局用户名
       emit('login-success'); // ✅ 通知父组件登录成功
       closeModal();
     } else if (response.status == 500){

@@ -47,44 +47,51 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, watch } from 'vue';
 
-const emit = defineEmits(['close', 'save'])
+// 接收父组件传递的初始值
+const form = defineProps({
+  nickname: String,
+  bio: String,
+});
 
-const form = reactive({
-  nickname: '',
-  bio: '',
-})
+const emit = defineEmits(['close', 'save']);
 
-const errorMsg = ref('')
+const errorMsg = ref('');
 
 // 验证正则
-const nicknameRegex = /^[\u4e00-\u9fa5\w]{3,10}$/  // 汉字、英文、数字、下划线，3-10
-const bioRegex = /^[\u4e00-\u9fa5\w]{3,30}$/       // 汉字、英文、数字、下划线，3-30
+const nicknameRegex = /^[\u4e00-\u9fa5\w]{3,10}$/; // 汉字、英文、数字、下划线，3-10
+const bioRegex = /^[\u4e00-\u9fa5\w]{3,30}$/; // 汉字、英文、数字、下划线，3-30
 
 // 实时清空错误提示
 watch(() => [form.nickname, form.bio], () => {
-  errorMsg.value = ''
-})
+  errorMsg.value = '';
+});
 
 // 保存
 const handleSave = () => {
   if (!nicknameRegex.test(form.nickname)) {
-    errorMsg.value = '昵称必须为3-10个字符，只能包含汉字、英文、数字或下划线'
-    return
+    errorMsg.value = '昵称必须为3-10个字符，只能包含汉字、英文、数字或下划线';
+    return;
   }
 
   if (!bioRegex.test(form.bio)) {
-    errorMsg.value = '个人简介必须为3-30个字符，只能包含汉字、英文、数字或下划线'
-    return
+    errorMsg.value = '个人简介必须为3-30个字符，只能包含汉字、英文、数字或下划线';
+    return;
   }
 
   // 模拟保存，可以调用后端 API
-  console.log('保存资料:', form)
+  console.log('保存资料:', form);
+
+  // 将更新后的数据传递给父组件
+  emit('save', {
+    nickname: form.nickname,
+    bio: form.bio,
+  });
 
   // 关闭弹窗
-  emit('close')
-}
+  emit('close');
+};
 </script>
 
 <style scoped>

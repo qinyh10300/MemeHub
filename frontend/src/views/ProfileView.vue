@@ -1,20 +1,11 @@
 <template>
-  <div>
-    <ProfileHeader
-      :avatar="user.avatar"
-      :nickname="user.nickname"
-      :username="user.username"
-      :bio="user.bio"
-    />
-
-    <ProfileStats
-      :followers="user.followers"
-      :following="user.following"
-      :likes="user.likes"
-      :collections="user.collections"
-    />
-
-    <Tabs :memesData="memesData" />
+  <div v-if="userData">
+    <ProfileHeader :userData="userData" />
+    <ProfileStats :userData="userData" />
+    <Tabs :userData="userData" />
+  </div>
+  <div v-else>
+    <p>加载中...</p>
   </div>
 </template>
 
@@ -23,37 +14,30 @@ import ProfileHeader from '@/components/profile/ProfileHeader.vue'
 import ProfileStats from '@/components/profile/ProfileStats.vue'
 import Tabs from '@/components/profile/Tabs.vue'
 
-import { createPinia, setActivePinia } from 'pinia';
 import { useAuthStore } from '@/stores/auth';
-
 import { useRoute } from 'vue-router';
 
 const route = useRoute(); // 获取路由实例
 const userId = route.params.id; // 获取动态路由参数 :id
 
-// 手动初始化 Pinia
-const pinia = createPinia();
-setActivePinia(pinia);
-
 // 使用 store
 const authStore = useAuthStore();
 // authStore.token获取token
 
+// 获取全局用户名
+const myUsername = authStore.my_username;
+
 // 模拟加载用户数据
-const user = {
+const userData = {
   id: userId,
   avatar: `https://i.pravatar.cc/150?img=12`, // 根据用户 ID 动态生成头像
   nickname: `用户${userId}`,  // TODO: 查询这个用户id的个人信息并显示
-  username: `user${userId}`,
+  username: `@${myUsername}`,
   bio: `这是用户 ${userId} 的个人简介。`,
   followers: 123,
   following: 456,
   likes: 789,
-  collections: 10,
-};
-
-// 定义 memesData
-const memesData = {
+  memesData: {
   '我创作的模因': Array.from({ length: 23 }, (_, i) => ({
     image: `https://placekitten.com/100/100?image=${i}`,
     name: `模因名称 ${i + 1}`,
@@ -82,5 +66,7 @@ const memesData = {
     description: `这是粉丝 ${i + 1} 的描述信息。`,
     id: `模因id ${i + 1}`,
   })),
+}
 };
+
 </script>

@@ -10,7 +10,7 @@
 
     <!-- 右半边：评论区 -->
     <div class="right-side">
-        <CommentSection :comments="comments" @submit-comment="submitComment" />
+        <CommentSection />
     </div>
     </div>
 </div>
@@ -35,59 +35,6 @@ desc: '这是一个轻松随意的模因示例...这是一个轻松随意的模�
 time: '2 小时前',
 likes: 12,
 })
-
-const comments = reactive([
-  {
-    id: 1, // 当前评论的唯一 ID
-    userId: 'u001', // 用户的唯一 ID
-    avatar: 'https://i.pravatar.cc/150?img=12', // 用户头像
-    username: 'user001', // 用户名
-    nickname: '有趣的用户', // 昵称
-    content: '这个模因好有趣！', // 评论内容
-    time: '1 小时前', // 评论时间
-    likes: 12, // 点赞数量
-    replyTo: null, // 引用的评论 ID（null 表示不是回复）
-  },
-  {
-    id: 2,
-    userId: 'u002',
-    avatar: 'https://i.pravatar.cc/50?img=2',
-    username: 'user002',
-    nickname: '模因爱好者',
-    content: '哈哈哈，这个模因太搞笑了！',
-    time: '2 小时前',
-    likes: 8,
-    replyTo: null,
-  },
-  {
-    id: 3,
-    userId: 'u003',
-    avatar: 'https://i.pravatar.cc/50?img=3',
-    username: 'user003',
-    nickname: '评论达人',
-    content: '确实很搞笑！确实很搞笑！确实很搞笑！确实很搞笑！确实很搞笑！确实很搞笑！',
-    time: '30 分钟前',
-    likes: 5,
-    replyTo: 2, // 表示这是对 ID 为 2 的评论的回复
-  },
-  {
-    id: 4,
-    userId: 'u004',
-    avatar: 'https://i.pravatar.cc/50?img=4',
-    username: 'user004',
-    nickname: '评论达人',
-    content: '哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈',
-    time: '30 分钟前',
-    likes: 5,
-    replyTo: 3, // 表示这是对 ID 为 3 的评论的回复
-  },
-]);
-
-// 提交评论
-const submitComment = (newComment) => {
-if (!newComment.trim()) return
-comments.push({ author: '你', content: newComment, time: '刚刚' })
-}
 </script>
 
 <style scoped>
