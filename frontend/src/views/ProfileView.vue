@@ -1,86 +1,127 @@
 <template>
   <div>
-    <ProfileHeader
-      :avatar="user.avatar"
-      :nickname="user.nickname"
-      :username="user.username"
-      :bio="user.bio"
-    />
+    <!-- 加载中 -->
+    <div v-if="loading" style="text-align: center; padding: 50px; color: #fff;">
+      加载中...
+    </div>
 
-    <ProfileStats
-      :followers="user.followers"
-      :following="user.following"
-      :likes="user.likes"
-      :collections="user.collections"
-    />
+    <!-- 错误提示 -->
+    <div v-else-if="error" style="text-align: center; padding: 50px; color: #f56c6c;">
+      {{ error }}
+    </div>
 
-    <Tabs :memesData="memesData" />
+    <!-- 正常显示 -->
+    <div v-else>
+      <ProfileHeader
+        :avatar="user.avatar"
+        :nickname="user.nickname"
+        :username="user.username"
+        :bio="user.bio"
+      />
+
+      <ProfileStats
+        :followers="user.followers"
+        :following="user.following"
+        :likes="user.likes"
+        :collections="user.collections"
+      />
+
+      <Tabs :memesData="memesData" />
+    </div>
   </div>
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
 import ProfileHeader from '@/components/profile/ProfileHeader.vue'
 import ProfileStats from '@/components/profile/ProfileStats.vue'
 import Tabs from '@/components/profile/Tabs.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useRoute } from 'vue-router'
 
-import { createPinia, setActivePinia } from 'pinia';
-import { useAuthStore } from '@/stores/auth';
+const route = useRoute() // 获取路由实例
+const username = route.params.id // 获取动态路由参数 :id（用户名或用户ID）
+const authStore = useAuthStore()
 
-import { useRoute } from 'vue-router';
+const server_ip = 'http://localhost:3000' // 后端服务器地址
 
-const route = useRoute(); // 获取路由实例
-const userId = route.params.id; // 获取动态路由参数 :id
+// 用户数据
+const user = ref({
+  id: '',
+  avatar: '',
+  nickname: '',
+  username: '',
+  bio: '',
+  followers: 0,
+  following: 0,
+  likes: 0,
+  collections: 0,
+})
 
-// 手动初始化 Pinia
-const pinia = createPinia();
-setActivePinia(pinia);
+// 模因数据
+const memesData = ref({
+  '我创作的模因': [],
+  '我的模因币': [],
+  '我的收藏': [],
+  '粉丝': [],
+})
 
-// 使用 store
-const authStore = useAuthStore();
-// authStore.token获取token
+// 加载状态
+const loading = ref(true)
+const error = ref('')
 
-// 模拟加载用户数据
-const user = {
-  id: userId,
-  avatar: `https://i.pravatar.cc/150?img=12`, // 根据用户 ID 动态生成头像
-  nickname: `用户${userId}`,  // TODO: 查询这个用户id的个人信息并显示
-  username: `user${userId}`,
-  bio: `这是用户 ${userId} 的个人简介。`,
-  followers: 123,
-  following: 456,
-  likes: 789,
-  collections: 10,
-};
+// 从后端获取用户数据
+const fetchUserProfile = async () => {
+  try {
+    loading.value = true
+    error.value = ''
+    
+    const response = await fetch(`${server_ip}/api/user/${username}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'token': authStore.token || '', // 传递token（如果需要）
+      },
+    })
 
-// 定义 memesData
-const memesData = {
-  '我创作的模因': Array.from({ length: 23 }, (_, i) => ({
-    image: `https://placekitten.com/100/100?image=${i}`,
-    name: `模因名称 ${i + 1}`,
-    code: `M${i + 1}`,
-    description: `这是模因 ${i + 1} 的描述信息。`,
-    id: `模因id ${i + 1}`,
-  })),
-  '我的模因币': Array.from({ length: 8 }, (_, i) => ({
-    image: `https://placekitten.com/100/100?image=${i + 50}`,
-    name: `模因币 ${i + 1}`,
-    code: `C${i + 1}`,
-    description: `模因币 ${i + 1} 描述。`,
-    id: `模因id ${i + 1}`,
-  })),
-  '我的收藏': Array.from({ length: 15 }, (_, i) => ({
-    image: `https://placekitten.com/100/100?image=${i + 100}`,
-    name: `收藏模因 ${i + 1}`,
-    code: `S${i + 1}`,
-    description: `收藏模因 ${i + 1} 描述。`,
-    id: `模因id ${i + 1}`,
-  })),
-  '粉丝': Array.from({ length: 23 }, (_, i) => ({
-    image: `https://placekitten.com/100/100?image=${i}`,
-    name: `粉丝名称 ${i + 1}`,
-    code: `粉丝代号${i + 1}`,
-    description: `这是粉丝 ${i + 1} 的描述信息。`,
-    id: `模因id ${i + 1}`,
-  })),
-};
+    const result = await response.json()
+
+    if (response.ok && result.code === 0) {
+      // 更新用户数据
+      const userData = result.data
+      user.value = {
+        id: userData.id,
+        avatar: userData.avatar,
+        nickname: userData.nickname,
+        username: userData.username,
+        bio: userData.bio,
+        followers: userData.followers,
+        following: userData.following,
+        likes: userData.likes,
+        collections: userData.memesData['我的收藏']?.length || 0,
+      }
+
+      // 更新模因数据
+      memesData.value = userData.memesData || {
+        '我创作的模因': [],
+        '我的模因币': [],
+        '我的收藏': [],
+        '粉丝': [],
+      }
+    } else {
+      error.value = result.message || '获取用户信息失败'
+      console.error('获取用户信息失败:', result)
+    }
+  } catch (err) {
+    error.value = '网络错误，请稍后重试'
+    console.error('获取用户信息时发生错误:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 组件挂载时获取数据
+onMounted(() => {
+  fetchUserProfile()
+})
 </script>

@@ -158,7 +158,8 @@ const handleLogin = async () => {
     if (response.status == 201) {
       alert('登录成功！');
       authStore.setToken(data.token); // 设置全局 token
-      emit('login-success'); // ✅ 通知父组件登录成功
+      authStore.setUsername(loginForm.username); // 保存用户名
+      emit('login-success', loginForm.username); // ✅ 通知父组件登录成功，传递用户名
       closeModal();
     } else if (response.status == 500){
       errorMsg.value = '服务器运行错误';

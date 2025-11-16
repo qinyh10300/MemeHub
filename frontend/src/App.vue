@@ -1,16 +1,18 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import LoginModal from './components/LoginModal.vue'
 import { RouterLink, RouterView } from 'vue-router'
+import { useAuthStore } from './stores/auth'
 
 const showLogin = ref(false)
-const isLoggedIn = ref(false) // ✅ 登录状态
+const authStore = useAuthStore()
 
-const userId = ref('123'); // 当前用户的 ID，假设为 123
+// 计算登录状态和用户名
+const isLoggedIn = computed(() => !!authStore.token)
+const username = computed(() => authStore.username)
 
 // 登录成功后的回调
-const handleLoginSuccess = () => {
-  isLoggedIn.value = true   // ✅ 登录成功后显示两个按钮
+const handleLoginSuccess = (userName) => {
   showLogin.value = false   // ✅ 同时关闭登录弹窗
 }
 </script>
@@ -24,7 +26,7 @@ const handleLoginSuccess = () => {
   <!-- 登录成功后显示的两个按钮 -->
   <div v-else class="fixed-buttons">
     <RouterLink to="/create-meme" class="fixed-button2">创建模因</RouterLink>
-    <RouterLink :to="`/profile/${userId}`"  class="fixed-button2">个人主页</RouterLink>
+    <RouterLink :to="`/profile/${username}`"  class="fixed-button2">个人主页</RouterLink>
   </div>
 
   <!-- 登录弹窗 -->
@@ -43,7 +45,7 @@ const handleLoginSuccess = () => {
           <img class="nav-icon" src="@/assets/home.png" alt="Home" />
           <span class="nav-text">主页面</span>
         </RouterLink>
-        <RouterLink :to="`/profile/${userId}`" class="nav-item" active-class="active">
+        <RouterLink v-if="isLoggedIn" :to="`/profile/${username}`" class="nav-item" active-class="active">
           <img class="nav-icon" src="@/assets/profile.png" alt="Profile" />
           <span class="nav-text">个人主页</span>
         </RouterLink>
