@@ -6,6 +6,16 @@ import mongoose from 'mongoose';
 export const getUserProfile = async (req, res) => {
   try {
     const { username } = req.params;
+    const token = req.headers.token || req.headers.authorization?.replace('Bearer ', '');
+    
+    // 获取当前登录用户（如果有）
+    let currentUser = null;
+    if (token) {
+      currentUser = await User.findOne({ username: token });
+      console.log('Token:', token, '找到的用户:', currentUser?.username);
+    } else {
+      console.log('未提供token');
+    }
     
     // 支持通过用户名或用户ID查询
     let user;
@@ -87,35 +97,57 @@ export const getUserProfile = async (req, res) => {
       };
     });
 
+    // 判断是否是查看自己的主页
+    // 比较当前登录用户的ID和目标用户的ID
+    const isOwnProfile = currentUser && currentUser._id.toString() === user._id.toString();
+    
+    // 调试日志
+    console.log('获取个人主页 - Token:', token);
+    console.log('获取个人主页 - 当前用户:', currentUser?.username, '当前用户ID:', currentUser?._id);
+    console.log('获取个人主页 - 目标用户:', user.username, '目标用户ID:', user._id);
+    console.log('获取个人主页 - 是否自己的主页:', isOwnProfile);
+    
     // 查询关注该用户的用户列表（粉丝）
-    const followersList = await User.find({ following: user._id })
-      .select('_id username nickname avatar')
-      .limit(100); // 限制最多返回100个粉丝
+    // 粉丝数应该总是查询并返回，但粉丝列表只在查看自己主页时返回
+    const followersCount = await User.countDocuments({ following: user._id });
+    console.log('粉丝总数:', followersCount);
+    
+    // 只有查看自己的主页时才返回粉丝列表详情
+    let followers = [];
+    if (isOwnProfile) {
+      console.log('是自己的主页，开始查询粉丝列表...');
+      const followersList = await User.find({ following: user._id })
+        .select('_id username nickname avatar')
+        .limit(100); // 限制最多返回100个粉丝
 
-    // 格式化粉丝数据
-    const followers = followersList.map(follower => {
-      const idStr = follower._id.toString();
-      
-      // 优先使用用户设置的头像，如果没有则生成默认头像
-      let followerAvatar = follower.avatar;
-      if (!followerAvatar || followerAvatar.trim() === '') {
-        // 使用ID的hash值生成1-70之间的数字
-        let hash = 0;
-        for (let i = 0; i < idStr.length; i++) {
-          hash = ((hash << 5) - hash) + idStr.charCodeAt(i);
-          hash = hash & hash; // Convert to 32bit integer
+      // 格式化粉丝数据
+      followers = followersList.map(follower => {
+        const idStr = follower._id.toString();
+        
+        // 优先使用用户设置的头像，如果没有则生成默认头像
+        let followerAvatar = follower.avatar;
+        if (!followerAvatar || followerAvatar.trim() === '') {
+          // 使用ID的hash值生成1-70之间的数字
+          let hash = 0;
+          for (let i = 0; i < idStr.length; i++) {
+            hash = ((hash << 5) - hash) + idStr.charCodeAt(i);
+            hash = hash & hash; // Convert to 32bit integer
+          }
+          const imgNum = Math.abs(hash % 70) + 1;
+          followerAvatar = `https://i.pravatar.cc/150?img=${imgNum}`;
         }
-        const imgNum = Math.abs(hash % 70) + 1;
-        followerAvatar = `https://i.pravatar.cc/150?img=${imgNum}`;
-      }
-      
-      return {
-        id: idStr,
-        username: `@${follower.username}`,
-        nickname: follower.nickname || `用户${follower._id}`,
-        avatar: followerAvatar,
-      };
-    });
+        
+        return {
+          id: idStr,
+          username: `@${follower.username}`,
+          nickname: follower.nickname || `用户${follower._id}`,
+          avatar: followerAvatar,
+        };
+      });
+      console.log('查询到的粉丝列表:', followers.length, '个粉丝');
+    } else {
+      console.log('不是自己的主页，不返回粉丝列表详情');
+    }
 
     // 查询该用户关注的用户列表
     const followingList = await User.findById(user._id)
@@ -168,7 +200,7 @@ export const getUserProfile = async (req, res) => {
       nickname: user.nickname || `用户${user._id}`,
       username: `@${user.username}`,
       bio: user.bio || `这是用户 ${user.username} 的个人简介。`, // 使用实际的bio字段，如果没有则使用默认值
-      followers: followers.length,
+      followers: followersCount, // 使用查询到的粉丝总数
       following: following.length,
       likes: totalLikes,
       memesData: {

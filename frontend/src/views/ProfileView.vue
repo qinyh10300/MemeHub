@@ -11,13 +11,13 @@
 
       <ProfileStats :userData="userData" />
 
-      <Tabs :userData="userData" />
+      <Tabs :userData="userData" :isOwnProfile="isOwnProfile" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import ProfileHeader from '@/components/profile/ProfileHeader.vue'
 import ProfileStats from '@/components/profile/ProfileStats.vue'
 import Tabs from '@/components/profile/Tabs.vue'
@@ -27,6 +27,13 @@ import { useRoute } from 'vue-router'
 const route = useRoute() // 获取路由实例
 const username = ref(route.params.id) // 获取动态路由参数 :id（用户名或用户ID）
 const authStore = useAuthStore()
+
+// 判断是否是当前用户自己的主页
+const isOwnProfile = computed(() => {
+  const currentUsername = authStore.username
+  const profileUsername = username.value
+  return currentUsername === profileUsername
+})
 
 const server_ip = 'http://localhost:3000' // 后端服务器地址
 
@@ -71,7 +78,7 @@ const fetchUserProfile = async () => {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'token': authStore.token || '', // 传递token（如果需要）
+        'token': authStore.username || authStore.token || '', // 传递用户名作为token（后端当前使用用户名作为token）
       },
     })
 
@@ -83,6 +90,8 @@ const fetchUserProfile = async () => {
       // 更新用户数据（包含所有信息）
       const data = result.data
       console.log('用户数据:', data)
+      console.log('粉丝列表数据:', data.memesData?.['粉丝'])
+      console.log('当前登录用户:', authStore.username, '查看的用户:', username.value, '是否自己的主页:', isOwnProfile.value)
       userData.value = {
         id: data.id,
         avatar: data.avatar || defaultAvatar, // 如果没有头像，使用默认头像
@@ -101,6 +110,7 @@ const fetchUserProfile = async () => {
         }
       }
       console.log('更新后的userData:', userData.value)
+      console.log('更新后的粉丝列表:', userData.value.memesData['粉丝'])
     } else {
       error.value = result.message || '获取用户信息失败'
       console.error('获取用户信息失败:', result)

@@ -14,8 +14,8 @@
 
     <!-- Tab 内容 -->
     <div class="tab-content">
-      <!-- 粉丝列表：显示用户信息 -->
-      <template v-if="activeTab === '粉丝'">
+      <!-- 粉丝列表：显示用户信息（仅自己的主页显示） -->
+      <template v-if="activeTab === '粉丝' && isOwnProfile">
         <button
           v-for="follower in pagedMemes"
           :key="follower.id"
@@ -73,10 +73,24 @@ const router = useRouter()
 // ✅ 接收 props
 const props = defineProps({
   userData: Object,
+  isOwnProfile: {
+    type: Boolean,
+    default: true
+  }
 })
 
-// Tabs
-const tabs = ['我创作的模因', '我的模因币', '我的收藏', '粉丝']
+// 在模板中使用 isOwnProfile
+const isOwnProfile = computed(() => props.isOwnProfile)
+
+// Tabs - 如果是自己的主页，显示所有标签；如果不是，隐藏"粉丝"标签
+const tabs = computed(() => {
+  const baseTabs = ['我创作的模因', '我的模因币', '我的收藏']
+  if (props.isOwnProfile) {
+    return [...baseTabs, '粉丝']
+  }
+  return baseTabs
+})
+
 const activeTab = ref('我创作的模因')
 
 // 当前页
@@ -135,6 +149,7 @@ const handleAvatarError = (event) => {
 const pagedMemes = computed(() => {
   if (!props.userData || !props.userData.memesData) return []
   const allMemes = props.userData.memesData[activeTab.value] || []
+  console.log('当前标签页:', activeTab.value, '数据:', allMemes)
   const start = (currentPage.value - 1) * itemsPerPage
   return allMemes.slice(start, start + itemsPerPage)
 })

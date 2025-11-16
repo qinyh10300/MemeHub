@@ -1,13 +1,16 @@
 <template>
   <div v-if="userData" class="profile-header">
-    <div class="avatar-wrapper" @click="openAvatarModal">
+    <div 
+      :class="['avatar-wrapper', { 'clickable': isOwnProfile }]"
+      @click="isOwnProfile ? openAvatarModal() : null"
+    >
       <img 
         :src="avatarUrl" 
         alt="avatar" 
         class="avatar" 
         @error="handleAvatarError"
       />
-      <div class="avatar-overlay">
+      <div v-if="isOwnProfile" class="avatar-overlay">
         <span class="avatar-hint">点击更换头像</span>
       </div>
     </div>
@@ -16,7 +19,7 @@
       <p class="username">{{ userData.username }}</p>
       <p class="bio">{{ userData.bio }}</p>
     </div>
-    <button class="config-button" @click="openModal">编辑</button>
+    <button v-if="isOwnProfile" class="config-button" @click="openModal">编辑</button>
 
     <!-- 编辑资料弹窗 -->
     <EditModal
@@ -50,6 +53,13 @@ const props = defineProps({
 const emit = defineEmits(['update:userData'])
 
 const authStore = useAuthStore()
+
+// 判断是否是当前用户自己的主页
+const isOwnProfile = computed(() => {
+  const currentUsername = authStore.username
+  const profileUsername = props.userData?.username?.replace('@', '')
+  return currentUsername === profileUsername
+})
 
 // 默认头像URL
 const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
@@ -124,15 +134,18 @@ const handleAvatarSave = (data) => {
 
 .avatar-wrapper {
   position: relative;
-  cursor: pointer;
   transition: transform 0.3s ease;
 }
 
-.avatar-wrapper:hover {
+.avatar-wrapper.clickable {
+  cursor: pointer;
+}
+
+.avatar-wrapper.clickable:hover {
   transform: scale(1.05);
 }
 
-.avatar-wrapper:hover .avatar-overlay {
+.avatar-wrapper.clickable:hover .avatar-overlay {
   opacity: 1;
 }
 
@@ -209,3 +222,4 @@ const handleAvatarSave = (data) => {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
 }
 </style>
+
