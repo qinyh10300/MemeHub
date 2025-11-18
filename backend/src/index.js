@@ -5,6 +5,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import multer from 'multer';
 import fs from 'fs';
+import path from 'path';
 
 import * as Auth from './controller/auth.js';
 import * as Work from './controller/work.js';
@@ -21,9 +22,13 @@ const port = 3000;
 if (!fs.existsSync(Const.MEME_DIR)) {
   fs.mkdirSync(Const.MEME_DIR);
 }
+// 确保头像文件夹存在
+if (!fs.existsSync(Const.AVATAR_DIR)) {
+  fs.mkdirSync(Const.AVATAR_DIR);
+}
 
-// 配置 multer 用于保存文件
-const storage = multer.diskStorage({
+// 配置 multer 用于保存模因文件
+const memeStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, Const.MEME_DIR);
   },
@@ -33,7 +38,39 @@ const storage = multer.diskStorage({
     cb(null, uniqueSuffix + '-' + file.originalname);
   }
 });
-const upload = multer({ storage });
+const upload = multer({ storage: memeStorage });
+
+// 配置 multer 用于保存头像文件
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, Const.AVATAR_DIR);
+  },
+  filename: (req, file, cb) => {
+    // 使用用户ID作为文件名，保证唯一性
+    const token = req.headers.token || req.headers.authorization?.replace('Bearer ', '');
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `avatar-${uniqueSuffix}${ext}`);
+  }
+});
+const uploadAvatar = multer({ 
+  storage: avatarStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 限制文件大小为5MB
+  },
+  fileFilter: (req, file, cb) => {
+    // 只允许图片文件
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (extname && mimetype) {
+      return cb(null, true);
+    } else {
+      cb(new Error('只允许上传图片文件（jpeg, jpg, png, gif, webp）'));
+    }
+  }
+});
 
 
 // 用户个人信息
@@ -58,6 +95,8 @@ app.get('/api/update-nickname', (req, res) => {
 app.get('/api/user/:username', Profile.getUserProfile);
 // 关注/取消关注用户
 app.post('/api/user/:username/follow', Profile.followUser);
+// 上传用户头像
+app.post('/api/upload-avatar', uploadAvatar.single('avatar'), Profile.uploadAvatar);
 // 如果使用GET方法访问关注API，返回错误提示
 app.get('/api/user/:username/follow', (req, res) => {
   res.status(405).json({
@@ -70,6 +109,7 @@ app.get('/api/user/:username/follow', (req, res) => {
 // 模因操作
 
 app.use('/memefiles', express.static(Const.MEME_DIR));
+app.use('/avatars', express.static(Const.AVATAR_DIR));
 // 接收前端的文件并创建模因
 app.post('/api/upload-meme', upload.single('file'), Work.createMeme);
 // 返回单个模因的详细信息

@@ -1,6 +1,11 @@
 import { User } from '../models/user.js';
 import { Meme } from '../models/meme.js';
 import mongoose from 'mongoose';
+import fs from 'fs';
+import path from 'path';
+import * as Const from '../configs/const.js';
+import pkg from 'jsonwebtoken';
+const { verify } = pkg;
 
 // 获取用户个人主页数据
 export const getUserProfile = async (req, res) => {
@@ -310,6 +315,96 @@ export const followUser = async (req, res) => {
     res.status(500).json({
       code: 5000,
       message: '关注/取消关注用户失败',
+      error: {
+        name: error.name,
+        message: error.message,
+      }
+    });
+  }
+};
+
+// 上传用户头像
+export const uploadAvatar = async (req, res) => {
+  try {
+    const file = req.file;
+    // 尝试多种方式获取 token（FormData 中的字段会在 req.body 中）
+    const token = req.headers.token || req.headers.authorization?.replace('Bearer ', '') || req.body?.token;
+    
+    console.log('上传头像 - 请求头token:', req.headers.token);
+    console.log('上传头像 - req.body.token:', req.body?.token);
+    console.log('上传头像 - 最终Token:', token);
+    console.log('上传头像 - 文件:', file ? { filename: file.filename, size: file.size } : '无文件');
+    console.log('上传头像 - req.body:', req.body);
+    
+    if (!token) {
+      if (file) {
+        fs.unlink(path.join(file.destination, file.filename), () => {});
+      }
+      return res.status(401).json({ code: 1003, message: '未提供认证令牌' });
+    }
+
+    // 获取当前登录用户（优先使用 username 作为 token，兼容 JWT）
+    let user = await User.findOne({ username: token });
+    console.log('上传头像 - 通过username查找用户:', token, '找到:', user?.username);
+    
+    // 如果 username 方式找不到，尝试 JWT 验证
+    if (!user) {
+      try {
+        const decoded = verify(token, process.env.JWT_SECRET);
+        user = await User.findById(decoded.user.id);
+        console.log('上传头像 - 通过JWT找到用户:', user?.username);
+      } catch (jwtError) {
+        // JWT 验证失败，继续使用 username 方式
+        console.log('上传头像 - JWT验证失败:', jwtError.message);
+      }
+    }
+    
+    console.log('上传头像 - 找到的用户:', user ? { username: user.username, _id: user._id } : '未找到');
+    
+    if (!user) {
+      if (file) {
+        fs.unlink(path.join(file.destination, file.filename), () => {});
+      }
+      return res.status(401).json({ code: 1002, message: '用户不存在或令牌无效' });
+    }
+
+    if (!file) {
+      return res.status(400).json({ code: 1004, message: '未上传头像文件' });
+    }
+
+    // 删除旧头像文件（如果存在且是本地文件）
+    if (user.avatar && user.avatar.includes('/avatars/')) {
+      const oldAvatarFilename = path.basename(user.avatar);
+      const oldAvatarPath = path.join(Const.AVATAR_DIR, oldAvatarFilename);
+      if (fs.existsSync(oldAvatarPath)) {
+        fs.unlink(oldAvatarPath, (err) => {
+          if (err) console.error('删除旧头像失败:', err);
+        });
+      }
+    }
+
+    // 构建头像URL
+    const baseUrl = req.protocol + '://' + req.get('host');
+    const avatarUrl = `${baseUrl}/avatars/${file.filename}`;
+
+    // 更新用户头像
+    user.avatar = avatarUrl;
+    await user.save();
+
+    res.status(200).json({
+      code: 0,
+      message: '头像上传成功',
+      avatar: avatarUrl
+    });
+  } catch (error) {
+    // 如果上传失败，删除文件
+    if (req.file) {
+      fs.unlink(path.join(req.file.destination, req.file.filename), () => {});
+    }
+    console.error('上传头像失败:', error);
+    res.status(500).json({
+      code: 5000,
+      message: '上传头像失败',
       error: {
         name: error.name,
         message: error.message,
