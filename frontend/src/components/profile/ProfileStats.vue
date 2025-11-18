@@ -1,26 +1,23 @@
 <template>
-  <div class="profile-stats">
+  <div v-if="userData" class="profile-stats">
     <div class="stat-item">
-      <p class="stat-value">{{ followers }}</p>
+      <p class="stat-value">{{ userData.followers }}</p>
       <p class="stat-label">粉丝</p>
     </div>
     <div class="stat-item">
-      <p class="stat-value">{{ following }}</p>
+      <p class="stat-value">{{ userData.following }}</p>
       <p class="stat-label">关注</p>
     </div>
     <div class="stat-item">
-      <p class="stat-value">{{ likes }}</p>
-      <p class="stat-label">余额</p>
+      <p class="stat-value">{{ userData.likes }}</p>
+      <p class="stat-label">获赞</p>
     </div>
   </div>
 </template>
 
 <script setup>
 defineProps({
-  followers: Number,
-  following: Number,
-  likes: Number,
-  collections: Number,
+  userData: Object,
 })
 </script>
 

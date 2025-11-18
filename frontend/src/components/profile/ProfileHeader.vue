@@ -1,30 +1,84 @@
 <template>
-  <div class="profile-header">
-    <img :src="avatar" alt="avatar" class="avatar" />
-    <div class="user-info">
-      <h2 class="nickname">{{ nickname }}</h2>
-      <p class="username">{{ username }}</p>
-      <p class="bio">{{ bio }}</p>
+  <div v-if="userData" class="profile-header">
+    <div 
+      :class="['avatar-wrapper', { 'clickable': isOwnProfile }]"
+      @click="isOwnProfile ? openAvatarModal() : null"
+    >
+      <img 
+        :src="avatarUrl" 
+        alt="avatar" 
+        class="avatar" 
+        @error="handleAvatarError"
+      />
+      <div v-if="isOwnProfile" class="avatar-overlay">
+        <span class="avatar-hint">点击更换头像</span>
+      </div>
     </div>
-    <button class="config-button" @click="openModal">编辑</button>
+    <div class="user-info">
+      <h2 class="nickname">{{ userData.nickname }}</h2>
+      <p class="username">{{ userData.username }}</p>
+      <p class="bio">{{ userData.bio }}</p>
+    </div>
+    <button v-if="isOwnProfile" class="config-button" @click="openModal">编辑</button>
 
-    <!-- 弹窗 -->
-    <EditModal v-if="isModalOpen" @close="closeModal" />
+    <!-- 编辑资料弹窗 -->
+    <EditModal
+      v-if="isModalOpen"
+      :nickname="userData?.nickname || ''"
+      :bio="userData?.bio || ''"
+      @close="closeModal"
+      @save="handleSave"
+    />
+
+    <!-- 头像选择弹窗 -->
+    <AvatarModal
+      v-if="isAvatarModalOpen"
+      :currentAvatar="userData?.avatar || ''"
+      @close="closeAvatarModal"
+      @save="handleAvatarSave"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import EditModal from './EditModal.vue' // 和你登录注册弹窗同样结构
+import { ref, computed } from 'vue'
+import EditModal from './EditModal.vue'
+import AvatarModal from './AvatarModal.vue'
+import { useAuthStore } from '@/stores/auth'
 
-defineProps({
-  avatar: String,
-  nickname: String,
-  username: String,
-  bio: String,
+const props = defineProps({
+  userData: Object,
 })
 
+const emit = defineEmits(['update:userData'])
+
+const authStore = useAuthStore()
+
+// 判断是否是当前用户自己的主页
+const isOwnProfile = computed(() => {
+  const currentUsername = authStore.username
+  const profileUsername = props.userData?.username?.replace('@', '')
+  return currentUsername === profileUsername
+})
+
+// 默认头像URL
+const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
+
+// 计算头像URL，如果为空或加载失败则使用默认头像
+const avatarUrl = computed(() => {
+  return props.userData?.avatar || defaultAvatar
+})
+
+// 头像加载失败时的处理
+const handleAvatarError = (event) => {
+  // 如果当前不是默认头像，则切换到默认头像
+  if (event.target.src !== defaultAvatar) {
+    event.target.src = defaultAvatar
+  }
+}
+
 const isModalOpen = ref(false)
+const isAvatarModalOpen = ref(false)
 
 const openModal = () => {
   isModalOpen.value = true
@@ -32,6 +86,39 @@ const openModal = () => {
 
 const closeModal = () => {
   isModalOpen.value = false
+}
+
+const openAvatarModal = () => {
+  // 只有当前用户才能更换头像
+  const currentUsername = authStore.username
+  const profileUsername = props.userData?.username?.replace('@', '')
+  
+  if (currentUsername === profileUsername) {
+    isAvatarModalOpen.value = true
+  }
+}
+
+const closeAvatarModal = () => {
+  isAvatarModalOpen.value = false
+}
+
+const handleSave = (data) => {
+  // 通知父组件数据已更新
+  emit('update:userData', {
+    ...props.userData,
+    nickname: data.nickname,
+    bio: data.bio,
+  })
+  closeModal()
+}
+
+const handleAvatarSave = (data) => {
+  // 通知父组件头像已更新
+  emit('update:userData', {
+    ...props.userData,
+    avatar: data.avatar,
+  })
+  closeAvatarModal()
 }
 </script>
 
@@ -45,12 +132,52 @@ const closeModal = () => {
   /* transform: translateX(-50%); */
 }
 
+.avatar-wrapper {
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.avatar-wrapper.clickable {
+  cursor: pointer;
+}
+
+.avatar-wrapper.clickable:hover {
+  transform: scale(1.05);
+}
+
+.avatar-wrapper.clickable:hover .avatar-overlay {
+  opacity: 1;
+}
+
 .avatar {
   width: 100px; /* w-20 */
   height: 100px; /* h-20 */
   border-radius: 50%; /* rounded-full */
   border: 1px solid #d1d5db; /* border-gray-300 */
   object-fit: cover;
+  display: block;
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.avatar-hint {
+  color: white;
+  font-size: 12px;
+  text-align: center;
+  padding: 5px;
 }
 
 .user-info {
@@ -95,3 +222,4 @@ const closeModal = () => {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
 }
 </style>
+

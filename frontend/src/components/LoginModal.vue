@@ -82,6 +82,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { computed } from 'vue';
 import { watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 // 实时验证用户名
 const isUsernameValid = computed(() => usernameRegex.test(registerForm.username));
@@ -136,6 +137,7 @@ const validateInput = () => {
 import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();
+const router = useRouter();
 
 // 登录提交
 const handleLogin = async () => {
@@ -161,6 +163,8 @@ const handleLogin = async () => {
       authStore.setUsername(loginForm.username); // 保存用户名
       emit('login-success', loginForm.username); // ✅ 通知父组件登录成功，传递用户名
       closeModal();
+      // 登录成功后自动跳转到当前用户的个人主页
+      router.push(`/profile/${loginForm.username}`);
     } else if (response.status == 500){
       errorMsg.value = '服务器运行错误';
     } else {
