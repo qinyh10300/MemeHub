@@ -124,15 +124,46 @@ const fetchUserProfile = async () => {
 }
 
 // 处理用户数据更新
+const buildAvatarUrlWithTimestamp = (url) => {
+  if (!url) return url
+
+  // data/blob URL 不需要额外处理
+  if (url.startsWith('data:') || url.startsWith('blob:')) {
+    return url
+  }
+
+  const timestamp = Date.now().toString()
+
+  try {
+    const [base, ...rest] = url.split('?')
+    const originalQuery = rest.join('?')
+    const params = new URLSearchParams(originalQuery)
+    params.set('t', timestamp)
+    const queryString = params.toString()
+    return queryString ? `${base}?${queryString}` : `${base}?t=${timestamp}`
+  } catch (error) {
+    console.warn('构建头像URL失败，返回原始URL:', error)
+    return url
+  }
+}
+
 const handleUserDataUpdate = (updatedData) => {
+  console.log('ProfileView - 收到用户数据更新:', updatedData)
   // 更新本地数据
   if (updatedData) {
-    userData.value.nickname = updatedData.nickname || userData.value.nickname
-    userData.value.bio = updatedData.bio || userData.value.bio
-    userData.value.avatar = updatedData.avatar || userData.value.avatar
+    if (updatedData.nickname !== undefined) {
+      userData.value.nickname = updatedData.nickname
+    }
+    if (updatedData.bio !== undefined) {
+      userData.value.bio = updatedData.bio
+    }
+    if (updatedData.avatar !== undefined && updatedData.avatar) {
+      // 如果头像URL更新了，确保使用新的URL，同时保留原有查询参数
+      userData.value.avatar = buildAvatarUrlWithTimestamp(updatedData.avatar)
+      console.log('ProfileView - 更新头像URL:', userData.value.avatar)
+    }
   }
-  // 可选：重新获取数据以确保同步（如果需要从服务器获取最新数据）
-  // fetchUserProfile()
+  console.log('ProfileView - 更新后的userData:', userData.value)
 }
 
 // 组件挂载时获取数据
