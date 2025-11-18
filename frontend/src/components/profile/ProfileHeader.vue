@@ -5,6 +5,7 @@
       @click="isOwnProfile ? openAvatarModal() : null"
     >
       <img 
+        :key="avatarUrl"
         :src="avatarUrl" 
         alt="avatar" 
         class="avatar" 
@@ -71,9 +72,21 @@ const avatarUrl = computed(() => {
 
 // 头像加载失败时的处理
 const handleAvatarError = (event) => {
-  // 如果当前不是默认头像，则切换到默认头像
-  if (event.target.src !== defaultAvatar) {
+  console.log('头像加载失败 - 当前URL:', event.target.src)
+  // 如果当前不是默认头像，且不是刚上传的头像，则切换到默认头像
+  // 避免刚上传的头像因为加载延迟而被误判为失败
+  const currentSrc = event.target.src
+  if (currentSrc !== defaultAvatar && !currentSrc.includes('/avatars/')) {
+    console.log('切换到默认头像')
     event.target.src = defaultAvatar
+  } else if (currentSrc.includes('/avatars/')) {
+    // 如果是上传的头像加载失败，可能是URL问题，尝试重新加载
+    console.log('上传的头像加载失败，尝试重新加载')
+    // 添加时间戳强制重新加载
+    const urlWithTimestamp = currentSrc.includes('?') 
+      ? currentSrc.split('?')[0] + '?t=' + Date.now()
+      : currentSrc + '?t=' + Date.now()
+    event.target.src = urlWithTimestamp
   }
 }
 
@@ -113,11 +126,19 @@ const handleSave = (data) => {
 }
 
 const handleAvatarSave = (data) => {
+  console.log('ProfileHeader - 收到头像更新:', data)
+  // 确保avatar存在且不为空
+  if (!data || !data.avatar) {
+    console.error('ProfileHeader - 收到的头像数据无效:', data)
+    return
+  }
   // 通知父组件头像已更新
-  emit('update:userData', {
+  const updatedData = {
     ...props.userData,
     avatar: data.avatar,
-  })
+  }
+  console.log('ProfileHeader - 发送更新数据，新头像URL:', updatedData.avatar)
+  emit('update:userData', updatedData)
   closeAvatarModal()
 }
 </script>

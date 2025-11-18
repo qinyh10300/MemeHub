@@ -183,14 +183,19 @@ export async function updateNickname(req, res) {
 
     // 更新头像（如果提供）
     if (avatar !== undefined) {
+      console.log('更新头像 - 收到的avatar:', avatar);
       // 验证头像URL格式（简单验证）
       if (avatar && avatar.trim().length > 0 && !avatar.startsWith('http')) {
+        console.log('头像URL格式无效:', avatar);
         return res.status(400).json({ code: 1004, message: '头像URL格式无效' });
       }
-      user.avatar = avatar.trim();
+      user.avatar = avatar ? avatar.trim() : '';
+      console.log('更新头像 - 设置后的user.avatar:', user.avatar);
     }
 
     await user.save();
+    
+    console.log('更新头像 - 保存后的user.avatar:', user.avatar);
 
     res.json({
       code: 0,
