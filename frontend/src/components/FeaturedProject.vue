@@ -279,6 +279,15 @@ onMounted(() => {
   justify-content: center;   
 }
 
+.card-grid .thumb img{
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+  /* display: flex;        */
+  align-items: center;      
+  justify-content: center;   
+}
+
 .card-grid.list {
   display: flex;
   flex-direction: column;
@@ -291,7 +300,9 @@ onMounted(() => {
   flex-direction: row;
   align-items: center;
   background: var(--my-bg-soft);
+  background: var(--my-bg-soft);
   gap: 20px;
+  width: 100%; /* ✅ 占据整个主页面宽度 */
   width: 100%; /* ✅ 占据整个主页面宽度 */
   box-sizing: border-box;
 }

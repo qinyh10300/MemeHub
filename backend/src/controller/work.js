@@ -175,6 +175,12 @@ export const deleteMeme = async (req, res) => {
     const token = req.headers.token;
     const username = token; // TODO:暂时用username作为token内容
 
+    // 删除评论区
+    const comments = await Comment.find({ meme: memeId });
+    for (const comment of comments) {
+      await Comment.findByIdAndDelete(comment._id);
+    }
+
     // 查找模因
     const meme = await Meme.findById(memeId);
     if (!meme) {
@@ -364,6 +370,12 @@ export const getMemeComments = async (req, res) => {
     const memeId = req.params.id;
     const sortBy = req.query.sortBy === 'time' ? 'createdAt' : 'likes';
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1; // 默认倒序
+    // 检查meme是否存在
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      return res.status(404).json({ message: `模因${memeId}不存在` });
+    }
+
     const comments = await Comment.find({ meme: memeId })
       .select('_id content reference user createdAt likes')
       .populate('user', 'username nickname -_id')

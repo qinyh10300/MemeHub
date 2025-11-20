@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import CreateMemeView from '../views/CreateMeme.vue';
-import ProfileView from '../views/Profile.vue';
+import ProfileView from '../views/ProfileView.vue';
 import SearchView from '../views/SearchView.vue';
 
 const router = createRouter({
@@ -23,17 +23,14 @@ const router = createRouter({
       component: CreateMemeView,
     },
     {
-      path: '/profile',
+      path: '/profile/:id', // 动态路由，:id 表示用户的唯一标识
       name: 'Profile',
-      component: ProfileView,
+      component: () => import('../views/ProfileView.vue'), // 懒加载 ProfileView
     },
     {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
+      path: '/meme/:id', // 动态路由，:id 表示模因的唯一标识
+      name: 'MemeDetail',
+      component: () => import('../views/MemeDetailView.vue'),   // 动态导入（懒加载）
     },
   ],
 })

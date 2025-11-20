@@ -1,6 +1,7 @@
 <template>
   <div class="app-root">
     <main class="container">
+
       <section class="left">
         <h1>创建新的模因币</h1>
         <create-coin 

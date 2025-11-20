@@ -13,6 +13,21 @@ const handleSearch = () => {
 }
 </script>
 
+<script setup>
+import { ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+
+const searchQuery = ref('')
+const router = useRouter()
+
+// 点击“搜索”按钮后的处理逻辑
+const handleSearch = () => {
+  if (searchQuery.value.trim()) {
+    router.push({ path: '/api/search-meme', query: { keyword: searchQuery.value.trim() } })
+  }
+}
+</script>
+
 <template>
   <div class="search-container">
     <div class="search-box">
