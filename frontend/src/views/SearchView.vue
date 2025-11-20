@@ -14,7 +14,7 @@ import FeaturedProjects from '../components/FeaturedProject.vue'
         <Search />
       </div>
       <div class="content-card">
-        <FeaturedProjects />
+        <!-- <FeaturedProjects /> -->
       </div>
   </main>
 </template>
