@@ -1,5 +1,5 @@
 <template>
-  <div class="profile-stats">
+  <div v-if="userData" class="profile-stats">
     <div class="stat-item">
       <p class="stat-value">{{ userData.followers }}</p>
       <p class="stat-label">粉丝</p>
@@ -16,7 +16,7 @@
 </template>
 
 <script setup>
-const { userData } = defineProps({
+defineProps({
   userData: Object,
 })
 </script>

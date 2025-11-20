@@ -115,23 +115,14 @@ export async function resetPassword(req, res) {
   }
 }
 
-// 更新昵称
+// 更新昵称、个人简介和头像
 export async function updateNickname(req, res) {
   try {
-    const { nickname } = req.body;
+    const { nickname, bio, avatar } = req.body;
     const token = req.headers.token || req.headers.authorization?.replace('Bearer ', '');
     
     if (!token) {
       return res.status(401).json({ code: 1003, message: '未提供认证令牌' });
-    }
-
-    if (!nickname || nickname.trim().length === 0) {
-      return res.status(400).json({ code: 1004, message: '昵称不能为空' });
-    }
-
-    // 验证昵称长度（可选，根据需求调整）
-    if (nickname.length > 20) {
-      return res.status(400).json({ code: 1004, message: '昵称长度不能超过20个字符' });
     }
 
     // 从 token 中获取用户信息
@@ -153,33 +144,72 @@ export async function updateNickname(req, res) {
       return res.status(401).json({ code: 1002, message: '用户不存在或令牌无效' });
     }
 
-    const trimmedNickname = nickname.trim();
+    // 更新昵称（如果提供）
+    if (nickname !== undefined) {
+      if (!nickname || nickname.trim().length === 0) {
+        return res.status(400).json({ code: 1004, message: '昵称不能为空' });
+      }
 
-    // 检查昵称是否已被其他用户使用
-    const existingUser = await User.findOne({ 
-      nickname: trimmedNickname,
-      _id: { $ne: user._id } // 排除当前用户
-    });
+      // 验证昵称长度
+      if (nickname.length > 20) {
+        return res.status(400).json({ code: 1004, message: '昵称长度不能超过20个字符' });
+      }
 
-    if (existingUser) {
-      return res.status(400).json({ code: 1006, message: '该昵称已被使用，请选择其他昵称' });
+      const trimmedNickname = nickname.trim();
+
+      // 检查昵称是否已被其他用户使用
+      const existingUser = await User.findOne({ 
+        nickname: trimmedNickname,
+        _id: { $ne: user._id } // 排除当前用户
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ code: 1006, message: '该昵称已被使用，请选择其他昵称' });
+      }
+
+      user.nickname = trimmedNickname;
     }
 
-    // 更新昵称
-    user.nickname = trimmedNickname;
+    // 更新个人简介（如果提供）
+    if (bio !== undefined) {
+      // 验证个人简介长度
+      if (bio.length > 200) {
+        return res.status(400).json({ code: 1004, message: '个人简介不能超过200个字符' });
+      }
+      
+      // 如果只包含空白字符，设置为空字符串
+      user.bio = bio.trim();
+    }
+
+    // 更新头像（如果提供）
+    if (avatar !== undefined) {
+      console.log('更新头像 - 收到的avatar:', avatar);
+      // 验证头像URL格式（简单验证）
+      if (avatar && avatar.trim().length > 0 && !avatar.startsWith('http')) {
+        console.log('头像URL格式无效:', avatar);
+        return res.status(400).json({ code: 1004, message: '头像URL格式无效' });
+      }
+      user.avatar = avatar ? avatar.trim() : '';
+      console.log('更新头像 - 设置后的user.avatar:', user.avatar);
+    }
+
     await user.save();
+    
+    console.log('更新头像 - 保存后的user.avatar:', user.avatar);
 
     res.json({
       code: 0,
-      message: '昵称更新成功',
-      nickname: user.nickname
+      message: '更新成功',
+      nickname: user.nickname,
+      bio: user.bio,
+      avatar: user.avatar
     });
   } catch (error) {
     // 处理数据库唯一性约束错误
     if (error.code === 11000 && error.keyPattern?.nickname) {
       return res.status(400).json({ code: 1006, message: '该昵称已被使用，请选择其他昵称' });
     }
-    console.error('更新昵称时发生错误:', error);
+    console.error('更新用户信息时发生错误:', error);
     res.status(500).json({ code: 5000, message: '服务器内部错误' });
   }
 }

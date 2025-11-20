@@ -127,45 +127,29 @@ const fetchProjects = async () => {
   error.value = null;
 
   try {
-    const res = {
-      data: [
-        {
-          name: "Dogecoin",
-          symbol: "DOGE",
-          creator: "2r5Vfc",
-          time: "1h ago",
-          mc: "18.2B",
-          mcPercent: 80,
-          change: +2.34,
-          image: new URL('@/assets/doge.png', import.meta.url).href,
-          desc: "Dogecoin（狗狗币）是一种以Doge表情包为灵感的加密货币，以社区驱动和趣味性著称，旨在让数字货币变得更加亲民有趣。"
-        },
-        {
-          name: "Pepe the Frog",
-          symbol: "PEPE",
-          creator: "Matt Furie",
-          time: "1h ago",
-          mc: "653M",
-          mcPercent: 91,
-          change: +3.17,
-          image: new URL('@/assets/pepe.avif', import.meta.url).href,
-          desc: "Pepe the Frog（青蛙佩佩）起源于网络漫画，是网络文化中最具影响力的表情之一，后来被加密社区赋予象征幽默与团结的精神。"
-        },
-        {
-          name: "Bored Ape Yacht Club",
-          symbol: "BAYC",
-          creator: "Yuga Labs",
-          time: "3h ago",
-          mc: "590M",
-          mcPercent: 89,
-          change: -1.24,
-          image: new URL('@/assets/bayc.webp', import.meta.url).href,
-          desc: "Bored Ape Yacht Club（无聊猿游艇俱乐部）是由Yuga Labs推出的知名NFT系列，共有1万只独特猿猴形象，象征数字身份、艺术品位与专属社群。"
-        }
+    // 第一步：获取 memeIds 列表
+    const res = await axios.get("http://localhost:3000/api/meme-list?sortBy=time&sortOrder=asc");
+    const memeIds = Array.isArray(res.data.memeIds) ? res.data.memeIds : [];
 
-      ]
-    };
-    projects.value = res.data;
+    // 第二步：并发获取每个 meme 的详细信息
+    const memeDetails = await Promise.all(
+      memeIds.slice(0, 10).map(id =>
+        axios.get(`http://localhost:3000/api/meme/${id}`).then(r => r.data)
+      )
+    );
+
+    // 第三步：适配字段
+    projects.value = memeDetails.map(item => ({
+      name: item.title,
+      symbol: item.ticker,
+      creator: item.author?.username || "未知",
+      time: new Date(item.createdAt).toLocaleString(),
+      mc: item.likes,
+      mcPercent: Math.min(item.likes * 10, 100),
+      change: 0,
+      image: item.imageUrl ? `http://localhost:3000/${item.imageUrl.replace(/^\/+/, '')}` : '',
+      desc: item.description
+    }));
   } catch (err) {
     console.error(err);
     error.value = "Failed to load project data.";
@@ -226,9 +210,19 @@ onMounted(() => {
   gap: 16px;
 }
 
+.card-grid .thumb img{
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+  /* display: flex;        */
+  align-items: center;      
+  justify-content: center;   
+}
+
 .card-grid.list {
   display: flex;
   flex-direction: column;
+  width: 100%;
   gap: 10px;
 }
 
@@ -236,8 +230,9 @@ onMounted(() => {
   display: flex;
   flex-direction: row;
   align-items: center;
+  background: var(--my-bg-soft);
   gap: 20px;
-  width: 75vw; /* ✅ 占据整个主页面宽度 */
+  width: 100%; /* ✅ 占据整个主页面宽度 */
   box-sizing: border-box;
 }
 
@@ -270,7 +265,7 @@ onMounted(() => {
 
 .featured-container {
     position: relative;
-    background-color: #0b0b0b;
+    background-color: #000000;
     color: white;
     /* padding: 20px 30px; */
     border-radius: 12px;
@@ -388,6 +383,7 @@ onMounted(() => {
 .info h3 {
   font-size: 16px;
   margin-bottom: 2px;
+  margin-top: 0px;
 }
 
 .symbol {
@@ -401,6 +397,13 @@ onMounted(() => {
   font-size: 12px;
   color: #bbb;
   line-height: 1.4;
+
+  /* ✅ 限制最多显示两行，超出部分显示省略号 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;   /* 限制显示 2 行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .meta {
