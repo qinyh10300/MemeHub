@@ -52,7 +52,9 @@
 <script setup>
 import CreateCoin from '../components/creatememe/CreateCoin.vue'
 import PrimaryButton from '../components/creatememe/PrimaryButton.vue'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 
 const createCoinRef = ref(null)
 const formData = ref(null)
@@ -79,8 +81,11 @@ watch(selectedFile, (newFile) => {
   }
 })
 
+const authStore = useAuthStore()
+const router = useRouter()
+const server_ip = 'http://localhost:3000' // 后端服务器地址
+
 // 组件卸载时清理URL
-import { onUnmounted } from 'vue'
 onUnmounted(() => {
   if (filePreviewUrl.value) {
     URL.revokeObjectURL(filePreviewUrl.value)
@@ -99,7 +104,13 @@ function handleFileSelected(file) {
 
 // 处理创建模因币
 async function handleCreateMeme() {
-  // console.log('Creating meme with data:', formData.value, 'and file:', selectedFile.value)
+  // 检查是否登录
+  if (!authStore.username) {
+    alert('请先登录')
+    router.push('/')
+    return
+  }
+
   if (!selectedFile.value) {
     alert('请先选择文件')
     return
@@ -119,21 +130,78 @@ async function handleCreateMeme() {
   uploadData.append('file', selectedFile.value)
 
   try {
-    const res = await fetch('/api/upload-meme', {
+    console.log('发送创建模因请求:', {
+      url: `${server_ip}/api/upload-meme`,
+      username: authStore.username,
+      hasFile: !!selectedFile.value,
+      formData: formData.value
+    })
+
+    const res = await fetch(`${server_ip}/api/upload-meme`, {
       method: 'POST',
+      headers: {
+        'token': authStore.username || authStore.token || '' // 传递用户名作为token
+        // 注意：不要设置 Content-Type，让浏览器自动设置（包含 boundary）
+      },
       body: uploadData
     })
-    if (res.ok) {
-      alert('上传成功')
-      // 清空表单
-      createCoinRef.value?.resetForm()
-      formData.value = null
-      selectedFile.value = null
+    
+    console.log('响应状态:', res.status, res.statusText)
+    console.log('响应头:', Object.fromEntries(res.headers.entries()))
+
+    let result
+    try {
+      const text = await res.text()
+      console.log('响应内容:', text)
+      result = text ? JSON.parse(text) : {}
+    } catch (parseError) {
+      console.error('JSON解析失败:', parseError)
+      throw new Error(`服务器响应格式错误: ${res.statusText}`)
+    }
+    
+    if (res.ok || res.status === 201) {
+      if (result.code === 0) {
+        alert('创建模因成功！')
+        // 清空表单
+        createCoinRef.value?.resetForm()
+        formData.value = null
+        selectedFile.value = null
+        // 清理预览URL
+        if (filePreviewUrl.value) {
+          URL.revokeObjectURL(filePreviewUrl.value)
+          filePreviewUrl.value = ''
+        }
+        // 跳转到创建的模因详情页
+        if (result.data?._id) {
+          router.push(`/meme/${result.data._id}`)
+        } else {
+          router.push('/')
+        }
+      } else {
+        // 处理业务错误
+        const errorMsg = result.message || '创建模因失败'
+        alert(errorMsg)
+        console.error('创建模因失败:', result)
+      }
     } else {
-      alert('上传失败')
+      // 处理HTTP错误响应
+      const errorMsg = result.message || `创建模因失败 (${res.status})`
+      alert(errorMsg)
+      console.error('创建模因失败:', result)
     }
   } catch (err) {
-    alert('上传出错')
+    console.error('创建模因时发生错误:', err)
+    console.error('错误详情:', {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    })
+    
+    if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+      alert(`网络连接失败，请检查：\n1. 后端服务器是否运行在 http://localhost:3000\n2. 网络连接是否正常`)
+    } else {
+      alert(`错误: ${err.message || '未知错误，请查看控制台'}`)
+    }
   }
 }
 </script>
