@@ -124,6 +124,7 @@ async function handleCreateMeme() {
       method: 'POST',
       body: uploadData
     })
+    console.log(`response: ${res}`)
     if (res.ok) {
       alert('上传成功')
       // 清空表单
