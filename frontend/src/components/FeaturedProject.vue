@@ -72,7 +72,12 @@
 
     <!-- 卡片展示区 -->
     <div v-else :class="['card-grid', { list: !isGridView }]">
-      <div v-for="(item, index) in projects" :key="index" class="project-card">
+      <div 
+        v-for="(item, index) in projects" 
+        :key="index" 
+        class="project-card"
+        @click="goToMemeDetail(item)"
+      >
         <div class="thumb">
           <img :src="item.image" alt="project" />
         </div>
@@ -111,6 +116,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import axios from "axios";
+import { useRouter } from "vue-router";
 
 const nsfw = ref(false);
 const animations = ref(true);
@@ -139,7 +145,8 @@ const fetchProjects = async () => {
     );
 
     // 第三步：适配字段
-    projects.value = memeDetails.map(item => ({
+    projects.value = memeDetails.map((item) => ({
+      memeId: item._id, // 新增：保存 memeId
       name: item.title,
       symbol: item.ticker,
       creator: item.author?.username || "未知",
@@ -150,12 +157,64 @@ const fetchProjects = async () => {
       image: item.imageUrl ? `http://localhost:3000/${item.imageUrl.replace(/^\/+/, '')}` : '',
       desc: item.description
     }));
-  } catch (err) {
-    console.error(err);
-    error.value = "Failed to load project data.";
+  } 
+  // 测试用例数据
+  catch (err) {
+    console.error("后端请求失败，使用预定义数据:", err);
+    
+    // 使用预定义数据作为后备方案 - 添加模拟的 memeId
+    projects.value = [
+      {
+        memeId: "1", 
+        name: "Dogecoin",
+        symbol: "DOGE",
+        creator: "2r5Vfc",
+        time: "1h ago",
+        mc: "18.2B",
+        mcPercent: 80,
+        change: +2.34,
+        image: new URL('@/assets/doge.png', import.meta.url).href,
+        desc: "Dogecoin（狗狗币）是一种以Doge表情包为灵感的加密货币，以社区驱动和趣味性著称，旨在让数字货币变得更加亲民有趣。"
+      },
+      {
+        memeId: "2", // 新增模拟ID
+        name: "Pepe the Frog",
+        symbol: "PEPE",
+        creator: "Matt Furie",
+        time: "1h ago",
+        mc: "653M",
+        mcPercent: 91,
+        change: +3.17,
+        image: new URL('@/assets/pepe.avif', import.meta.url).href,
+        desc: "Pepe the Frog（青蛙佩佩）起源于网络漫画，是网络文化中最具影响力的表情之一，后来被加密社区赋予象征幽默与团结的精神。"
+      },
+      {
+        memeId: "3", // 新增模拟ID
+        name: "Bored Ape Yacht Club",
+        symbol: "BAYC",
+        creator: "Yuga Labs",
+        time: "3h ago",
+        mc: "590M",
+        mcPercent: 89,
+        change: -1.24,
+        image: new URL('@/assets/bayc.webp', import.meta.url).href,
+        desc: "Bored Ape Yacht Club（无聊猿游艇俱乐部）是由Yuga Labs推出的知名NFT系列，共有1万只独特猿猴形象，象征数字身份、艺术品位与专属社群。"
+      }
+    ];
   } finally {
     loading.value = false;
   }
+  // 部署用
+  // catch (err) {
+  //   console.error(err);
+  //   error.value = "Failed to load project data.";
+  // } finally {
+  //   loading.value = false;
+  // }
+};
+
+const goToMemeDetail = (item) => {
+  router.push(`/meme/${item._id}`);
 };
 
 const changeFilter = (type) => {
@@ -208,6 +267,16 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
+  cursor: pointer;
+}
+
+.card-grid .thumb img{
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+  /* display: flex;        */
+  align-items: center;      
+  justify-content: center;   
 }
 
 .card-grid .thumb img{
@@ -231,7 +300,9 @@ onMounted(() => {
   flex-direction: row;
   align-items: center;
   background: var(--my-bg-soft);
+  background: var(--my-bg-soft);
   gap: 20px;
+  width: 100%; /* ✅ 占据整个主页面宽度 */
   width: 100%; /* ✅ 占据整个主页面宽度 */
   box-sizing: border-box;
 }
