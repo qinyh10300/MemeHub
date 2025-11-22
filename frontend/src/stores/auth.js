@@ -5,23 +5,43 @@ export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: '', // 登录后的 token
     username: '', // 登录的用户名
-    my_username: '', // 兼容 qyh 版本的字段名
+    nickname: '', // 登录的昵称
+    avatar: '', // 登录的头像
+    server_ip: 'http://localhost:3000', // 后端服务器地址
+    user_token: '', // 用户 token
   }),
   actions: {
     // 设置 token
     setToken(newToken) {
       this.token = newToken;
     },
-    // 设置用户名（同时设置两个字段以保持兼容）
+    // 设置用户名
     setUsername(newUsername) {
       this.username = newUsername;
-      this.my_username = newUsername;
+    },
+    // 设置昵称
+    setNickname(newNickname) {
+      this.nickname = newNickname;
+    },
+    // 设置头像
+    setAvatar(newAvatar) {
+      this.avatar = newAvatar;
+    },
+    // 设置 server_ip
+    setServerIp(newServerIp) {
+      this.server_ip = newServerIp;
+    },
+    // 设置 user_token
+    setUserToken(newUserToken) {
+      this.user_token = newUserToken;
     },
     // 清除登录状态
     clearAuth() {
       this.token = '';
       this.username = '';
-      this.my_username = '';
+      this.nickname = '';
+      this.avatar = '';
+      this.user_token = '';
     },
   },
 });

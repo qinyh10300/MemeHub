@@ -8,32 +8,87 @@
         <KlineChart/>
     </div>
 
-    <!-- 右半边：评论区 -->
+    <!-- 右半边：评论区（异步等待） -->
     <div class="right-side">
-        <CommentSection />
+      <CommentSection v-if="meme.id" :meme_id="meme.id" />
     </div>
     </div>
 </div>
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import MemeCard from '@/components/meme_detail_view/MemeInfo.vue'
 import CommentSection from '@/components/meme_detail_view/Comments.vue'
 import KlineChart from '@/components/meme_detail_view/KlineChart.vue'
+import { useRoute } from 'vue-router'
 
-// 父组件传入模因数据
+const server_ip = 'http://localhost:3000' // 后端服务器地址
+
+// 模因数据
 const meme = reactive({
-image: new URL('@/assets/pepe.avif', import.meta.url).href,
-title: 'Just a chill guy 2',
-code: 'CHILLGUY2',
-author: 'chillguydev',
-avatar: 'https://i.pravatar.cc/150?img=12', // 用户头像
-username: 'user001', // 用户名
-nickname: '有趣的用户', // 昵称
-desc: '这是一个轻松随意的模因示例...这是一个轻松随意的模因示例...这是一个轻松随意的模因示例...这是一个轻松随意的模因示例...这是一个轻松随意的模因示例...这是一个轻松随意的模因示例...这是一个轻松随意的模因示例...这是一个轻松随意的模因示例...这是一个轻松随意的模因示例...这是一个轻松随意的模因示例...',
-time: '2 小时前',
-likes: 12,
+  image: '',
+  title: '',
+  code: '',
+  author: '',
+  avatar: '',
+  username: '',
+  nickname: '',
+  desc: '',
+  time: '',
+  likes: 0,
+  id: '',
+})
+
+const route = useRoute() // 获取路由实例
+const memeId = ref(route.params.id).value // 获取动态路由参数 :id（模因ID）
+console.log('memeId:', memeId)
+
+// 从API加载模因数据
+const fetchMemeData = async () => {
+    try {
+    // const currentUsername = username.value // 使用 ref 的值
+    // console.log('正在获取用户信息，用户名/ID:', currentUsername)
+    const url = `${server_ip}/api/meme/${memeId}`
+    console.log('请求URL:', url)
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'token': "12345678"
+      },
+    })
+
+    console.log('响应状态:', response.status, response.statusText)
+    const result = await response.json()
+    console.log('API返回结果:', result)
+
+    if (response.status === 200) {
+      // meme.image = result.imageUrl
+      meme.image = result.imageUrl ? `http://localhost:3000/${result.imageUrl.replace(/^\/+/, '')}` : '',
+      meme.title = result.title
+      meme.code = result.ticker
+      meme.author = result.author
+      meme.desc = result.description || '暂无描述'
+      meme.time = new Date(result.createdAt).toLocaleString()
+      meme.likes = result.likes
+      meme.id = result._id
+    } else if (response.status == 404){
+      console.error('该模因不存在', response.status)
+    } else {
+      console.error('模因数据加载失败：', response.status)
+    }
+  } catch (error) {
+    console.error('模因数据加载错误：', error)
+    }
+  console.log(meme.image)
+  console.log("meme.id: ", meme.id)
+}
+
+// 组件挂载时获取数据
+onMounted(() => {
+    fetchMemeData()
 })
 </script>
 
@@ -61,8 +116,8 @@ width: 1200px; /* 设置固定宽度 */
 /* 左半边 */
 .left-side {
 position: relative;
-top: 50px;
-flex: 2; /* 左半边占 2 份 */
+top: 0px;
+flex: 3; /* 左半边占 2 份 */
 display: flex;
 flex-direction: column;
 gap: 24px;
@@ -72,8 +127,8 @@ overflow-y: auto; /* 左边可滚动 */
 /* 右半边 */
 .right-side {
   position: sticky; /* 设置为 sticky 定位 */
-  top: 50px; /* 距离视口顶部 50px */
-  flex: 1;
+  top: 0px; /* 距离视口顶部 50px */
+  flex: 2;
   overflow-y: auto; /* 右边独立滚动 */
   height: calc(100vh - 50px); /* 设置高度为视口高度减去顶部偏移 */
 }

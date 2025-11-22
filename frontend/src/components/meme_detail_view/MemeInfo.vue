@@ -1,7 +1,7 @@
 <template>
 <div class="meme-card">
     <!-- 模因图片 -->
-    <img class="meme-image" :src="meme.image" alt="meme" />
+    <img class="meme-image" :src=meme.image alt="meme" />
 
     <div>
         <!-- 模因标题 -->
@@ -28,7 +28,7 @@
                     class="author-username"
                     @click="goToProfile(meme.authorId)"
                 >
-                    @{{ meme.username }}
+                    @{{ meme.author.username }}
                 </span>
             </span>
             <span class="dot"></span>

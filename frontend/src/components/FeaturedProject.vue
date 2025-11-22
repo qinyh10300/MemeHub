@@ -118,6 +118,9 @@ import { ref, onMounted } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
 
+// ✅ 使用 Vue Router
+const router = useRouter();
+
 const nsfw = ref(false);
 const animations = ref(true);
 const currentFilter = ref("featured");
@@ -214,7 +217,8 @@ const fetchProjects = async () => {
 };
 
 const goToMemeDetail = (item) => {
-  router.push(`/meme/${item._id}`);
+  // console.log("item: ", item)
+  router.push(`/meme/${item.memeId}`);
 };
 
 const changeFilter = (type) => {
