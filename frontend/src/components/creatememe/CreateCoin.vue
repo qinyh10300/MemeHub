@@ -1,11 +1,13 @@
 <template>
     <div class="create-coin-card">
-
-        <coin-details-form v-model="coinForm" />
+        <coin-details-form 
+            v-model="coinForm"
+            @update:modelValue="onFormUpdate"
+        />
 
         <upload-box
+            v-model="file"
             @file-change="onFileChange"
-            @upload="onUpload"
         />
     </div>
 </template>
@@ -13,47 +15,55 @@
 <script setup>
 import CoinDetailsForm from './CoinDetailsForm.vue'
 import UploadBox from './UploadBox.vue'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+
+const emit = defineEmits(['form-data', 'file-selected'])
 
 const coinForm = ref({
     coinname: '',
-    ticker: ''
+    ticker: '',
+    description: '',
+    social: {
+        website: '',
+        weibo: '',
+        xiaohongshu: ''
+    }
 })
-const selectedFile = ref(null)
+
+const file = ref(null)
+
+// 监听表单变化并通知父组件
+watch(coinForm, (newVal) => {
+    emit('form-data', newVal)
+}, { deep: true })
+
+watch(file, (newFile) => {
+    emit('file-selected', newFile)
+})
+
+function onFormUpdate(newForm) {
+    coinForm.value = newForm
+    // console.log('111 Creating meme with data:', newForm, 'and file:', coinForm.value)
+    emit('form-data', newForm)
+}
 
 function onFileChange(file) {
-    selectedFile.value = file
+    emit('file-selected', file)
 }
 
-async function onUpload() {
-    if (!selectedFile.value) {
-        alert('Please select a file first.')
-        return
-    }
-    if (!coinForm.value.coinname || !coinForm.value.ticker) {
-        alert('请填写 coinname 和 ticker')
-        return
-    }
-    const formData = new FormData()
-    formData.append('title', coinForm.value.coinname)
-    formData.append('ticker', coinForm.value.ticker)
-    formData.append('file', selectedFile.value)
+// 重置表单的方法
+// function resetForm() {
+//     coinForm.value = {
+//         coinname: '',
+//         ticker: '',
+//         description: '',
+//         social: { website: '', weibo: '', xiaohongshu: '' }
+//     }
+// }
 
-    try {
-        const res = await fetch('/api/upload-meme', {
-            method: 'POST',
-            body: formData
-        })
-        if (res.ok) {
-            alert('上传成功')
-        } else {
-            alert('上传失败')
-        }
-    } catch (err) {
-        alert('上传出错')
-    }
-    selectedFile.value = null
-}
+// defineExpose({
+//     resetForm
+// })
 </script>
 
 <style scoped>

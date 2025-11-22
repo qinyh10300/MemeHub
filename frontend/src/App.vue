@@ -1,32 +1,107 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import LoginModal from './components/LoginModal.vue'
+import LoginOutModal from './components/LoginOutModal.vue'
 import { RouterLink, RouterView } from 'vue-router'
+import { useAuthStore } from './stores/auth'
+
+const authStore = useAuthStore()
+const server_ip = authStore.server_ip // 后端服务器地址
+
+// 默认头像URL
+const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
+
+// 用户数据（包含所有信息）
+const userData = ref({
+  avatar: defaultAvatar, // 默认头像
+  nickname: '',
+  username: '',
+})
+
+// 从后端获取用户数据
+const fetchUserData = async (user_token) => {
+  try {    
+    const currentUsername = user_token
+    const url = `${server_ip}/api/user/${currentUsername}`
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'token': authStore.username || authStore.token || '', // 传递用户名作为token（后端当前使用用户名作为token）
+      },
+    })
+
+    const result = await response.json()
+    if (response.ok && result.code === 0) {
+      const data = result.data
+      console.log("data: ", data)
+      userData.value = {
+        avatar: data.avatar || defaultAvatar, // 如果没有头像，使用默认头像
+        nickname: data.nickname,
+        username: data.username,
+      }
+    } else {
+      console.error('获取用户信息失败:', result)
+    }
+  } catch (err) {
+    console.error('获取用户信息时发生错误:', err)
+  }
+}
+
+// 检查登录状态，1小时内不用重复登录
+const checkLoginStatus = async () => {
+  const token = localStorage.getItem('auth_token');
+  const username = localStorage.getItem('auth_username');
+  const loginTime = localStorage.getItem('login_time');
+
+  if (token && username && loginTime) {
+    const currentTime = Date.now();
+    const oneHour = 60 * 60 * 1000; // 一小时的毫秒数
+
+    // 如果登录时间未超过一小时，则恢复登录状态
+    if (currentTime - loginTime < oneHour) {
+      authStore.setToken(token);
+      authStore.setUsername(username);
+      authStore.setUserToken(username);
+      await fetchUserData(username);
+      authStore.setNickname(userData.value.nickname); // 保存昵称
+      authStore.setAvatar(userData.value.avatar); // 保存头像
+      console.log('登录状态已恢复');
+    } else {
+      // 登录时间已过期，清除本地存储
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_username');
+      localStorage.removeItem('login_time');
+      console.log('登录状态已过期');
+    }
+  }
+};
+// 在应用初始化时调用
+checkLoginStatus();
 
 const showLogin = ref(false)
-const isLoggedIn = ref(false) // ✅ 登录状态
+const showLoginOut = ref(false)
+
+// 计算登录状态和用户名
+const isLoggedIn = computed(() => !!authStore.token)
+const username = computed(() => authStore.username)
 
 // 登录成功后的回调
-const handleLoginSuccess = () => {
-  isLoggedIn.value = true   // ✅ 登录成功后显示两个按钮
+const handleLoginSuccess = (userName) => {
   showLogin.value = false   // ✅ 同时关闭登录弹窗
+}
+
+// 退出登录成功后的回调
+const handleLoginOutOutSuccess = (userName) => {
+  showLoginOut.value = false   // ✅ 同时关闭退出登录弹窗
 }
 </script>
 
 <template>
-  <!-- 登录按钮（未登录时显示） -->
-  <button v-if="!isLoggedIn" @click="showLogin = true" class="fixed-button">
-    登录
-  </button>
-
-  <!-- 登录成功后显示的两个按钮 -->
-  <div v-else class="fixed-buttons">
-    <RouterLink to="/create-meme" class="fixed-button2">创建模因</RouterLink>
-    <RouterLink to="/profile" class="fixed-button2">个人主页</RouterLink>
-  </div>
-
   <!-- 登录弹窗 -->
   <LoginModal v-if="showLogin" @close="showLogin = false" @login-success="handleLoginSuccess" />
+  <LoginOutModal v-else-if="showLoginOut" @close="showLoginOut = false" @login-success="handleLoginOutOutSuccess" />
 
   <div class="app-container">
     <!-- 左侧导航栏 -->
@@ -41,19 +116,53 @@ const handleLoginSuccess = () => {
           <img class="nav-icon" src="@/assets/home.png" alt="Home" />
           <span class="nav-text">主页面</span>
         </RouterLink>
-        <RouterLink to="/about" class="nav-item" active-class="active">
+        <RouterLink v-if="isLoggedIn" :to="`/profile/${username}`" class="nav-item" active-class="active">
           <img class="nav-icon" src="@/assets/profile.png" alt="Profile" />
           <span class="nav-text">个人主页</span>
         </RouterLink>
-        <!-- <RouterLink to="/login" class="nav-item" active-class="active">
+        <RouterLink v-if="isLoggedIn" :to="`/create-meme`" class="nav-item" active-class="active">
+          <img class="nav-icon" src="@/assets/doge.png" alt="Profile" />
+          <span class="nav-text">创建模因</span>
+        </RouterLink>
+        <div v-if="!isLoggedIn" @click="showLogin = true" class="nav-item" active-class="active">
           <span class="nav-icon">🔑</span>
-          <span class="nav-text">Login</span>
-        </RouterLink> -->
+          <span class="nav-text">登录</span>
+        </div>
+        <div v-if="isLoggedIn" @click="showLoginOut = true" class="nav-item" active-class="active">
+          <img class="nav-icon" src="@/assets/logo.svg" alt="Profile" />
+          <span class="nav-text">退出登录</span>
+        </div>
       </nav>
     </aside>
 
     <!-- 主内容区域 -->
     <main class="main-content">
+      <!-- ⭐ 新增这一行 -->
+      <!-- 顶部栏 -->
+      <div class="top-bar">
+        <!-- 未登录按钮 -->
+        <button v-if="!isLoggedIn" @click="showLogin = true" class="login-btn">
+          登录
+        </button>
+
+        <!-- 已登录按钮 -->
+        <div v-else class="top-buttons">
+          <!-- 左侧的头像 + 昵称 + 用户名 -->
+          <div class="user-info">
+            <img :src="authStore.avatar" alt="avatar" class="user-avatar" />
+            <div class="user-text">
+              <span class="nickname">{{ authStore.nickname }}</span>
+              <span class="username">@{{ authStore.username }}</span>
+            </div>
+          </div>
+
+          <div class="button-group">
+            <RouterLink to="/create-meme" class="top-button">创建模因</RouterLink>
+            <button @click="showLoginOut = true" class="top-button">退出登录</button>
+          </div>
+        </div>
+      </div>
+
       <!-- 路由视图 -->
       <RouterView />
     </main>
@@ -261,5 +370,100 @@ const handleLoginSuccess = () => {
   /* 当鼠标悬停在按钮上时的样式 */
   background-color: #2c9c6a;
   /* 悬停时背景变为更深的绿色，让用户有交互反馈 */
+}
+
+/* 顶部工具栏，占据主区域最上方一行 */
+.top-bar {
+  width: 100%;
+  height: 60px;
+  padding: 10px 20px;
+
+  display: flex;
+  justify-content: flex-end; /* 按钮靠右 */
+  align-items: center;
+
+  background: #000000; 
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 顶部按钮统一样式 */
+.top-button {
+  background-color: #42b983;
+  color: black;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.top-button:hover {
+  background-color: #2c9c6a;
+}
+
+.login-btn {
+  background-color: #42b983;
+  color: black;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.login-btn:hover {
+  background-color: #2c9c6a;
+}
+
+.top-buttons {
+  width: 100%;
+  display: flex;
+  justify-content: space-between; /* 左右分布 */
+  align-items: center;
+}
+
+.button-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;   /* 控制两个按钮的间距 */
+}
+
+/* 左侧用户信息容器 */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 圆形头像 */
+.user-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #42b983;
+}
+
+/* 用户名+昵称文本区域 */
+.user-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+/* 昵称：正常大小、白色 */
+.nickname {
+  font-size: 18px;
+  color: white;
+  font-weight: 600;
+}
+
+/* @用户名：更小、蓝色 */
+.username {
+  font-size: 14px;
+  color: #3498db;
+  font-weight: 500;
 }
 </style>

@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import CreateMemeView from '../views/CreateMeme.vue';
-import ProfileView from '../views/Profile.vue';
+import ProfileView from '../views/ProfileView.vue';
+import SearchView from '../views/SearchView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,24 +13,52 @@ const router = createRouter({
       component: HomeView,
     },
     {
+      path: '/',
+      name: 'search',
+      component: SearchView,
+    },
+    {
       path: '/create-meme',
       name: 'CreateMeme',
       component: CreateMemeView,
     },
     {
-      path: '/profile',
+      path: '/profile/:id', // 动态路由，:id 表示用户的唯一标识
       name: 'Profile',
-      component: ProfileView,
+      component: () => import('../views/ProfileView.vue'), // 懒加载 ProfileView
+      meta: { requiresAuth: true },
     },
     {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
+      path: '/meme/:id', // 动态路由，:id 表示模因的唯一标识
+      name: 'MemeDetail',
+      component: () => import('../views/MemeDetailView.vue'),   // 动态导入（懒加载）
+      meta: { requiresAuth: true },
     },
   ],
 })
+
+import { useAuthStore } from '@/stores/auth';
+
+// 全局导航守卫
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore(); // 获取 Pinia 的 authStore
+  const isLoggedIn = !!authStore.token; // 检查是否已登录
+
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    // 如果路由需要登录且用户未登录
+    console.log('未登录，跳转到登录弹窗');
+    authStore.setToken(''); // 确保 token 清空
+    next(false); // 阻止导航
+    const loginModal = document.querySelector('.login-btn'); // 找到登录按钮
+    // 👉 在整个 HTML 文档中
+    // 👉 找到 class="fixed-button" 的第一个元素
+    // 👉 返回它的 DOM 节点，并赋给 loginModal
+    if (loginModal) {
+      loginModal.click(); // 触发登录弹窗
+    }
+  } else {
+    next(); // 允许导航
+  }
+});
 
 export default router

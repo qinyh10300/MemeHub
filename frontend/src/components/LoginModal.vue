@@ -82,13 +82,16 @@
 import { ref, reactive, onMounted } from 'vue'
 import { computed } from 'vue';
 import { watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 // 实时验证用户名
 const isUsernameValid = computed(() => usernameRegex.test(registerForm.username));
 // 实时验证密码
 const isPasswordValid = computed(() => passwordRegex.test(registerForm.password));
 
-const server_ip = 'http://localhost:3000' // 后端服务器地址
+import { useAuthStore } from '@/stores/auth';
+const authStore = useAuthStore();
+const server_ip = authStore.server_ip // 后端服务器地址
 
 const emit = defineEmits(['close'])
 
@@ -133,12 +136,53 @@ const validateInput = () => {
   if (isFormValid.value) errorMsg.value = ''
 }
 
+// 默认头像URL
+const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
+
+// 用户数据（包含所有信息）
+const userData = ref({
+  avatar: defaultAvatar, // 默认头像
+  nickname: '',
+  username: '',
+})
+
+// 从后端获取用户数据
+const fetchUserData = async (user_token) => {
+  try {    
+    const currentUsername = user_token
+    const url = `${server_ip}/api/user/${currentUsername}`
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'token': authStore.username || authStore.token || '', // 传递用户名作为token（后端当前使用用户名作为token）
+      },
+    })
+
+    const result = await response.json()
+    if (response.ok && result.code === 0) {
+      const data = result.data
+      console.log("data: ", data)
+      userData.value = {
+        avatar: data.avatar || defaultAvatar, // 如果没有头像，使用默认头像
+        nickname: data.nickname,
+        username: data.username,
+      }
+    } else {
+      console.error('获取用户信息失败:', result)
+    }
+  } catch (err) {
+    console.error('获取用户信息时发生错误:', err)
+  }
+}
+
 // 登录提交
 const handleLogin = async () => {
-  alert('登录成功！');
-  emit('login-success'); // ✅ 通知父组件登录成功
-  closeModal();
-  return;
+  // alert('登录成功！');
+  // emit('login-success'); // ✅ 通知父组件登录成功
+  // closeModal();
+  // return;
   try {
     console.log('登录', loginForm)
     // 登录逻辑，比如发送请求
@@ -150,10 +194,28 @@ const handleLogin = async () => {
       body: JSON.stringify(loginForm)
     });
     const data = await response.json();
-    if (response.ok) {
+    // if (response.ok) {
+    if (response.status == 201) {
       alert('登录成功！');
-      emit('login-success'); // ✅ 通知父组件登录成功
+      authStore.setToken(data.token); // 设置全局 token
+      authStore.setUsername(loginForm.username); // 保存用户名
+      authStore.setUserToken(loginForm.username); // 保存用户token，目前就是用户名
+      await fetchUserData(loginForm.username);
+      authStore.setNickname(userData.value.nickname); // 保存昵称
+      authStore.setAvatar(userData.value.avatar); // 保存头像
+
+      // 保存 token 和登录时间到 localStorage
+      localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('auth_username', loginForm.username);
+      localStorage.setItem('login_time', Date.now()); // 保存当前时间戳
+
+      emit('login-success', loginForm.username); // ✅ 通知父组件登录成功，传递用户名
       closeModal();
+
+      // // 登录成功后自动跳转到当前用户的个人主页
+      // router.push(`/profile/${loginForm.username}`);
+    } else if (response.status == 500){
+      errorMsg.value = '服务器运行错误';
     } else {
       // errorMsg.value = data.message || '用户名或密码错误';
       errorMsg.value = '用户名或密码错误';
@@ -169,9 +231,6 @@ const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[-_*^#])[A-Za-z\d-_*^
 
 // 注册提交
 const handleRegister = async () => {
-  // 2.3 秒后清空错误信息
-  errorMsg.value = '用户名已被占用';
-  return;
   // 验证用户名和密码
   if (!isUsernameValid.value || !isPasswordValid.value) {
     triggerShake();
@@ -188,13 +247,15 @@ const handleRegister = async () => {
 
     const data = await response.json();
 
-    if (response.ok) {
+    // if (response.ok) {
+    if (response.status == 201) {
       alert('注册成功！');
       switchForm(); // 切换回登录表单
+    } else if (response.status == 400){
+      errorMsg.value = '用户名已被注册';
     } else {
-      // alert(data.message || '注册失败，请重试！');
-      // errorMsg.value = data.message || '用户名已被占用';
-      errorMsg.value = '用户名已被占用';
+      // errorMsg.value = data.message || '用户名或密码错误';
+      errorMsg.value = '服务器错误';
     }
   } catch (error) {
     console.error('注册时发生错误:', error);

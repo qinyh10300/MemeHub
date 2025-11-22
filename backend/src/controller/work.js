@@ -19,17 +19,17 @@ export const createMeme = async (req, res) => {
     const existTitle = await Meme.findOne({ title });
     if (existTitle) {
       if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
-      return res.status(400).json({ message: '该标题已存在，请更换标题' });
+      return res.status(400).json({ code: 1007, message: '该标题已存在，请更换标题' });
     }
     const existTicker = await Meme.findOne({ ticker });
     if (existTicker) {
       if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
-      return res.status(400).json({ message: '该ticker已存在，请更换ticker' });
+      return res.status(400).json({ code: 1008, message: '该ticker已存在，请更换ticker' });
     }
 
     // 检查是否上传图片
     if (!file) {
-      return res.status(400).json({ message: '图片未上传' });
+      return res.status(400).json({ code: 1009, message: '图片未上传' });
     }
 
     // 查找作者的用户Id
@@ -38,7 +38,7 @@ export const createMeme = async (req, res) => {
       if (file) {
         fs.unlink(path.join(file.destination, file.filename), () => {});
       }
-      return res.status(400).json({ message: 'author_id不存在' });
+      return res.status(401).json({ code: 1002, message: '用户不存在，请先登录' });
     }
 
     // 先用原文件名创建meme，后续再重命名
@@ -60,31 +60,37 @@ export const createMeme = async (req, res) => {
       fs.unlinkSync(newPath); // 删除原来的同名文件
     }
     
-    // 手动设置 imageUrl 并保存
-    newMeme.imageUrl = `${Const.MEME_DIR}${newFilename}`;
+    // 手动设置 imageUrl 并保存（确保路径以 / 开头）
+    newMeme.imageUrl = `/${Const.MEME_DIR}${newFilename}`;
     await newMeme.save();
 
     fs.renameSync(oldPath, newPath);
 
-    res.status(201).json(
-      await Meme.findById(newMeme._id)
-        .select('title imageUrl description author createdAt likes')
-        .populate('author', 'username -_id')
-    );
+    const memeData = await Meme.findById(newMeme._id)
+      .select('title imageUrl description author createdAt likes ticker _id')
+      .populate('author', 'username -_id')
+      .lean();
+
+    res.status(201).json({
+      code: 0,
+      message: '创建模因成功',
+      data: memeData
+    });
   } catch (error) {
     // 如果有文件，出错时也删除
     if (req.file) {
       fs.unlink(path.join(req.file.destination, req.file.filename), () => {});
     }
     // 输出详细错误信息
+    console.error('创建模因失败:', error);
     res.status(500).json({
+      code: 5000,
       message: '创建模因失败',
-      error: {
+      error: process.env.NODE_ENV === 'development' ? {
         name: error.name,
         message: error.message,
-        stack: error.stack,
-        ...error
-      }
+        stack: error.stack
+      } : undefined
     });
   }
 };
@@ -174,6 +180,12 @@ export const deleteMeme = async (req, res) => {
     const memeId = req.params.id;
     const token = req.headers.token;
     const username = token; // TODO:暂时用username作为token内容
+
+    // 删除评论区
+    const comments = await Comment.find({ meme: memeId });
+    for (const comment of comments) {
+      await Comment.findByIdAndDelete(comment._id);
+    }
 
     // 查找模因
     const meme = await Meme.findById(memeId);
@@ -364,6 +376,12 @@ export const getMemeComments = async (req, res) => {
     const memeId = req.params.id;
     const sortBy = req.query.sortBy === 'time' ? 'createdAt' : 'likes';
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1; // 默认倒序
+    // 检查meme是否存在
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      return res.status(404).json({ message: `模因${memeId}不存在` });
+    }
+
     const comments = await Comment.find({ meme: memeId })
       .select('_id content reference user createdAt likes')
       .populate('user', 'username nickname -_id')
