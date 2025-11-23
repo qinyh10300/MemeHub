@@ -160,7 +160,6 @@ async function handleCreateMeme() {
       throw new Error(`服务器响应格式错误: ${res.statusText}`)
     }
     
-    console.log(`response: ${res}`)
     if (res.ok || res.status === 201) {
       if (result.code === 0) {
         alert('创建模因成功！')
@@ -210,7 +209,7 @@ async function handleCreateMeme() {
 
 
 <style scoped>
-.app-root{ min-height:100vh; background:var(--bg); color:var(--fg); overflow-y: auto; font-family:Inter,system-ui,Arial; background: var(--my-bg-soft); width:100%}
+.app-root{ min-height:100vh; background:var(--bg); color:var(--fg); font-family:Inter,system-ui,Arial; overflow-y: auto; background: var(--my-bg-soft); width:100%}
 .topbar{ padding:24px 40px; border-bottom:1px solid rgba(255, 255, 255, 0.03)}
 .container{ display:flex; gap:28px; padding:28px 40px; width:100%; margin:0 auto;  }
 .container h1{ display:flex; margin:0; font-size:20px; font-weight:600; padding:36px 0 0 36px;}

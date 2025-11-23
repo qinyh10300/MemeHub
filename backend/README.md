@@ -32,11 +32,13 @@ cp .env_exmaple .env
 ```env
 JWT_SECRET=a_token_to_secret
 MONGODB_URI=mongodb://localhost:27017/MemeHub
+REVIEWER_REGISTER_SECRET=reviewer-secret
 ```
 
 **重要提示：**
 - 如果使用 MongoDB Atlas（云数据库），将 `MONGODB_URI` 替换为你的云数据库连接字符串
 - `JWT_SECRET` 建议使用更复杂的随机字符串（生产环境）
+- `REVIEWER_REGISTER_SECRET` 用于校验审核员注册请求，必须妥善保管
 
 ### 3. 确保 MongoDB 运行
 
@@ -59,6 +61,7 @@ npm run dev
 ## API 端点
 
 - `POST /api/register` - 用户注册
+- `POST /api/reviewer/register` - 审核员注册（Body: username、password、reviewerCode，reviewerCode 必须与 `REVIEWER_REGISTER_SECRET` 一致）
 - `POST /api/login` - 用户登录  
 - `POST /api/reset-password` - 重置密码
 

@@ -77,6 +77,8 @@ const uploadAvatar = multer({
 
 // 注册
 app.post('/api/register', Auth.register);
+// 审核员注册（仅后端）
+app.post('/api/reviewer/register', Auth.registerReviewer);
 // 登录
 app.post('/api/login', Auth.login);
 // 重设密码
@@ -114,6 +116,8 @@ app.use('/avatars', express.static(Const.AVATAR_DIR));
 app.post('/api/upload-meme', upload.single('file'), Work.createMeme);
 // 返回单个模因的详细信息
 app.get('/api/meme/:id', Work.getMemeDetail);
+// 返回指定模因id列表的详细信息（预览页）
+app.post('/api/meme/list', Work.getListMeme);
 // 返回预览页的模因列表
 app.get('/api/meme-list', Work.getMemeList);
 // 删除模因
@@ -132,6 +136,8 @@ app.get('/api/search-meme', Search.searchMeme);
 app.post('/api/meme/:id/comment', Work.commentMeme);
 // 读取指定模因的评论区
 app.get('/api/meme/:id/comments', Work.getMemeComments);
+// 读取指定评论id列表的评论信息
+app.post('/api/comment/list', Work.getListComment);
 // 点赞评论
 app.post('/api/comment/:id/like', Work.likeComment);
 // 删除评论

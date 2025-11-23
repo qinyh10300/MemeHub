@@ -89,7 +89,9 @@ const isUsernameValid = computed(() => usernameRegex.test(registerForm.username)
 // 实时验证密码
 const isPasswordValid = computed(() => passwordRegex.test(registerForm.password));
 
-const server_ip = 'http://localhost:3000' // 后端服务器地址
+import { useAuthStore } from '@/stores/auth';
+const authStore = useAuthStore();
+const server_ip = authStore.server_ip // 后端服务器地址
 
 const emit = defineEmits(['close'])
 
@@ -134,10 +136,46 @@ const validateInput = () => {
   if (isFormValid.value) errorMsg.value = ''
 }
 
-import { useAuthStore } from '@/stores/auth';
+// 默认头像URL
+const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
 
-const authStore = useAuthStore();
-const router = useRouter();
+// 用户数据（包含所有信息）
+const userData = ref({
+  avatar: defaultAvatar, // 默认头像
+  nickname: '',
+  username: '',
+})
+
+// 从后端获取用户数据
+const fetchUserData = async (user_token) => {
+  try {    
+    const currentUsername = user_token
+    const url = `${server_ip}/api/user/${currentUsername}`
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'token': authStore.username || authStore.token || '', // 传递用户名作为token（后端当前使用用户名作为token）
+      },
+    })
+
+    const result = await response.json()
+    if (response.ok && result.code === 0) {
+      const data = result.data
+      console.log("data: ", data)
+      userData.value = {
+        avatar: data.avatar || defaultAvatar, // 如果没有头像，使用默认头像
+        nickname: data.nickname,
+        username: data.username,
+      }
+    } else {
+      console.error('获取用户信息失败:', result)
+    }
+  } catch (err) {
+    console.error('获取用户信息时发生错误:', err)
+  }
+}
 
 // 登录提交
 const handleLogin = async () => {
@@ -161,10 +199,21 @@ const handleLogin = async () => {
       alert('登录成功！');
       authStore.setToken(data.token); // 设置全局 token
       authStore.setUsername(loginForm.username); // 保存用户名
+      authStore.setUserToken(loginForm.username); // 保存用户token，目前就是用户名
+      await fetchUserData(loginForm.username);
+      authStore.setNickname(userData.value.nickname); // 保存昵称
+      authStore.setAvatar(userData.value.avatar); // 保存头像
+
+      // 保存 token 和登录时间到 localStorage
+      localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('auth_username', loginForm.username);
+      localStorage.setItem('login_time', Date.now()); // 保存当前时间戳
+
       emit('login-success', loginForm.username); // ✅ 通知父组件登录成功，传递用户名
       closeModal();
-      // 登录成功后自动跳转到当前用户的个人主页
-      router.push(`/profile/${loginForm.username}`);
+
+      // // 登录成功后自动跳转到当前用户的个人主页
+      // router.push(`/profile/${loginForm.username}`);
     } else if (response.status == 500){
       errorMsg.value = '服务器运行错误';
     } else {

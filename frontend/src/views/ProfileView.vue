@@ -121,6 +121,7 @@ const fetchUserProfile = async () => {
   } finally {
     loading.value = false
   }
+  // console.log("111111111111111", userData.value.memesData['我创建的模因'])
 }
 
 // 处理用户数据更新

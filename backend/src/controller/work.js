@@ -103,7 +103,7 @@ export const getMemeDetail = async (req, res) => {
 
     const meme = await Meme.findById(memeId)
       .select('title imageUrl ticker description author createdAt likes comments status likeList')
-      .populate('author', 'username nickname -_id');
+      .populate('author', 'username nickname avatar bio -_id');
     if (!meme) {
       return res.status(404).json({ message: '模因不存在' });
     }
@@ -138,6 +138,43 @@ export const getMemeDetail = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: '获取模因详情失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const getListMeme = async (req, res) => {
+  try {
+    const memeIds = req.body.memeIds;
+    const token = req.headers.token;
+    const username = token; // TODO:暂时用username作为token内容
+
+    // 查询所有存在的 meme
+    const memes = await Meme.find({ _id: { $in: memeIds } })
+      .select('_id title imageUrl ticker description author createdAt likes')
+      .populate('author', 'username nickname avatar bio -_id')
+      .lean();
+
+    // 构建返回列表，按请求顺序，缺失的id补404
+    const memeMap = new Map(memes.map(meme => [meme._id.toString(), meme]));
+    const result = memeIds.map(id => {
+      const meme = memeMap.get(id);
+      if (meme) {
+        return meme;
+      } else {
+        return { _id: null };
+      }
+    });
+
+    res.status(200).json({ memes: result });
+  } catch (error) {
+    res.status(500).json({
+      message: '获取模因列表详情失败',
       error: {
         name: error.name,
         message: error.message,
@@ -376,31 +413,97 @@ export const getMemeComments = async (req, res) => {
     const memeId = req.params.id;
     const sortBy = req.query.sortBy === 'time' ? 'createdAt' : 'likes';
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1; // 默认倒序
+
     // 检查meme是否存在
     const meme = await Meme.findById(memeId);
     if (!meme) {
       return res.status(404).json({ message: `模因${memeId}不存在` });
     }
 
+    // 查询评论并排序
     const comments = await Comment.find({ meme: memeId })
-      .select('_id content reference user createdAt likes')
-      .populate('user', 'username nickname -_id')
+      .select('_id')
       .sort({ [sortBy]: sortOrder });
 
-    // 替换每个 comment 的 user 字段为 user.nickname
-    const commentsWithNickname = comments.map(comment => {
-      const obj = comment.toObject();
-      obj.user = obj.user?.nickname || obj.user?.username || ''; // 若无nickname则为空字符串
-      return obj;
-    });
+    // 返回排序后的评论id列表
+    const commentIds = comments.map(comment => comment._id);
 
     res.status(200).json({
-      message: '获取模因评论成功',
-      comments: commentsWithNickname
+      message: '获取模因评论ID列表成功',
+      commentIds
     });
   } catch (error) {
     res.status(500).json({
-      message: '获取模因评论失败',
+      message: '获取模因评论ID列表失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const getListComment = async (req, res) => {
+  try {
+    console.log('req.body:', req.body);
+    const commentIds = req.body.commentIds;
+    const token = req.headers.token;
+    const username = token; // TODO:暂时用username作为token内容、
+
+    const view_user = await User.findOne({ username });
+    if (!view_user) {
+      return res.status(404).json({ message: `用户${username}不存在` });
+    }
+
+    // 查询所有存在的 comment
+    const comments = await Comment.find({ _id: { $in: commentIds } })
+      .select('_id content reference user createdAt likes likeList')
+      .populate({
+        path: 'reference',
+        select: '_id content user createdAt likes',
+        populate: {
+          path: 'user',
+          select: 'username nickname avatar bio -_id'
+        }
+      })
+      .populate('user', 'username nickname avatar bio -_id')
+      .lean();
+
+    // 构建返回列表，按请求顺序，缺失的comment补null
+    const commentMap = new Map(comments.map(comment => [comment._id.toString(), comment]));
+    const result = commentIds.map(id => {
+      const comment = commentMap.get(id);
+      if (comment) {
+        // 处理 reference
+        if (!comment.reference) {
+          comment.reference = null;
+        } else {
+          // 处理 reference.user
+          if (!comment.reference.user) {
+            comment.reference.user = null;
+          }
+        }
+        // 处理 user
+        if (!comment.user) {
+          comment.user = null;
+        }
+        comment.is_liked = Array.isArray(comment.likeList) && comment.likeList.some(id => id.toString() === view_user._id.toString());
+        delete comment.likeList;
+        return comment;
+      } else {
+        return { content: null };
+      }
+    });
+
+    res.status(200).json({
+      message: '获取评论列表成功',
+      comments: result
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: '获取评论列表失败',
       error: {
         name: error.name,
         message: error.message,
