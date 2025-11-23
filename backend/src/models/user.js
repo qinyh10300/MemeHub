@@ -14,6 +14,7 @@ const userSchema = new Schema({
   favoriteList: { type: [Schema.Types.ObjectId], ref: 'Meme', default: [] },
   following: { type: [Schema.Types.ObjectId], ref: 'User', default: [] }, // 关注列表
   status: { type: String, enum: ['active', 'banned'], default: 'active' },
+  role: { type: String, enum: ['user', 'reviewer'], default: 'user' },
 
   verificationCode: String,
   verificationCodeExpiresAt: Date,
