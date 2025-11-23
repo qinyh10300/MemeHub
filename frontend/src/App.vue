@@ -96,6 +96,19 @@ const handleLoginSuccess = (userName) => {
 const handleLoginOutOutSuccess = (userName) => {
   showLoginOut.value = false   // ✅ 同时关闭退出登录弹窗
 }
+
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+// 路由至个人主页
+const goToProfile = (username) => {
+  if (username) {
+    router.push(`/profile/${username}`);
+  } else {
+    console.error('用户名不存在，无法跳转到个人主页');
+  }
+};
 </script>
 
 <template>
@@ -148,7 +161,7 @@ const handleLoginOutOutSuccess = (userName) => {
         <!-- 已登录按钮 -->
         <div v-else class="top-buttons">
           <!-- 左侧的头像 + 昵称 + 用户名 -->
-          <div class="user-info">
+          <div class="user-info" @click="goToProfile(authStore.username)" style="cursor: pointer;">
             <img :src="authStore.avatar" alt="avatar" class="user-avatar" />
             <div class="user-text">
               <span class="nickname">{{ authStore.nickname }}</span>

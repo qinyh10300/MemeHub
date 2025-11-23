@@ -1,7 +1,29 @@
 <script setup>
 import Search from '../components/Search.vue'
-import FeaturedProjects from '../components/FeaturedProject.vue'
+import SearchedProjects from '../components/SearchedProject.vue'
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const searchResults = ref([])
+const searchKeyword = ref('')
+
+onMounted(() => {
+  // 获取 params 中的 keyword
+  searchKeyword.value = route.query.keyword
+  
+  // 获取 state 中的 searchResults
+  if (route.state && route.state.searchResults) {
+    searchResults.value = route.state.searchResults
+  }
+
+  // 打印所有信息
+  console.log('搜索ID:', searchKeyword.value)
+  console.log('搜索结果:', searchResults.value)
+  console.log('完整路由信息:', route)
+})
 </script>
+
 
 <template>
   <main>
@@ -14,7 +36,7 @@ import FeaturedProjects from '../components/FeaturedProject.vue'
         <Search />
       </div>
       <div class="content-card">
-        <!-- <FeaturedProjects /> -->
+        <SearchedProjects :results="searchResults" />
       </div>
   </main>
 </template>
