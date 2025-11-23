@@ -13,6 +13,19 @@
     - 400：用户名已被注册
     - 500：服务器错误
 
+### 1.1 **审核员注册**
+  - 方法：POST
+  - 路径：/api/reviewer/register
+  - 请求体：
+    - username：审核员用户名，String
+    - password：审核员密码，String
+    - reviewerCode：审核员注册密钥，String（需与环境变量 `REVIEWER_REGISTER_SECRET` 一致）
+  - 响应体：
+    - 201：成功
+    - 400：用户名或密码缺失
+    - 403：审核员注册密钥错误
+    - 500：服务器错误
+
 ### 2. **用户登录**
   - 方法：POST
   - 路径：/api/login
@@ -21,6 +34,8 @@
     - password：用户密码，String
   - 响应体：
     - 201：成功
+       - token：JWT
+       - user：包含 id、username、nickname、role，其中 role 可用于区分普通用户与审核员
 
 ### 3. **重设密码**
   - 方法：POST

@@ -77,6 +77,8 @@ const uploadAvatar = multer({
 
 // 注册
 app.post('/api/register', Auth.register);
+// 审核员注册（仅后端）
+app.post('/api/reviewer/register', Auth.registerReviewer);
 // 登录
 app.post('/api/login', Auth.login);
 // 重设密码

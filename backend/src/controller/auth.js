@@ -5,28 +5,36 @@ const { sign, verify } = pkg;
 import { User } from '../models/user.js';
 import { generateNickname } from '../utils/nickname.js';
 
-// 注册
-export async function register(req, res) {
+async function createUserWithRole({ username, password, role }) {
+  const salt = await genSalt(10);
+  const hashedPassword = await hash(password, salt);
+  const nickname = await generateNickname();
+
+  const newUser = new User({
+    username,
+    password: hashedPassword,
+    nickname,
+    role,
+  });
+
+  await newUser.save();
+  return { nickname };
+}
+
+async function registerWithRole(req, res, role, successMessage) {
   try {
     const { username, password } = req.body;
-    const salt = await genSalt(10);
-    const hashedPassword = await hash(password, salt);
+    if (!username || !password) {
+      return res.status(400).json({ code: 1000, message: '用户名和密码不能为空' });
+    }
 
-    // 自动生成昵称（确保唯一性）
-    const nickname = await generateNickname();
+    const { nickname } = await createUserWithRole({ username, password, role });
 
-    const newUser = new User({
-      username,
-      password: hashedPassword,
-      nickname
-    });
-
-    await newUser.save();
-
-    res.status(201).json({
+    return res.status(201).json({
       code: 0,
-      message: '注册成功，用户信息已存入数据库！',
-      nickname
+      message: successMessage,
+      nickname,
+      role,
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -38,19 +46,12 @@ export async function register(req, res) {
         // 昵称重复，重新生成并重试（这种情况应该很少发生）
         try {
           const { username, password } = req.body;
-          const salt = await genSalt(10);
-          const hashedPassword = await hash(password, salt);
-          const newNickname = await generateNickname();
-          const newUser = new User({
-            username,
-            password: hashedPassword,
-            nickname: newNickname
-          });
-          await newUser.save();
+          const { nickname: newNickname } = await createUserWithRole({ username, password, role });
           return res.status(201).json({
             code: 0,
-            message: '注册成功，用户信息已存入数据库！',
-            nickname: newNickname
+            message: successMessage,
+            nickname: newNickname,
+            role,
           });
         } catch (retryError) {
           console.error('重试注册时发生错误:', retryError);
@@ -59,8 +60,29 @@ export async function register(req, res) {
       }
     }
     console.error('注册时发生错误:', error);
-    res.status(500).json({ code: 5000, message: '服务器内部错误' });
+    return res.status(500).json({ code: 5000, message: '服务器内部错误' });
   }
+}
+
+// 注册
+export async function register(req, res) {
+  return registerWithRole(req, res, 'user', '注册成功，用户信息已存入数据库！');
+}
+
+// 审核员注册
+export async function registerReviewer(req, res) {
+  const reviewerSecret = process.env.REVIEWER_REGISTER_SECRET;
+  if (!reviewerSecret) {
+    console.error('未配置 REVIEWER_REGISTER_SECRET，无法完成审核员注册');
+    return res.status(500).json({ code: 5001, message: '未配置审核员注册密钥，请联系管理员' });
+  }
+
+  const { reviewerCode } = req.body;
+  if (!reviewerCode || reviewerCode !== reviewerSecret) {
+    return res.status(403).json({ code: 1010, message: '审核员注册密钥无效' });
+  }
+
+  return registerWithRole(req, res, 'reviewer', '审核员注册成功，信息已存入数据库！');
 }
 
 // 登录 
@@ -75,14 +97,21 @@ export async function login(req, res) {
     if (!isMatch) {
       return res.status(401).json({ code: 1002, message: '用户名或密码错误' });
     }
-    const payload = { user: { id: user.id } };
+    const role = user.role || 'user';
+    const payload = { user: { id: user.id, role } };
     const token = sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
     user.loginToken = token;
     await user.save();
     res.status(201).json({
       code: 0,
       message: '登录成功',
-      token
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        nickname: user.nickname,
+        role,
+      },
     });
       
   } catch (error) {
