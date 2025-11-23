@@ -52,18 +52,18 @@ function onFileChange(file) {
 }
 
 // 重置表单的方法
- function resetForm() {
-     coinForm.value = {
-         coinname: '',
-         ticker: '',
-         description: '',
-         social: { website: '', weibo: '', xiaohongshu: '' }
-     }
- }
+function resetForm() {
+    coinForm.value = {
+        coinname: '',
+        ticker: '',
+        description: '',
+        social: { website: '', weibo: '', xiaohongshu: '' }
+    }
+}
 
- defineExpose({
-     resetForm
- })
+defineExpose({
+    resetForm
+})
 </script>
 
 <style scoped>

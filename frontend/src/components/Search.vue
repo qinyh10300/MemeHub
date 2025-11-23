@@ -1,16 +1,58 @@
 <script setup>
 import { ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
+const server_ip = 'http://localhost:3000'
 const searchQuery = ref('')
 const router = useRouter()
+// const isLoading = ref(false)
+// const authStore = useAuthStore()
 
-// 点击“搜索”按钮后的处理逻辑
-const handleSearch = () => {
-  if (searchQuery.value.trim()) {
-    router.push({ path: '/search', query: { q: searchQuery.value.trim() } })
-  }
-}
+// // 点击"搜索"按钮后的处理逻辑
+// const handleSearch = async () => {
+//   if (!searchQuery.value.trim()) return
+  
+//   isLoading.value = true
+//   try {
+//     // 调用搜索 API
+//     const res = await fetch(`${server_ip}/api/search-meme?keyword=${encodeURIComponent(searchQuery.value.trim())}&sortBy=time&sortOrder=des`)
+//     // const res = await fetch(`${server_ip}/api/search-meme?`, {
+//     //   method: 'POST',
+//     //   headers: {
+//     //     'token': authStore.username || authStore.token || '' // 传递用户名作为token
+//     //     // 注意：不要设置 Content-Type，让浏览器自动设置（包含 boundary）
+//     //   }
+//     // })
+//     // console.log('搜索请求发送:', {
+//     //   url: `${server_ip}/api/search-meme`,
+//     //   keyword: searchQuery.value.trim(),
+//     //   response: res
+//     // })
+//     if (!res.ok) {
+//       throw new Error('搜索失败')
+//     }
+    
+//     const searchResults = await res.json()
+//     console.log('搜索结果:', searchResults)
+//     // 跳转到搜索页面，并传递搜索结果
+//     router.push({ 
+//       name: 'SearchView', 
+//       query: { 
+//         keyword: searchQuery.value.trim()
+//       },
+//       state: {
+//         searchResults: searchResults
+//       }
+//     })
+    
+//   } catch (error) {
+//     console.error('搜索错误:', error)
+//     alert('搜索失败，请重试')
+//   } finally {
+//     isLoading.value = false
+//   }
+// }
 </script>
 
 <template>
