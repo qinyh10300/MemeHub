@@ -55,6 +55,41 @@
   - 401：未提供认证令牌/用户不存在或令牌无效
   - 500：服务器错误
 
+### 5. **上传头像**
+  - 方法：POST
+  - 路径：/api/upload-avatar
+  - Headers：
+    - token：临时使用 username，后续切换为 JWT
+  - 请求体：
+    - FormData，字段名为 avatar，文件大小 ≤ 5MB
+  - 响应体：
+    - code: 0 表示成功
+    - avatar：上传后的头像 URL
+    - 401：未提供 token 或 token 无效
+    - 400：未上传头像文件
+
+### 6. **获取默认头像列表**
+  - 方法：GET
+  - 路径：/api/avatars/default
+  - 响应体：
+    - code: 0 表示成功
+    - data：默认头像数组，每个元素包含
+      - id：头像编号（从 0 开始）
+      - url：头像图片地址
+
+### 7. **选择默认头像**
+  - 方法：POST
+  - 路径：/api/avatars/select
+  - Headers：
+    - token：临时使用 username，后续切换为 JWT
+  - 请求体：
+    - avatarId：默认头像编号，对应 `GET /api/avatars/default` 返回的 id
+  - 响应体：
+    - code: 0 表示成功
+    - avatar：设置后的头像 URL
+    - 401：未提供 token 或 token 无效
+    - 400：avatarId 不合法
+
 
 ## 二、模因信息
 
@@ -241,6 +276,14 @@
     - comments：评论列表
       - _id：评论id
       - reference：引用id，没有引用则为null
+      - content：评论内容
+      - createdAt：创建时间
+      - likes：点赞数
+      - isLiked：当前用户是否点赞
+      - userId：评论作者的用户ID
+      - user：评论作者的用户名
+      - nickname：评论作者昵称
+      - avatar：评论作者头像（若用户未上传则返回默认头像）
   
 ### 3. **获取列表评论**
   - 方法：POST

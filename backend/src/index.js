@@ -11,6 +11,7 @@ import * as Auth from './controller/auth.js';
 import * as Work from './controller/work.js';
 import * as Search from './controller/search.js';
 import * as Profile from './controller/profile.js';
+import * as Avatar from './controller/avatar.js';
 import * as Const from './configs/const.js';
 import * as Review from './controller/review.js';
 
@@ -100,6 +101,10 @@ app.get('/api/user/:username', Profile.getUserProfile);
 app.post('/api/user/:username/follow', Profile.followUser);
 // 上传用户头像
 app.post('/api/upload-avatar', uploadAvatar.single('avatar'), Profile.uploadAvatar);
+// 默认头像
+app.get('/api/avatars/default', Avatar.getDefaultAvatars);
+// 选择默认头像
+app.post('/api/avatars/select', Avatar.selectDefaultAvatar);
 // 如果使用GET方法访问关注API，返回错误提示
 app.get('/api/user/:username/follow', (req, res) => {
   res.status(405).json({
