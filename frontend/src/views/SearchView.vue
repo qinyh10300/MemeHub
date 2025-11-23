@@ -1,7 +1,28 @@
 <script setup>
 import Search from '../components/Search.vue'
 import FeaturedProjects from '../components/FeaturedProject.vue'
+// import { ref, onMounted } from 'vue'
+// import { useRoute } from 'vue-router'
+
+// const route = useRoute()
+// const searchResults = ref([])
+// const searchKeyword = ref('')
+
+// onMounted(() => {
+//   // 获取查询参数
+//   searchKeyword.value = route.query.keyword || ''
+  
+//   // 获取通过 state 传递的搜索结果
+//   if (history.state && history.state.searchResults) {
+//     searchResults.value = history.state.searchResults
+//     console.log('接收到搜索结果:', searchResults.value)
+//   } else {
+//     // 如果没有通过 state 传递数据，可以在这里调用 API
+//     console.log('没有 state 数据，需要调用 API')
+//   }
+// })
 </script>
+
 
 <template>
   <main>
@@ -14,7 +35,7 @@ import FeaturedProjects from '../components/FeaturedProject.vue'
         <Search />
       </div>
       <div class="content-card">
-        <!-- <FeaturedProjects /> -->
+        <FeaturedProjects />
       </div>
   </main>
 </template>

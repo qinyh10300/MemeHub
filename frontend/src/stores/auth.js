@@ -25,3 +25,5 @@ export const useAuthStore = defineStore('auth', {
     },
   },
 });
+
+// export searchValue
