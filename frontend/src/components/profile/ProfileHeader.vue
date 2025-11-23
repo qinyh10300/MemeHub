@@ -20,7 +20,20 @@
       <p class="username">{{ userData.username }}</p>
       <p class="bio">{{ userData.bio }}</p>
     </div>
-    <button v-if="isOwnProfile" class="config-button" @click="openModal">编辑</button>
+    <div class="action-container">
+      <button v-if="isOwnProfile" class="config-button" @click="openModal">编辑</button>
+      <div v-else class="follow-wrapper">
+        <button
+          class="follow-button"
+          :class="{ following: userData?.isFollowing }"
+          :disabled="followLoading || !isLoggedIn"
+          @click="handleFollowToggle"
+        >
+          {{ followLoading ? '处理中...' : followButtonLabel }}
+        </button>
+        <p v-if="followError" class="follow-error">{{ followError }}</p>
+      </div>
+    </div>
 
     <!-- 编辑资料弹窗 -->
     <EditModal
@@ -69,6 +82,12 @@ const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
 const avatarUrl = computed(() => {
   return props.userData?.avatar || defaultAvatar
 })
+
+const serverIp = computed(() => authStore.server_ip || 'http://localhost:3000')
+const isLoggedIn = computed(() => !!(authStore.username || authStore.token))
+const followLoading = ref(false)
+const followError = ref('')
+const followButtonLabel = computed(() => (props.userData?.isFollowing ? '取消关注' : '关注'))
 
 // 头像加载失败时的处理
 const handleAvatarError = (event) => {
@@ -140,6 +159,51 @@ const handleAvatarSave = (data) => {
   console.log('ProfileHeader - 发送更新数据，新头像URL:', updatedData.avatar)
   emit('update:userData', updatedData)
   closeAvatarModal()
+}
+
+const handleFollowToggle = async () => {
+  if (!props.userData) {
+    return
+  }
+  if (!isLoggedIn.value) {
+    followError.value = '请先登录后再关注用户'
+    return
+  }
+
+  const targetUsername = props.userData.username?.replace('@', '')
+  if (!targetUsername) {
+    followError.value = '无法获取用户信息'
+    return
+  }
+
+  followLoading.value = true
+  followError.value = ''
+  try {
+    const response = await fetch(`${serverIp.value}/api/user/${targetUsername}/follow`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        token: authStore.token || authStore.username || ''
+      }
+    })
+    const result = await response.json()
+    if (!response.ok || result.code !== 0) {
+      throw new Error(result.message || '操作失败，请稍后重试')
+    }
+    const isFollowing = !!result.isFollowing
+    const followerDelta = isFollowing ? 1 : -1
+    const nextFollowers = Math.max(0, (props.userData.followers || 0) + followerDelta)
+    emit('update:userData', {
+      ...props.userData,
+      isFollowing,
+      followers: nextFollowers
+    })
+  } catch (error) {
+    console.error('关注/取消关注失败:', error)
+    followError.value = error.message || '操作失败，请稍后重试'
+  } finally {
+    followLoading.value = false
+  }
 }
 </script>
 
@@ -230,8 +294,7 @@ const handleAvatarSave = (data) => {
 }
 
 .config-button {
-  margin-bottom: 10px;   /* 顶部距离 */
-  margin-left: 30px;   /* 顶部距离 */
+  margin-bottom: 10px;
   display: flex;
   background-color: #67bb6e;
   color: black;
@@ -241,6 +304,45 @@ const handleAvatarSave = (data) => {
   font-size: 1.0rem;
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.action-container {
+  margin-left: 30px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.follow-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.follow-button {
+  margin-bottom: 4px;
+  background-color: #34a853;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.55rem 1.1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.follow-button.following {
+  background-color: #6b7280;
+}
+
+.follow-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.follow-error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #f87171;
 }
 </style>
 

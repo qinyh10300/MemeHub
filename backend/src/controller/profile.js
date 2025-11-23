@@ -106,6 +106,9 @@ export const getUserProfile = async (req, res) => {
     // 判断是否是查看自己的主页
     // 比较当前登录用户的ID和目标用户的ID
     const isOwnProfile = currentUser && currentUser._id.toString() === user._id.toString();
+    const viewerIsFollowing = currentUser && !isOwnProfile
+      ? currentUser.following.some((id) => id.toString() === user._id.toString())
+      : false;
     
     // 调试日志
     console.log('获取个人主页 - Token:', token);
@@ -211,6 +214,7 @@ export const getUserProfile = async (req, res) => {
       followers: followersCount, // 使用查询到的粉丝总数
       following: followingCount,
       likes: totalLikes,
+      isFollowing: viewerIsFollowing,
       memesData: {
         '我创作的模因': myMemes,
         '我的模因币': myCoins,

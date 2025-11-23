@@ -59,6 +59,7 @@ const userData = ref({
   following: 0,
   likes: 0,
   collections: 0,
+  isFollowing: false,
   memesData: createDefaultMemesData()
 })
 
@@ -110,6 +111,7 @@ const fetchUserProfile = async () => {
         following: data.following,
         likes: data.likes,
         collections: normalizedMemesData['我的收藏']?.length || 0,
+        isFollowing: Boolean(data.isFollowing),
         memesData: normalizedMemesData
       }
       console.log('更新后的userData:', userData.value)
@@ -165,6 +167,12 @@ const handleUserDataUpdate = (updatedData) => {
       // 如果头像URL更新了，确保使用新的URL，同时保留原有查询参数
       userData.value.avatar = buildAvatarUrlWithTimestamp(updatedData.avatar)
       console.log('ProfileView - 更新头像URL:', userData.value.avatar)
+    }
+    if (typeof updatedData.followers === 'number') {
+      userData.value.followers = Math.max(0, updatedData.followers)
+    }
+    if (updatedData.isFollowing !== undefined) {
+      userData.value.isFollowing = updatedData.isFollowing
     }
   }
   console.log('ProfileView - 更新后的userData:', userData.value)
