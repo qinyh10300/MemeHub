@@ -1,28 +1,44 @@
 <script setup>
 import Search from '../components/Search.vue'
 import SearchedProjects from '../components/SearchedProject.vue'
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
+
 const searchResults = ref([])
 const searchKeyword = ref('')
+const server_ip = 'http://localhost:3000'
 
+// 执行一次搜索
+const fetchSearchResults = async () => {
+  if (!searchKeyword.value) return
+
+  const res = await fetch(
+    `${server_ip}/api/search-meme?keyword=${encodeURIComponent(searchKeyword.value)}&sortBy=time&sortOrder=des`
+  )
+  const data = await res.json()
+
+  searchResults.value = data.memeIds || []
+  // console.log("结果更新:", searchResults.value)
+}
+
+// 首次进入页面
 onMounted(() => {
-  // 获取 params 中的 keyword
-  searchKeyword.value = route.query.keyword
-  
-  // 获取 state 中的 searchResults
-  if (route.state && route.state.searchResults) {
-    searchResults.value = route.state.searchResults
-  }
-
-  // 打印所有信息
-  console.log('搜索ID:', searchKeyword.value)
-  console.log('搜索结果:', searchResults.value)
-  console.log('完整路由信息:', route)
+  searchKeyword.value = route.query.keyword || ''
+  fetchSearchResults()
 })
+
+// 监听路由 keyword 变化 → 自动重新搜索
+watch(
+  () => route.query.keyword,
+  (newVal) => {
+    searchKeyword.value = newVal || ''
+    fetchSearchResults()
+  }
+)
 </script>
+
 
 
 <template>

@@ -40,6 +40,14 @@ const server_ip = 'http://localhost:3000' // 后端服务器地址
 // 默认头像URL
 const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
 
+const createDefaultMemesData = () => ({
+  '我创作的模因': [],
+  '我的模因币': [],
+  '我的收藏': [],
+  '粉丝': [],
+  '关注': [],
+})
+
 // 用户数据（包含所有信息）
 const userData = ref({
   id: '',
@@ -51,12 +59,8 @@ const userData = ref({
   following: 0,
   likes: 0,
   collections: 0,
-  memesData: {
-    '我创作的模因': [],
-    '我的模因币': [],
-    '我的收藏': [],
-    '粉丝': [],
-  }
+  isFollowing: false,
+  memesData: createDefaultMemesData()
 })
 
 // 加载状态
@@ -92,6 +96,11 @@ const fetchUserProfile = async () => {
       console.log('用户数据:', data)
       console.log('粉丝列表数据:', data.memesData?.['粉丝'])
       console.log('当前登录用户:', authStore.username, '查看的用户:', username.value, '是否自己的主页:', isOwnProfile.value)
+      const normalizedMemesData = {
+        ...createDefaultMemesData(),
+        ...(data.memesData || {})
+      }
+
       userData.value = {
         id: data.id,
         avatar: data.avatar || defaultAvatar, // 如果没有头像，使用默认头像
@@ -101,13 +110,9 @@ const fetchUserProfile = async () => {
         followers: data.followers,
         following: data.following,
         likes: data.likes,
-        collections: data.memesData['我的收藏']?.length || 0,
-        memesData: data.memesData || {
-          '我创作的模因': [],
-          '我的模因币': [],
-          '我的收藏': [],
-          '粉丝': [],
-        }
+        collections: normalizedMemesData['我的收藏']?.length || 0,
+        isFollowing: Boolean(data.isFollowing),
+        memesData: normalizedMemesData
       }
       console.log('更新后的userData:', userData.value)
       console.log('更新后的粉丝列表:', userData.value.memesData['粉丝'])
@@ -162,6 +167,12 @@ const handleUserDataUpdate = (updatedData) => {
       // 如果头像URL更新了，确保使用新的URL，同时保留原有查询参数
       userData.value.avatar = buildAvatarUrlWithTimestamp(updatedData.avatar)
       console.log('ProfileView - 更新头像URL:', userData.value.avatar)
+    }
+    if (typeof updatedData.followers === 'number') {
+      userData.value.followers = Math.max(0, updatedData.followers)
+    }
+    if (updatedData.isFollowing !== undefined) {
+      userData.value.isFollowing = updatedData.isFollowing
     }
   }
   console.log('ProfileView - 更新后的userData:', userData.value)

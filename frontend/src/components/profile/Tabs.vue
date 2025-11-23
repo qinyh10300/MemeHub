@@ -14,24 +14,24 @@
 
     <!-- Tab 内容 -->
     <div class="tab-content">
-      <!-- 粉丝列表：显示用户信息（仅自己的主页显示） -->
-      <template v-if="activeTab === '粉丝' && isOwnProfile">
+      <!-- 粉丝 / 关注列表：仅自己可见 -->
+      <template v-if="isUserListTab">
         <button
-          v-for="follower in pagedMemes"
-          :key="follower.id"
+          v-for="user in pagedMemes"
+          :key="user.id"
           class="meme-item"
-          @click="goToUserProfile(follower.username)"
+          @click="goToUserProfile(user.username)"
         >
           <img 
-            :src="getAvatarUrl(follower.avatar, follower.id)" 
+            :src="getAvatarUrl(user.avatar, user.id)" 
             alt="avatar" 
             class="meme-image"
             @error="handleAvatarError"
           />
           <div class="meme-info">
-            <h3 class="meme-name">{{ follower.nickname }}</h3>
-            <p class="meme-code">{{ follower.username }}</p>
-            <p class="meme-desc">粉丝</p>
+            <h3 class="meme-name">{{ user.nickname }}</h3>
+            <p class="meme-code">{{ user.username }}</p>
+            <p class="meme-desc">{{ activeTab }}</p>
           </div>
         </button>
       </template>
@@ -82,16 +82,20 @@ const props = defineProps({
 // 在模板中使用 isOwnProfile
 const isOwnProfile = computed(() => props.isOwnProfile)
 
-// Tabs - 如果是自己的主页，显示所有标签；如果不是，隐藏"粉丝"标签
+const userOnlyTabs = ['关注', '粉丝']
+
+// Tabs - 如果是自己的主页，显示所有标签；如果不是，隐藏粉丝/关注
 const tabs = computed(() => {
   const baseTabs = ['我创作的模因', '我的模因币', '我的收藏']
   if (props.isOwnProfile) {
-    return [...baseTabs, '粉丝']
+    return [...baseTabs, ...userOnlyTabs]
   }
   return baseTabs
 })
 
 const activeTab = ref('我创作的模因')
+
+const isUserListTab = computed(() => isOwnProfile.value && userOnlyTabs.includes(activeTab.value))
 
 // 当前页
 const currentPage = ref(1)
