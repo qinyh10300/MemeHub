@@ -64,6 +64,9 @@ npm run dev
 - `POST /api/reviewer/register` - 审核员注册（Body: username、password、reviewerCode，reviewerCode 必须与 `REVIEWER_REGISTER_SECRET` 一致）
 - `POST /api/login` - 用户登录  
 - `POST /api/reset-password` - 重置密码
+- `POST /api/upload-avatar` - 上传头像（FormData: avatar，Headers: token）
+- `GET /api/avatars/default` - 获取默认头像列表
+- `POST /api/avatars/select` - 选择默认头像（Body: avatarId，Headers: token）
 
 ## 依赖
 
