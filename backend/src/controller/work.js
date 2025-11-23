@@ -422,15 +422,12 @@ export const getMemeComments = async (req, res) => {
 
     // 查询评论并排序
     const comments = await Comment.find({ meme: memeId })
-      .select('_id')
+      .select('_id reference')
       .sort({ [sortBy]: sortOrder });
-
-    // 返回排序后的评论id列表
-    const commentIds = comments.map(comment => comment._id);
 
     res.status(200).json({
       message: '获取模因评论ID列表成功',
-      commentIds
+      comments
     });
   } catch (error) {
     res.status(500).json({
@@ -561,7 +558,7 @@ export const likeComment = async (req, res) => {
     });
   }
 };
-
+// TODO: 删除评论时需要同时从模因的评论列表中移除该评论ID（目前未成功）
 export const deleteComment = async (req, res) => {
   try {
     const commentId = req.params.id;
