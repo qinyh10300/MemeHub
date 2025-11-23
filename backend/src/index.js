@@ -148,6 +148,15 @@ app.delete('/api/comment/:id', Work.deleteComment);
 
 // 获取待审核模因列表
 app.get('/api/review/pending-meme-list', Review.getPendingMemeList);
+// 审核模因（通过或拒绝）
+app.post('/api/review/meme/:id', Review.reviewMeme);
+
+// 消息推送
+
+// 获取用户的全部消息
+app.get('/api/notifications', Profile.getNotifications);
+// 标记消息为已读
+app.post('/api/mark-notification-read', Profile.markNotificationListRead);
 
 // 2. 连接到MongoDB数据库
 const dbURI = process.env.MONGODB_URI;

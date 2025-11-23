@@ -117,7 +117,7 @@ export const getMemeDetail = async (req, res) => {
     const user = await User.findOne({ username });
     if (user) {
       is_author = meme.author.username === username;
-      // TODO:检查点赞失效
+
       console.log('likeList:', meme.likeList);
       console.log('user._id:', user._id);
       // is_liked = Array.isArray(meme.likeList) && meme.likeList.includes(user._id);
@@ -558,7 +558,7 @@ export const likeComment = async (req, res) => {
     });
   }
 };
-// TODO: 删除评论时需要同时从模因的评论列表中移除该评论ID（目前未成功）
+
 export const deleteComment = async (req, res) => {
   try {
     const commentId = req.params.id;

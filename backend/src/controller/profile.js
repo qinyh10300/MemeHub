@@ -1,5 +1,6 @@
 import { User } from '../models/user.js';
 import { Meme } from '../models/meme.js';
+import { Notification } from "../models/notification.js";
 import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
@@ -413,3 +414,78 @@ export const uploadAvatar = async (req, res) => {
   }
 };
 
+export const getNotifications = async (req, res) => {
+  try {
+    const token = req.headers.token;
+    const type = req.params.type || 'all';
+    if (!token) {
+      return res.status(401).json({ code: 1003, message: '未提供认证令牌' });
+    }
+    // 获取当前登录用户（临时使用username作为token）
+    const username = token; // TODO: 这里应改为实际的token解析逻辑
+
+    const user = await User.findOne({ username: username });
+    if (!user) {
+      return res.status(401).json({ code: 1002, message: '用户不存在或令牌无效' });
+    }
+
+    // 查询该用户的通知
+    const notifications = await Notification.find({ user: user._id })
+      .sort({ createdAt: -1 })
+    if (type !== 'all') {
+      // 如果指定了类别，则过滤
+      notifications = notifications.filter(notif => notif.type === type);
+    }
+    res.status(200).json({
+      code: 0,
+      message: '获取通知成功',
+      notifications: notifications
+    });
+  } catch (error) {
+    console.error('获取通知失败:', error);
+    res.status(500).json({
+      code: 5000,
+      message: '获取通知失败',
+      error: {
+        name: error.name,
+        message: error.message,
+      }
+    });
+  }
+};
+
+export const markNotificationListRead = async (req, res) => {
+  try {
+    const token = req.headers.token;
+    const notificationIds = req.body.notificationIds;
+    if (!token) {
+      return res.status(401).json({ code: 1003, message: '未提供认证令牌' });
+    }
+    // 获取当前登录用户（临时使用username作为token）
+    const username = token; // TODO: 这里应改为实际的token解析逻辑
+    const user = await User.findOne({ username: username });
+    if (!user) {
+      return res.status(404).json({ code: 1002, message: '用户不存在或令牌无效' });
+    }
+    // 标记通知为已读
+    await Notification.updateMany(
+      { _id: { $in: notificationIds }, user: user._id },
+      { $set: { isRead: true } }
+    );
+    res.status(200).json({
+      code: 0,
+      message: '通知标记为已读成功'
+    });
+  }
+  catch (error) {
+    console.error('标记通知为已读失败:', error);
+    res.status(500).json({
+      code: 5000,
+      message: '标记通知为已读失败',
+      error: {
+        name: error.name,
+        message: error.message,
+      }
+    });
+  }
+};

@@ -55,6 +55,32 @@
   - 401：未提供认证令牌/用户不存在或令牌无效
   - 500：服务器错误
 
+### 5. **获取消息通知**
+
+- 方法：GET
+- 路径：/api/notifications
+- Headers：
+  - token：
+- Params：
+  - type：消息的分类标签，enum['work','interaction','coin']
+    - 模因作品，点赞、回复等互动，模因币
+- 响应体
+  - notifications：消息通知列表，每一对元素如下：
+    - _id
+    - user：接收者
+    - type：分类标签
+    - message：消息内容
+    - isRead：是否已读，Bool
+    - createdAt：创建时间，Date
+
+### 6. **消息已读**
+
+- 方法：POST
+- 路径：/api/mark-notification-read
+- Headers：
+  - token
+- 请求体：
+  - notificationIds：消息id列表
 
 ## 二、模因信息
 
@@ -322,3 +348,13 @@
     - token
   - 响应体
     - memeIds：模因id列表
+
+### 2. **审核模因作品**
+
+  - 方法：POST
+  - 路径：/api/review/meme/:id
+  - Headers：
+    - token：
+  - 请求体：
+    - action：审核操作，enum['approve', 'reject']
+    - description：描述（仅拒绝时需要）
