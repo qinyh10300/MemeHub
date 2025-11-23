@@ -238,11 +238,15 @@
   - 响应体：
     - 状态码
     - message：
-    - commentIds：id列表
+    - comments：评论列表
+      - _id：评论id
+      - reference：引用id，没有引用则为null
   
-### 2. **获取列表评论**
+### 3. **获取列表评论**
   - 方法：POST
   - 路径：/api/comment/list
+  - Headers：
+    - token: 暂时用username
   - 请求体：
     - commentIds：评论id列表
   - 响应体：
@@ -266,7 +270,7 @@
 
 
 
-### 3. **点赞评论**
+### 4. **点赞评论**
   - 方法：POST
   - 路径：/api/comment/:id/like
   - Headers：
@@ -279,7 +283,7 @@
       - content：
       - likes：
 
-### 4. **删除评论**
+### 5. **删除评论**
   - 方法：DELETE
   - 路径：/api/comment/:id
   - Headers：
@@ -307,3 +311,14 @@
       - asc：升序排序
   - 响应体：
     - 模因id的列表，List(String)，每个元素是Meme的_id
+
+## 六、审核操作
+
+### 1. **获取待审核模因列表**
+
+  - 方法：GET
+  - 路径：/api/review/pending-meme-list
+  - Headers：
+    - token
+  - 响应体
+    - memeIds：模因id列表

@@ -12,6 +12,7 @@ import * as Work from './controller/work.js';
 import * as Search from './controller/search.js';
 import * as Profile from './controller/profile.js';
 import * as Const from './configs/const.js';
+import * as Review from './controller/review.js';
 
 const app = express();
 app.use(cors());
@@ -142,6 +143,11 @@ app.post('/api/comment/list', Work.getListComment);
 app.post('/api/comment/:id/like', Work.likeComment);
 // 删除评论
 app.delete('/api/comment/:id', Work.deleteComment);
+
+// 审核操作
+
+// 获取待审核模因列表
+app.get('/api/review/pending-meme-list', Review.getPendingMemeList);
 
 // 2. 连接到MongoDB数据库
 const dbURI = process.env.MONGODB_URI;
