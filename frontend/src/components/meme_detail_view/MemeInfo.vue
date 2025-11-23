@@ -1,126 +1,150 @@
 <template>
-<div class="meme-card">
-    <!-- 模因图片 -->
-    <img class="meme-image" :src=meme.image alt="meme" />
-
-    <div>
-        <!-- 模因标题 -->
-        <h2 class="meme-title">{{ meme.title }}</h2>
-
-        <span class="code"> {{ meme.code }}</span>
-
-        <!-- 模因元信息 -->
-        <div class="meme-meta">
-            <span class="author">
-                <img
-                    class="author-avatar"
-                    :src="meme.avatar"
-                    alt="作者头像"
-                    @click="goToProfile(meme.authorId)"
-                />
-                <span
-                    class="author-nickname"
-                    @click="goToProfile(meme.authorId)"
-                >
-                    {{ meme.nickname }}
+    <div class="meme-card">
+        <img class="meme-image" :src="meme.image" alt="meme" />
+    
+        <div>
+            <h2 class="meme-title">{{ meme.title }}</h2>
+    
+            <span class="code"> 模因币代号：{{ meme.code }}</span>
+    
+            <div class="meme-meta">
+                <span class="author">
+                    <img
+                        class="author-avatar"
+                        :src="meme.author.avatar"
+                        alt="作者头像"
+                        @click="goToProfile(meme.authorId)"
+                    />
+                    <span class="author-nickname" @click="goToProfile(meme.authorId)">
+                        {{ meme.author.nickname }}
+                    </span>
+                    <span class="author-username" @click="goToProfile(meme.authorId)">
+                        @{{ meme.author.username }}
+                    </span>
                 </span>
-                <span
-                    class="author-username"
-                    @click="goToProfile(meme.authorId)"
+    
+                <span class="dot"></span>
+                <span class="time">{{ meme.time }}</span>
+            </div>
+    
+            <p class="meme-desc">{{ meme.desc }}</p>
+    
+            <!-- 点赞和收藏 -->
+            <div class="meme-actions">
+                <button
+                    class="like-button"
+                    :class="{ liked: isLiked }"
+                    @click="toggleLike"
                 >
-                    @{{ meme.author.username }}
-                </span>
-            </span>
-            <span class="dot"></span>
-            <span class="time">{{ meme.time }}</span>
-        </div>
-
-        <!-- 模因描述 -->
-        <p class="meme-desc">{{ meme.desc }}</p>
-
-        <!-- 点赞和收藏 -->
-        <div class="meme-actions">
-            <button
-                class="like-button"
-                :class="{ liked: isLiked }"
-                @click="toggleLike"
-            >
-                ❤ 点赞 <span>{{ likes }}</span>
-            </button>
-            <button
-                class="collect-button"
-                :class="{ collected: isCollected }"
-                @click="toggleCollect"
-            >
-                ★ 收藏 <span>{{ collections }}</span>
-            </button>
+                    ❤ 点赞 <span>{{ likes }}</span>
+                </button>
+    
+                <button
+                    class="collect-button"
+                    :class="{ collected: isCollected  }"
+                    @click="toggleCollect"
+                >
+                    ★ 收藏 <span>{{ collections }}</span>
+                </button>
+            </div>
         </div>
     </div>
-</div>
-</template>
+    </template>
 
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 
-// 接收父组件传入的模因数据
-defineProps({
-    meme: Object, // 包含模因的所有信息
+const props = defineProps({
+    meme: Object,
 });
 
-// 本地状态
-const likes = ref(0); // 点赞数量
-const collections = ref(0); // 收藏数量
-const isLiked = ref(false); // 是否已点赞
-const isCollected = ref(false); // 是否已收藏
-const router = useRouter(); // 获取路由实例
+// auth store
+const authStore = useAuthStore();
+const server_ip = authStore.server_ip;
+const user_token = authStore.user_token;
 
-// 跳转到创作者的个人主页
+// 本地状态初始化
+const likes = ref(props.meme.likes || 0);
+const collections = ref(props.meme.favorites || 0);
+const isLiked = ref(props.meme.is_liked || false)
+const isCollected = ref(props.meme.is_favorited || false)
+
+const router = useRouter();
+
+// 跳转到用户主页
 const goToProfile = (authorId) => {
     router.push(`/profile/${authorId}`);
 };
 
-// 点赞功能
-const toggleLike = () => {
-    if (isLiked.value) {
-        likes.value -= 1; // 取消点赞
-    } else {
-        likes.value += 1; // 点赞
-    }
+/* ----------------- 点赞 / 取消点赞 ----------------- */
+const toggleLike = async () => {
+    const oldLiked = isLiked.value;
+    const oldLikes = likes.value;
+
+    // 乐观更新
     isLiked.value = !isLiked.value;
-};
+    likes.value += isLiked.value ? 1 : -1;
 
-// 收藏功能
-const toggleCollect = async () => {
-    if (isCollected.value) {
-        collections.value -= 1; // 取消收藏
-    } else {
-        collections.value += 1; // 收藏
-        // 发送收藏请求到后端
-        await sendCollectRequest();
-    }
-    isCollected.value = !isCollected.value;
-};
-
-// 模拟发送收藏请求到后端
-const sendCollectRequest = async () => {
     try {
-        // 假设后端接口为 /api/collect
-        const response = await fetch('/api/collect', {
-            method: 'POST',
+        console.log(`${server_ip}/api/meme/${props.meme.id}/like`);
+        const response = await fetch(`${server_ip}/api/meme/${props.meme.id}/like`, {
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json',
+                "token": user_token,
+                "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-                memeId: meme.id, // 模因的唯一 ID
-                userId: 'current_user_id', // 当前用户的 ID
-            }),
         });
+
+        const data = await response.json();
+
         if (!response.ok) {
-            throw new Error('收藏失败');
+            // 回滚
+            isLiked.value = oldLiked;
+            likes.value = oldLikes;
+            alert(data.message || "点赞失败");
         }
-    } catch (error) {
-        console.error(error);
+    } catch (err) {
+        console.error("点赞失败:", err);
+        isLiked.value = oldLiked;
+        likes.value = oldLikes;
+        alert("网络错误，稍后重试");
+    }
+};
+
+
+/* ----------------- 收藏 / 取消收藏 ----------------- */
+const toggleCollect = async () => {
+    const oldCollected = isCollected.value;
+    const oldCollections = collections.value;
+
+    // 乐观更新
+    isCollected.value = !isCollected.value;
+    collections.value += isCollected.value ? 1 : -1;
+
+    try {
+        const response = await fetch(`${server_ip}/api/meme/${props.meme.id}/favorite`, {
+            method: "POST",
+            headers: {
+                "token": user_token,
+                "Content-Type": "application/json",
+            },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            // 回滚
+            isCollected.value = oldCollected;
+            collections.value = oldCollections;
+            alert(data.message || "收藏失败");
+        }
+    } catch (err) {
+        console.error("收藏失败:", err);
+        isCollected.value = oldCollected;
+        collections.value = oldCollections;
+        alert("网络错误，稍后重试");
     }
 };
 </script>
@@ -145,6 +169,7 @@ const sendCollectRequest = async () => {
 .meme-title {
     margin: 0;
     font-size: 22px;
+    font-weight: bold;
 }
 
 .meme-meta {
@@ -170,13 +195,12 @@ const sendCollectRequest = async () => {
 
 .author-nickname {
     cursor: pointer;
-    color: #5c9fc8;
-    font-weight: bold;
+    color: #e9efea;
 }
 
 .author-username {
   cursor: pointer; /* 鼠标悬浮时显示手型 */
-  color: #76b17a;
+  color: #5c9fc8;
   font-size: 14px;
 }
 

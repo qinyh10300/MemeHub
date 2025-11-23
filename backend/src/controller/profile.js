@@ -106,6 +106,9 @@ export const getUserProfile = async (req, res) => {
     // 判断是否是查看自己的主页
     // 比较当前登录用户的ID和目标用户的ID
     const isOwnProfile = currentUser && currentUser._id.toString() === user._id.toString();
+    const viewerIsFollowing = currentUser && !isOwnProfile
+      ? currentUser.following.some((id) => id.toString() === user._id.toString())
+      : false;
     
     // 调试日志
     console.log('获取个人主页 - Token:', token);
@@ -160,8 +163,9 @@ export const getUserProfile = async (req, res) => {
       .select('following')
       .populate('following', 'username nickname avatar _id');
 
-    // 格式化关注数据
-    const following = (followingList?.following || []).map(followedUser => {
+    const followingDocs = followingList?.following || [];
+    const followingCount = followingDocs.length;
+    const followingPreview = followingDocs.slice(0, 100).map(followedUser => {
       const idStr = followedUser._id.toString();
       
       // 优先使用用户设置的头像，如果没有则生成默认头像
@@ -184,6 +188,7 @@ export const getUserProfile = async (req, res) => {
         avatar: followedAvatar,
       };
     });
+    const followingForDisplay = isOwnProfile ? followingPreview : [];
 
     // 生成默认头像（如果用户没有设置头像）
     let userAvatar = user.avatar;
@@ -207,13 +212,15 @@ export const getUserProfile = async (req, res) => {
       username: `@${user.username}`,
       bio: user.bio || `这是用户 ${user.username} 的个人简介。`, // 使用实际的bio字段，如果没有则使用默认值
       followers: followersCount, // 使用查询到的粉丝总数
-      following: following.length,
+      following: followingCount,
       likes: totalLikes,
+      isFollowing: viewerIsFollowing,
       memesData: {
         '我创作的模因': myMemes,
         '我的模因币': myCoins,
         '我的收藏': myFavorites,
         '粉丝': followers,
+        '关注': followingForDisplay,
       }
     };
 

@@ -1,7 +1,45 @@
 <script setup>
 import Search from '../components/Search.vue'
-import FeaturedProjects from '../components/FeaturedProject.vue'
+import SearchedProjects from '../components/SearchedProject.vue'
+import { ref, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+
+const searchResults = ref([])
+const searchKeyword = ref('')
+const server_ip = 'http://localhost:3000'
+
+// 执行一次搜索
+const fetchSearchResults = async () => {
+  if (!searchKeyword.value) return
+
+  const res = await fetch(
+    `${server_ip}/api/search-meme?keyword=${encodeURIComponent(searchKeyword.value)}&sortBy=time&sortOrder=des`
+  )
+  const data = await res.json()
+
+  searchResults.value = data.memeIds || []
+  // console.log("结果更新:", searchResults.value)
+}
+
+// 首次进入页面
+onMounted(() => {
+  searchKeyword.value = route.query.keyword || ''
+  fetchSearchResults()
+})
+
+// 监听路由 keyword 变化 → 自动重新搜索
+watch(
+  () => route.query.keyword,
+  (newVal) => {
+    searchKeyword.value = newVal || ''
+    fetchSearchResults()
+  }
+)
 </script>
+
+
 
 <template>
   <main>
@@ -14,7 +52,7 @@ import FeaturedProjects from '../components/FeaturedProject.vue'
         <Search />
       </div>
       <div class="content-card">
-        <!-- <FeaturedProjects /> -->
+        <SearchedProjects :results="searchResults" />
       </div>
   </main>
 </template>

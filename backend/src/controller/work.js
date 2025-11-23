@@ -6,7 +6,61 @@ import * as Const from '../configs/const.js';
 
 import fs from 'fs';
 import path from 'path';
-import { title } from 'process';
+import pkg from 'jsonwebtoken';
+
+const { verify } = pkg;
+
+function buildAvatarUrl(userDoc = {}, baseUrl = '') {
+  const rawAvatar = userDoc.avatar?.trim();
+  if (rawAvatar && rawAvatar.length > 0) {
+    const isAbsolute = /^https?:\/\//i.test(rawAvatar);
+    if (isAbsolute) {
+      return rawAvatar;
+    }
+    if (rawAvatar.startsWith('//')) {
+      return `${baseUrl ? baseUrl.split('://')[0] : 'http'}:${rawAvatar}`;
+    }
+
+    if (baseUrl) {
+      const normalized = rawAvatar.startsWith('/') ? rawAvatar : `/${rawAvatar}`;
+      return `${baseUrl}${normalized}`;
+    }
+    return rawAvatar;
+  }
+
+  const seed = userDoc._id?.toString() || userDoc.username || 'default';
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+    hash |= 0; // 转为32位整数
+  }
+  const imgNum = Math.abs(hash % 70) + 1;
+  return `https://i.pravatar.cc/150?img=${imgNum}`;
+}
+
+async function findUserByToken(token) {
+  if (!token) {
+    return null;
+  }
+
+  let user = await User.findOne({ username: token });
+  if (user) {
+    return user;
+  }
+
+  try {
+    const decoded = verify(token, process.env.JWT_SECRET);
+    const userId = decoded?.user?.id;
+    if (userId) {
+      user = await User.findById(userId);
+      return user;
+    }
+  } catch (error) {
+    return null;
+  }
+
+  return null;
+}
 
 // 创建模因
 export const createMeme = async (req, res) => {
@@ -385,14 +439,20 @@ export const commentMeme = async (req, res) => {
     meme.comments.push(comment._id);
     await meme.save();
 
+    const host = req.get('host');
+    const baseUrl = host ? `${req.protocol}://${host}` : '';
+
     res.status(201).json({
+      code: 0,
       message: '创建模因评论成功',
       comment: {
         _id: comment._id,
         content: comment.content,
         reference: comment.reference,
         meme: comment.meme,
-        user: user.nickname
+        user: user.username,
+        nickname: user.nickname,
+        avatar: buildAvatarUrl(user, baseUrl),
       }
     });
   } catch (error) {
@@ -413,6 +473,9 @@ export const getMemeComments = async (req, res) => {
     const memeId = req.params.id;
     const sortBy = req.query.sortBy === 'time' ? 'createdAt' : 'likes';
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1; // 默认倒序
+    const token = req.headers.token || req.headers.authorization?.replace('Bearer ', '');
+    const host = req.get('host');
+    const baseUrl = host ? `${req.protocol}://${host}` : '';
 
     // 检查meme是否存在
     const meme = await Meme.findById(memeId);
@@ -420,14 +483,40 @@ export const getMemeComments = async (req, res) => {
       return res.status(404).json({ message: `模因${memeId}不存在` });
     }
 
-    // 查询评论并排序
+    const viewUser = await findUserByToken(token);
+
     const comments = await Comment.find({ meme: memeId })
-      .select('_id reference')
-      .sort({ [sortBy]: sortOrder });
+      .select('_id content reference user createdAt likes likeList')
+      .populate('user', 'username nickname avatar')
+      .sort({ [sortBy]: sortOrder })
+      .lean();
+
+    const formattedComments = comments.map((comment) => {
+      const userInfo = comment.user || {};
+      const userId = userInfo._id ? userInfo._id.toString() : '';
+      const avatar = buildAvatarUrl(userInfo, baseUrl);
+      const isLiked = viewUser
+        ? Array.isArray(comment.likeList) && comment.likeList.some((id) => id.toString() === viewUser._id.toString())
+        : false;
+
+      return {
+        _id: comment._id.toString(),
+        content: comment.content,
+        reference: comment.reference ? comment.reference.toString() : null,
+        createdAt: comment.createdAt,
+        likes: comment.likes || 0,
+        isLiked,
+        user: userInfo.username || '',
+        userId,
+        nickname: userInfo.nickname || '',
+        avatar,
+      };
+    });
 
     res.status(200).json({
-      message: '获取模因评论ID列表成功',
-      comments
+      code: 0,
+      message: '获取模因评论成功',
+      comments: formattedComments
     });
   } catch (error) {
     res.status(500).json({
@@ -448,6 +537,8 @@ export const getListComment = async (req, res) => {
     const commentIds = req.body.commentIds;
     const token = req.headers.token;
     const username = token; // TODO:暂时用username作为token内容、
+    const host = req.get('host');
+    const baseUrl = host ? `${req.protocol}://${host}` : '';
 
     const view_user = await User.findOne({ username });
     if (!view_user) {
@@ -487,6 +578,11 @@ export const getListComment = async (req, res) => {
         // 处理 user
         if (!comment.user) {
           comment.user = null;
+        } else {
+          comment.user.avatar = buildAvatarUrl(comment.user, baseUrl);
+        }
+        if (comment.reference?.user) {
+          comment.reference.user.avatar = buildAvatarUrl(comment.reference.user, baseUrl);
         }
         is_liked = Array.isArray(comment.likeList) && comment.likeList.some(id => id.toString() === view_user._id.toString());
         is_author = comment.user && (comment.user.username === username);
