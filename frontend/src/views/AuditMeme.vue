@@ -1,13 +1,15 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import axios from 'axios'
-
+const server_ip = 'http://localhost:3000'
 // 待审核、已审核列表
 const pendingList = ref([])      // 待审核
 const finishedList = ref([])     // 已审核
 
 // 当前选中的模因
 const current = ref(null)
+const loading = ref(false);
+const error = ref(null);
 
 // 人工审核意见
 const manualComment = ref('')
@@ -21,17 +23,71 @@ const submitting = ref(false)
 
 // 模拟后端接口 —— 改成你自己的 API
 async function fetchLists() {
-  const { data } = await axios.get('/api/meme/audit-list')
-  pendingList.value = data.pending || []
+  const { data } = await axios.get(`${server_ip}/api/review/pending-meme-list`)
+//   pendingList.value = data.pending || []
+  pendingList.value = data.memeIds || []
   finishedList.value = data.finished || []
+// 测试用
+  if (pendingList.value.length === 0)
+    pendingList.value = ["691e88308f7d46e75bef82b0","691e88f18f7d46e75bef82d3"]
+//   console.log("待审核列表:", pendingList.value)
+//   console.log("已审核列表:", finishedList.value)
 }
 
 // 选中某个模因
 function selectMeme(meme) {
-  current.value = meme
+  current.value = {
+    memeId: meme,
+    name: "none",
+    ticker: "N/A",
+    creator: "未知",
+    image: '',
+    desc: '',
+  }
+//   console.log("选中模因:", current.value.name)
+//   console.log("选中模因:", meme)
   aiResult.value = null
   manualComment.value = ''
 }
+
+watch(
+  () => current.value?.memeId,
+  (newVal) => {
+      fetchMemeDetails(newVal);
+  }
+)
+
+const fetchMemeDetails = async (memeId) => {
+  loading.value = true;
+  error.value = null;
+
+  try {
+    // console.log("🟦 二次请求 memeIds:", memeId);
+
+    // 并发请求
+    const { data } = await axios.get(`http://localhost:3000/api/meme/${memeId}`);
+
+    current.value = {
+      memeId: data._id,
+      name: data.title,
+      ticker: data.ticker || 'N/A',
+      creator: data.author?.username || "未知",
+      time: new Date(data.createdAt).toLocaleString(),
+      mc: data.likes,
+      mcPercent: Math.min(data.likes * 10, 100),
+      image: data.imageUrl ? `http://localhost:3000/${data.imageUrl.replace(/^\/+/, '')}` : '',
+      desc: data.description,
+    };
+
+    // console.log("🟩 二次请求详情结果:", current.value);
+
+  } catch (err) {
+    // console.error("❌ 二次请求失败:", err);
+    error.value = "Failed to load project data.";
+  } finally {
+    loading.value = false;
+  }
+};
 
 // AI 审核
 async function runAI() {
@@ -83,27 +139,28 @@ onMounted(() => {
       <div class="list">
         <div 
           v-for="m in pendingList" 
-          :key="m.id" 
+          :key="m" 
           class="list-item"
-          :class="{ active: current?.id === m.id }"
+          :class="{ active: current?.memeId === m }"
           @click="selectMeme(m)"
         >
-          <span>{{ m.name }}</span>
+          <span>{{ m }}</span>
+          <!-- <span>{{ console.log(current) }}</span> -->
           <span class="badge pending">待审核</span>
         </div>
       </div>
 
-      <h2 style="margin-top: 25px;">已审核</h2>
+      <!-- <h2 style="margin-top: 25px;">已审核</h2>
       <div class="list">
         <div 
           v-for="m in finishedList" 
-          :key="m.id" 
+          :key="m" 
           class="list-item"
         >
-          <span>{{ m.name }}</span>
+          <span>{{ m.value.name }}</span>
           <span class="badge finished">已审核</span>
         </div>
-      </div>
+      </div> -->
     </div>
 
     <!-- 右侧详情 -->
@@ -113,14 +170,14 @@ onMounted(() => {
       </div>
 
       <div v-else class="detail-box">
-        <h2>{{ current.name }}</h2>
+        <h2>{{ current?.name }}</h2>
 
         <div class="meta">
-          <p><strong>代号：</strong>{{ current.code }}</p>
-          <p><strong>描述：</strong>{{ current.desc }}</p>
+          <p><strong>代号：</strong>{{ current?.ticker }}</p>
+          <p><strong>描述：</strong>{{ current?.desc }}</p>
         </div>
 
-        <img :src="current.image" class="meme-image" />
+        <img :src="current?.image" class="meme-image" />
 
         <!-- AI 审核 -->
         <div class="section">
@@ -219,7 +276,7 @@ onMounted(() => {
 
 .list-item.active {
   background: #1f3b2b;
-  border: 1px solid #2ecc71;
+  border: 1px solid #147b3f;
 }
 
 .badge {
@@ -229,7 +286,7 @@ onMounted(() => {
 }
 
 .pending {
-  background: #b89b00;
+  background: #44b800;
 }
 
 .finished {

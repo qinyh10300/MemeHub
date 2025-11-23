@@ -3,10 +3,10 @@ import { Meme } from '../models/meme.js';
 
 export const getPendingMemeList = async (req, res) => {
   try {
-    const reviewerUsername = req.headers['token'];
-    if (!reviewerUsername) {
-      return res.status(401).json({ code: 1010, message: '未提供审核员身份验证信息' });
-    }
+    // const reviewerUsername = req.headers['token'];
+    // if (!reviewerUsername) {
+    //   return res.status(401).json({ code: 1010, message: '未提供审核员身份验证信息' });
+    // }
     // TODO: 验证审核员身份
 
     const pendingMemes = await Meme.find({ status: 'pending' }).sort({ createdAt: -1 });
