@@ -84,7 +84,8 @@ const avatarUrl = computed(() => {
 })
 
 const serverIp = computed(() => authStore.server_ip || 'http://localhost:3000')
-const isLoggedIn = computed(() => !!(authStore.username || authStore.token))
+const storedUserToken = computed(() => authStore.user_token || authStore.username || authStore.token || '')
+const isLoggedIn = computed(() => !!storedUserToken.value)
 const followLoading = ref(false)
 const followError = ref('')
 const followButtonLabel = computed(() => (props.userData?.isFollowing ? '取消关注' : '关注'))
@@ -183,7 +184,7 @@ const handleFollowToggle = async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        token: authStore.token || authStore.username || ''
+        token: storedUserToken.value
       }
     })
     const result = await response.json()
