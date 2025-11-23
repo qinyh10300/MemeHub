@@ -102,7 +102,7 @@ export const getMemeDetail = async (req, res) => {
     const username = token;// TODO:暂时用username作为token内容
 
     const meme = await Meme.findById(memeId)
-      .select('title imageUrl ticker description author createdAt likes comments status likeList')
+      .select('title imageUrl ticker description author createdAt likes status likeList')
       .populate('author', 'username nickname avatar bio -_id');
     if (!meme) {
       return res.status(404).json({ message: '模因不存在' });
@@ -467,7 +467,9 @@ export const getListComment = async (req, res) => {
       })
       .populate('user', 'username nickname avatar bio -_id')
       .lean();
-
+    
+    let is_liked = false;
+    let is_author = false;
     // 构建返回列表，按请求顺序，缺失的comment补null
     const commentMap = new Map(comments.map(comment => [comment._id.toString(), comment]));
     const result = commentIds.map(id => {
@@ -486,7 +488,12 @@ export const getListComment = async (req, res) => {
         if (!comment.user) {
           comment.user = null;
         }
-        comment.is_liked = Array.isArray(comment.likeList) && comment.likeList.some(id => id.toString() === view_user._id.toString());
+        is_liked = Array.isArray(comment.likeList) && comment.likeList.some(id => id.toString() === view_user._id.toString());
+        is_author = comment.user && (comment.user.username === username);
+        comment.userinfo = {
+          is_liked,
+          is_author
+        };
         delete comment.likeList;
         return comment;
       } else {

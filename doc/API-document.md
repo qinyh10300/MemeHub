@@ -279,7 +279,9 @@
     - comments：评论内容列表，每一个元素如下
       - content：内容，String（前端需检查此项是否为null，若是，引用已删除）
       - likes：点赞数
-      - is_liked：浏览用户是否已经点赞
+      - userinfo：浏览用户与评论的关系
+        - is_author：浏览用户是否是发布者
+        - is_liked：浏览用户是否已经点赞
       - user：作者信息
         - username
         - nickname
