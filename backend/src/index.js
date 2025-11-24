@@ -135,6 +135,8 @@ app.post('/api/meme/:id/favorite', Work.favoriteMeme);
 
 // 搜索模因
 app.get('/api/search-meme', Search.searchMeme);
+// 搜索用户
+app.get('/api/search-user', Search.searchUser);
 
 // 评论操作
 

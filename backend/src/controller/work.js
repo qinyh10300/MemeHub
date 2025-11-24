@@ -156,24 +156,23 @@ export const getMemeDetail = async (req, res) => {
     const username = token;// TODO:暂时用username作为token内容
 
     const meme = await Meme.findById(memeId)
-      .select('title imageUrl ticker description author createdAt likes status likeList')
+      .select('title imageUrl ticker description author createdAt likes favorites status likeList')
       .populate('author', 'username nickname avatar bio -_id');
     if (!meme) {
       return res.status(404).json({ message: '模因不存在' });
     }
 
-    // 先声明变量
+    // 当前用户关于该模因的信息
     let is_author = false;
     let is_liked = false;
     let is_favorited = false;
 
-    // 当前用户关于该模因的信息
     const user = await User.findOne({ username });
     if (user) {
       is_author = meme.author.username === username;
 
-      console.log('likeList:', meme.likeList);
-      console.log('user._id:', user._id);
+      // console.log('likeList:', meme.likeList);
+      // console.log('user._id:', user._id);
       // is_liked = Array.isArray(meme.likeList) && meme.likeList.includes(user._id);
       is_liked = Array.isArray(meme.likeList) && meme.likeList.some(id => id.toString() === user._id.toString());
       is_favorited = Array.isArray(user.favoriteList) && user.favoriteList.includes(meme._id);
@@ -383,12 +382,15 @@ export const favoriteMeme = async (req, res) => {
     if (isFavorited) {
       // 取消收藏
       user.favoriteList.pull(meme._id);
+      meme.favorites = Math.max(0, meme.favorites - 1);
     }
     else {
       // 收藏
       user.favoriteList.push(meme._id);
+      meme.favorites += 1;
     }
     await user.save();
+    await meme.save();
 
     res.status(200).json({
       message: isFavorited ? `取消收藏模因${memeId}` : `收藏模因${memeId}`,

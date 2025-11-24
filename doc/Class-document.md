@@ -10,7 +10,7 @@
 - worksList：作品列表，List(Meme)
 - favoriteList：收藏夹列表，List(Meme)
 - currencyList：虚拟货币列表，List(?)，记录购入的虚拟货币的模因对象及货币数量等信息，（未来实现）
-- status：状态，String，（封禁，正常）
+- status：状态，String，（封禁banned，正常active）
 
 
 ## MEME-模因
@@ -21,10 +21,11 @@
 - description：简介，String
 - likes：点赞数量，Number
 - likeList：点过赞的用户列表，List，用id记录
+- favorites：收藏数量，Number
 - author：作者，User
 - createdAt：创作时间，Date
 - comments：评论区，List(Comment)
-- status：状态，String，（审核中，正常，封禁）
+- status：状态，String，（审核中pending，正常active，封禁banned）
 
 ## COMMENT-评论
 
