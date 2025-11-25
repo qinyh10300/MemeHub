@@ -1,6 +1,7 @@
 import { Meme } from '../models/meme.js';
 import { User } from '../models/user.js';
 import { Comment } from '../models/comment.js';
+import { Notification } from '../models/notification.js';
 
 import * as Const from '../configs/const.js';
 
@@ -335,6 +336,11 @@ export const likeMeme = async (req, res) => {
     } else {
       // 点赞
       meme.likeList.push(user._id);
+      await Notification.create({
+        user: meme.author,
+        type: 'interaction',
+        message: `您的模因'${meme.title.substring(0, 100)}'收到来自${user.nickname || user.username}的点赞`,
+      });
     }
     // 更新点赞数
     meme.likes = meme.likeList.length;
@@ -443,6 +449,29 @@ export const commentMeme = async (req, res) => {
 
     const host = req.get('host');
     const baseUrl = host ? `${req.protocol}://${host}` : '';
+
+    // 消息推送，如果是回复评论，则通知被回复用户
+    if (reference) {
+      const refComment = await Comment.findById(reference);
+      // 注释则接收来自自己的回复通知
+      // if (refComment && refComment.user.toString() !== user._id.toString()) {
+        await Notification.create({
+          user: refComment.user,
+          type: 'interaction',
+          message: `您的评论收到来自${user.nickname || user.username}的回复：${content.substring(0, 100)}`,
+        });
+      // }
+    }
+    else {
+      // 否则通知模因作者
+      if (meme.author.toString() !== user._id.toString()) {
+        await Notification.create({
+          user: meme.author,
+          type: 'interaction',
+          message: `您的模因'${meme.title.substring(0, 100)}'收到来自${user.nickname || user.username}的新评论：${content.substring(0, 100)}`,
+        });
+      }
+    }
 
     res.status(201).json({
       code: 0,
@@ -643,6 +672,16 @@ export const likeComment = async (req, res) => {
     // 更新点赞数
     comment.likes = comment.likeList.length;
     await comment.save();
+
+    // 消息推送，如果点赞评论的用户不是评论作者，则通知评论作者
+    if (!isLiked && comment.user.toString() !== user._id.toString()) {
+      await Notification.create({
+        user: comment.user,
+        type: 'interaction',
+        message: `您的评论收到来自${user.nickname || user.username}的点赞`,
+      });
+    }
+
     res.status(200).json({
       message: isLiked ? `取消点赞评论${commentId}` : `点赞评论${commentId}`,
       comment: {

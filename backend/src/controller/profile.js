@@ -438,6 +438,7 @@ export const getNotifications = async (req, res) => {
 
     // 查询该用户的通知
     const notifications = await Notification.find({ user: user._id })
+      .select('_id type message isRead createdAt')
       .sort({ createdAt: -1 })
     if (type !== 'all') {
       // 如果指定了类别，则过滤
