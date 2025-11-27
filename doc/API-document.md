@@ -291,25 +291,25 @@
 - 路径：/api/meme/:id/comments
 - Params：
   - sortBy：
-    - time：（默认）
-    - hot：
+    - time：
+    - hot：（默认）
   - sortOrder：
-    - des：降序（默认）
-    - asc：升序
+    - des：降序
+    - asc：升序（默认）
 - 响应体：
   - 状态码
   - message：
   - comments：评论列表
     - _id：评论id
     - reference：引用id，没有引用则为null
-    - content：评论内容
+    <!-- - content：评论内容
     - createdAt：创建时间
     - likes：点赞数
     - isLiked：当前用户是否点赞
     - userId：评论作者的用户ID
     - user：评论作者的用户名
     - nickname：评论作者昵称
-    - avatar：评论作者头像（若用户未上传则返回默认头像）
+    - avatar：评论作者头像（若用户未上传则返回默认头像） -->
   
 ### 3. **获取列表评论**
 - 方法：POST

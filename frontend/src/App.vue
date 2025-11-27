@@ -186,6 +186,9 @@ const goToProfile = (username) => {
             <div v-if="authStore.user_role === 'reviewer'" class="reviewer-badge">
               审核员
             </div>
+            <div v-else class="reviewer-badge">
+              普通用户
+            </div>
           </div>
 
           <div class="button-group">

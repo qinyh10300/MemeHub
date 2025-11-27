@@ -273,7 +273,7 @@ const fetchComments = async () => {
 
   try {
     // 第一次请求：获取评论 ID 列表
-    const memeResponse = await fetch(`${server_ip}/api/meme/${props.meme_id}/comments`, {
+    const memeResponse = await fetch(`${server_ip}/api/meme/${props.meme_id}/comments?sortBy=time&sortOrder=asc`, {
       method: 'GET',
       headers: {
         'token': user_token,
