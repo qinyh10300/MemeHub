@@ -702,7 +702,7 @@ export const likeComment = async (req, res) => {
     });
   }
 };
-
+// TODO: 删除评论时需要同时从模因的评论列表中移除该评论ID（目前未成功）
 export const deleteComment = async (req, res) => {
   try {
     const commentId = req.params.id;

@@ -116,6 +116,10 @@
 <script setup>
 import { ref, watch } from "vue";
 import axios from "axios";
+import { useRouter } from "vue-router";
+
+// ✅ 使用 Vue Router
+const router = useRouter();
 
 const props = defineProps({
   results: {
@@ -156,10 +160,12 @@ const fetchProjectsByIds = async (memeIds) => {
     projects.value = memeDetails.map((item) => ({
       memeId: item._id,
       name: item.title,
+      symbol: item.ticker || 'N/A',
       creator: item.author?.username || "未知",
       time: new Date(item.createdAt).toLocaleString(),
       mc: item.likes,
       mcPercent: Math.min(item.likes * 10, 100),
+      change: 0, // 添加默认值
       image: item.imageUrl ? `http://localhost:3000/${item.imageUrl.replace(/^\/+/, '')}` : '',
       desc: item.description,
     }));
@@ -183,98 +189,16 @@ watch(
   },
   { immediate: true }
 );
-</script>
 
-<!-- <script setup>
-import { ref, onMounted, watch } from "vue";
-import axios from "axios";
-import { useRouter } from "vue-router";
-
-// ✅ 使用 Vue Router
-const router = useRouter();
-
-const nsfw = ref(false);
-const animations = ref(true);
-const currentFilter = ref("featured");
-const isGridView = ref(true);
-
-const loading = ref(false);
-const error = ref(null);
-const projects = ref([]);
-
+// 跳转到模因详情页面
 const goToMemeDetail = (item) => {
   // console.log("item: ", item)
-  router.push(`/meme/${item.memeId}`);
-};
-
-const changeFilter = (type) => {
-  currentFilter.value = type;
-  fetchProjects();
-};
-
-const props = defineProps({
-  results: {
-    type: Array,
-    default: () => []
-  }
-})
-
-// 二次请求：根据 memeIDs 请求详细信息
-const fetchProjectsByIds = async (memeIds) => {
-  if (!Array.isArray(memeIds) || memeIds.length === 0) {
-    projects.value = [];
-    return;
-  }
-
-  loading.value = true;
-  error.value = null;
-
-  try {
-    console.log("🟦 二次请求 memeIds:", memeIds);
-
-    // 并发请求
-    const memeDetails = await Promise.all(
-      memeIds.map(id =>
-        axios.get(`http://localhost:3000/api/meme/${id}`).then(r => r.data)
-      )
-    );
-
-    // 数据格式化
-    projects.value = memeDetails.map((item) => ({
-      memeId: item._id,
-      name: item.title,
-      creator: item.author?.username || "未知",
-      time: new Date(item.createdAt).toLocaleString(),
-      mc: item.likes,
-      mcPercent: Math.min(item.likes * 10, 100),
-      image: item.imageUrl ? `http://localhost:3000/${item.imageUrl.replace(/^\/+/, '')}` : '',
-      desc: item.description,
-    }));
-
-    console.log("🟩 二次请求详情结果:", projects.value);
-
-  } catch (err) {
-    console.error("❌ 二次请求失败:", err);
-    error.value = "Failed to load project data.";
-  } finally {
-    loading.value = false;
+  if (item.memeId) {
+    router.push(`/meme/${item.memeId}`);
   }
 };
+</script>
 
-// 监听父组件传来的 memeIDs
-watch(
-  () => props.results,
-  (newVal) => {
-    console.log("🔥 props.results 更新:", newVal);
-    fetchProjectsByIds(newVal);
-  },
-  { immediate: true }
-);
-
-onMounted(() => {
-  fetchProjects();
-});
-</script> -->
 
 <style scoped>
 /* 右上角按钮 */
