@@ -129,7 +129,8 @@ const markAsRead = async (tabId, msgId) => {
         const message = data.value[tabId].find(m => m._id === msgId);
         // console.log("message: ", message)
         if (message) {
-        message.isRead = !message.isRead; // 切换已读/未读状态
+            // message.isRead = !message.isRead; // 切换已读/未读状态
+            message.isRead = true; // 只能标记为已读，无法标记为未读
         }
     } else {
         console.error('标记已读失败:', response_data.message);
