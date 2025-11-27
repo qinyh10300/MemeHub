@@ -42,7 +42,7 @@ const meme = reactive({
 
 const route = useRoute() // 获取路由实例
 const memeId = ref(route.params.id).value // 获取动态路由参数 :id（模因ID）
-console.log('memeId:', memeId)
+// console.log('memeId:', memeId)
 
 // 从API加载模因数据
 const fetchMemeData = async () => {
@@ -50,7 +50,7 @@ const fetchMemeData = async () => {
     // const currentUsername = username.value // 使用 ref 的值
     // console.log('正在获取用户信息，用户名/ID:', currentUsername)
     const url = `${server_ip}/api/meme/${memeId}`
-    console.log('请求URL:', url)
+    // console.log('请求URL:', url)
 
     const response = await fetch(url, {
       method: 'GET',
@@ -60,9 +60,9 @@ const fetchMemeData = async () => {
       },
     })
 
-    console.log('响应状态:', response.status, response.statusText)
+    // console.log('响应状态:', response.status, response.statusText)
     const result = await response.json()
-    console.log('API返回结果:', result)
+    // console.log('API返回结果:', result)
 
     if (response.status === 200) {
       // meme.image = result.imageUrl
@@ -74,6 +74,8 @@ const fetchMemeData = async () => {
       meme.time = new Date(result.createdAt).toLocaleString()
       meme.likes = result.likes
       meme.id = result._id
+      meme.is_liked = result.is_liked
+      meme.is_favorited = result.is_favorited
     } else if (response.status == 404){
       console.error('该模因不存在', response.status)
     } else {
@@ -82,8 +84,8 @@ const fetchMemeData = async () => {
   } catch (error) {
     console.error('模因数据加载错误：', error)
     }
-  console.log(meme.image)
-  console.log("meme.id: ", meme.id)
+  // console.log(meme.image)
+  // console.log("meme.id: ", meme.id)
 }
 
 // 组件挂载时获取数据

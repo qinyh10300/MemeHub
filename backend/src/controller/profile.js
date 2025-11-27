@@ -1,5 +1,6 @@
 import { User } from '../models/user.js';
 import { Meme } from '../models/meme.js';
+import { Notification } from "../models/notification.js";
 import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
@@ -105,6 +106,9 @@ export const getUserProfile = async (req, res) => {
     // 判断是否是查看自己的主页
     // 比较当前登录用户的ID和目标用户的ID
     const isOwnProfile = currentUser && currentUser._id.toString() === user._id.toString();
+    const viewerIsFollowing = currentUser && !isOwnProfile
+      ? currentUser.following.some((id) => id.toString() === user._id.toString())
+      : false;
     
     // 调试日志
     console.log('获取个人主页 - Token:', token);
@@ -159,8 +163,9 @@ export const getUserProfile = async (req, res) => {
       .select('following')
       .populate('following', 'username nickname avatar _id');
 
-    // 格式化关注数据
-    const following = (followingList?.following || []).map(followedUser => {
+    const followingDocs = followingList?.following || [];
+    const followingCount = followingDocs.length;
+    const followingPreview = followingDocs.slice(0, 100).map(followedUser => {
       const idStr = followedUser._id.toString();
       
       // 优先使用用户设置的头像，如果没有则生成默认头像
@@ -183,6 +188,7 @@ export const getUserProfile = async (req, res) => {
         avatar: followedAvatar,
       };
     });
+    const followingForDisplay = isOwnProfile ? followingPreview : [];
 
     // 生成默认头像（如果用户没有设置头像）
     let userAvatar = user.avatar;
@@ -206,13 +212,15 @@ export const getUserProfile = async (req, res) => {
       username: `@${user.username}`,
       bio: user.bio || `这是用户 ${user.username} 的个人简介。`, // 使用实际的bio字段，如果没有则使用默认值
       followers: followersCount, // 使用查询到的粉丝总数
-      following: following.length,
+      following: followingCount,
       likes: totalLikes,
+      isFollowing: viewerIsFollowing,
       memesData: {
         '我创作的模因': myMemes,
         '我的模因币': myCoins,
         '我的收藏': myFavorites,
         '粉丝': followers,
+        '关注': followingForDisplay,
       }
     };
 
@@ -413,3 +421,79 @@ export const uploadAvatar = async (req, res) => {
   }
 };
 
+export const getNotifications = async (req, res) => {
+  try {
+    const token = req.headers.token;
+    const type = req.params.type || 'all';
+    if (!token) {
+      return res.status(401).json({ code: 1003, message: '未提供认证令牌' });
+    }
+    // 获取当前登录用户（临时使用username作为token）
+    const username = token; // TODO: 这里应改为实际的token解析逻辑
+
+    const user = await User.findOne({ username: username });
+    if (!user) {
+      return res.status(401).json({ code: 1002, message: '用户不存在或令牌无效' });
+    }
+
+    // 查询该用户的通知
+    const notifications = await Notification.find({ user: user._id })
+      .select('_id type message isRead createdAt')
+      .sort({ createdAt: -1 })
+    if (type !== 'all') {
+      // 如果指定了类别，则过滤
+      notifications = notifications.filter(notif => notif.type === type);
+    }
+    res.status(200).json({
+      code: 0,
+      message: '获取通知成功',
+      notifications: notifications
+    });
+  } catch (error) {
+    console.error('获取通知失败:', error);
+    res.status(500).json({
+      code: 5000,
+      message: '获取通知失败',
+      error: {
+        name: error.name,
+        message: error.message,
+      }
+    });
+  }
+};
+
+export const markNotificationListRead = async (req, res) => {
+  try {
+    const token = req.headers.token;
+    const notificationIds = req.body.notificationIds;
+    if (!token) {
+      return res.status(401).json({ code: 1003, message: '未提供认证令牌' });
+    }
+    // 获取当前登录用户（临时使用username作为token）
+    const username = token; // TODO: 这里应改为实际的token解析逻辑
+    const user = await User.findOne({ username: username });
+    if (!user) {
+      return res.status(404).json({ code: 1002, message: '用户不存在或令牌无效' });
+    }
+    // 标记通知为已读
+    await Notification.updateMany(
+      { _id: { $in: notificationIds }, user: user._id },
+      { $set: { isRead: true } }
+    );
+    res.status(200).json({
+      code: 0,
+      message: '通知标记为已读成功'
+    });
+  }
+  catch (error) {
+    console.error('标记通知为已读失败:', error);
+    res.status(500).json({
+      code: 5000,
+      message: '标记通知为已读失败',
+      error: {
+        name: error.name,
+        message: error.message,
+      }
+    });
+  }
+};

@@ -6,26 +6,42 @@
     <div v-if="comments.length" class="comment-list" ref="commentListRef">
       <div v-for="(c, i) in comments" :key="c.id" class="comment-item" :ref="el => commentRefs[c._id] = el">
         <img
-          :src="c.avatar"
+          :src="c.user.avatar"
           alt="头像"
           class="comment-avatar"
-          @click="goToProfile(c.userId)" 
+          @click="goToProfile(c.user.username)" 
         />
         <div class="comment-content">
           <p class="comment-author">
             <span
               class="nickname"
-              @click="goToProfile(c.userId)"
+              @click="goToProfile(c.user.username)"
             >
-              {{ c.nickname }}
+              {{ c.user.nickname }}
             </span>
-            <span class="username" @click="goToProfile(c.userId)">@{{ c.user }}</span>
+            <span class="username" @click="goToProfile(c.user.username)">@{{ c.user.username }}</span>
           </p>
           <p class="comment-text">
             <template v-if="c.reference">
-              <!-- 获取引用的评论 -->
               <template v-if="replyComment = getReplyComment(c.reference)">
-                回复 <span class="reply-to" @click="goToProfile(c.userId)">@{{ replyComment.user }}</span>：
+                回复
+                <!-- 如果不是未知用户 → 可点击 -->
+                <span
+                  v-if="replyComment.user.username !== '未知用户'"
+                  class="reply-to"
+                  @click="goToProfile(getReplyComment(c.reference).user.username)"
+                >
+                  @{{ replyComment.user.username }}
+                </span>
+
+                <!-- 如果是未知用户 → 不可点击 -->
+                <span
+                  v-else
+                  class="reply-to"
+                >
+                  @{{ replyComment.user.username }}
+                </span>
+                ：
               </template>
             </template>
             {{ c.content }}
@@ -37,7 +53,11 @@
           </p>
           <div class="comment-meta">
             <span class="comment-time">{{ new Date(c.createdAt).toLocaleString() }}</span>
-            <button class="like-button" @click="toggleLike(c)">
+            <button
+              class="like-button"
+              :class="{ liked: c.is_liked }"
+              @click="toggleLike(c)"
+            >
               ❤ <span>{{ c.likes }}</span>
             </button>
             <button class="reply-button" @click="startReply(c)">
@@ -94,8 +114,9 @@ const commentListRef = ref(null); // 定义 ref
 const getReplyComment = (reference) => {
   // console.log("reference: ", reference);
   const replyComment = comments.find((c) => c._id === reference);
-  // console.log("replyComment: ", replyComment);
-  return replyComment || { user: '未知用户', content: '' }; // 如果找不到引用的评论，返回默认值
+  // console.log("replyComment: ", replyComment || { user: {username: '未知用户'}, content: '' });
+  // return replyComment || { user: {username: '未知用户'}, content: '' }; // 如果找不到引用的评论，返回默认值
+  return replyComment || { user: {username: '未知用户'}, content: '' };
 };
 
 const commentRefs = reactive({});
@@ -112,19 +133,14 @@ const scrollToComment = async (id) => {
   }
 };
 
-// 点赞功能
+// 点赞 / 取消点赞
 const toggleLike = async (comment) => {
-  // 本地 UI 乐观更新（体验更流畅）
-  const oldLiked = comment.isLiked;
+  const oldLiked = comment.is_liked;
   const oldLikes = comment.likes;
 
-  if (!comment.isLiked) {
-    comment.likes += 1;
-    comment.isLiked = true;
-  } else {
-    comment.likes -= 1;
-    comment.isLiked = false;
-  }
+  // 乐观更新
+  comment.is_liked = !comment.is_liked;
+  comment.likes += comment.is_liked ? 1 : -1;
 
   try {
     const response = await fetch(`${server_ip}/api/comment/${comment._id}/like`, {
@@ -138,31 +154,26 @@ const toggleLike = async (comment) => {
     const data = await response.json();
 
     if (!response.ok) {
-      // 后端告诉失败了 → 恢复UI
+      // 撤回
+      comment.is_liked = oldLiked;
       comment.likes = oldLikes;
-      comment.isLiked = oldLiked;
       alert(data.message || '点赞失败');
       return;
     }
 
-    // 同步后端返回的点赞数（保持一致）
-    comment.likes = data.comment.likes;
-    comment.isLiked = true;
-
   } catch (err) {
     console.error('点赞失败:', err);
-
-    // 网络失败 → 撤回 UI
+    comment.is_liked = oldLiked;
     comment.likes = oldLikes;
-    comment.isLiked = oldLiked;
-
     alert('网络错误，稍后重试');
   }
+  // console.log("comment.is_liked: ", comment.is_liked)
+  // console.log("comment.likes: ", comment.likes)
 };
-
 
 // 跳转到用户个人主页
 const goToProfile = (userId) => {
+  console.log("userId: ", userId)
   router.push(`/profile/${userId}`);
 };
 
@@ -170,7 +181,7 @@ const goToProfile = (userId) => {
 const startReply = (comment) => {
   replyTarget.value = {
     id: comment._id,
-    username: comment.user,
+    username: comment.user.username,
     content: comment.content,
   };
 };
@@ -261,19 +272,53 @@ const fetchComments = async () => {
   error.value = null;
 
   try {
-    // console.log("props.meme_id: ", props.meme_id)
-    const response = await fetch(`${server_ip}/api/meme/${props.meme_id}/comments`, {
+    // 第一次请求：获取评论 ID 列表
+    const memeResponse = await fetch(`${server_ip}/api/meme/${props.meme_id}/comments`, {
       method: 'GET',
       headers: {
-        'token': user_token
+        'token': user_token,
       },
     });
-    if (response.ok) {
-      const data = await response.json();
-      comments.splice(0, comments.length, ...data.comments); // 替换评论数据
-    } else {
-      error.value = '获取评论失败';
+
+    if (!memeResponse.ok) {
+      error.value = '获取评论 ID 列表失败';
+      return;
     }
+
+    const memeData = await memeResponse.json();
+    const commentIds = memeData.comments; // 提取评论 ID 列表
+    const ids = commentIds.map(comment => comment._id);
+
+    // 第二次请求：根据评论 ID 列表获取具体评论数据
+    const commentResponse = await fetch(`${server_ip}/api/comment/list`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json', // 必须指定请求体类型
+        'token': user_token,
+      },
+      body: JSON.stringify({ commentIds: ids }), // 发送评论 ID 列表
+    });
+
+    if (!commentResponse.ok) {
+      error.value = '获取评论数据失败';
+      return;
+    }
+
+    const commentData = await commentResponse.json();
+
+    // 为每个评论添加 reference
+    // 构建 id => reference 映射表
+    const refMap = Object.fromEntries(
+      commentIds.map(c => [c._id, c.reference])
+    );
+
+    // 给每条评论补上 reference
+    commentData.comments.forEach(c => {
+      c.reference = refMap[c._id] ?? null;
+    });
+    
+    comments.splice(0, comments.length, ...commentData.comments); // 更新评论数据
+    // console.log('评论数据:', commentData.comments);
   } catch (err) {
     error.value = '网络错误，请稍后再试';
     console.error('获取评论时发生错误:', err);
@@ -352,6 +397,11 @@ watch(() => props.meme_id, fetchComments);
   color: #5c9fc8;
 }
 
+.reply-to:hover {
+  font-weight: bold;
+  cursor: pointer; /* 鼠标悬停时显示手型光标 */
+}
+
 .comment-meta {
   display: flex;
   gap: 10px;
@@ -376,7 +426,7 @@ watch(() => props.meme_id, fetchComments);
 
 /* TODO：点赞后显示红色 */
 .like-button.liked {
-  color: #ff6b6b; /* 点赞后显示红色 */
+  color: #ff4d4f; /* 更鲜艳的红色 */
 }
 
 .reply-button {
