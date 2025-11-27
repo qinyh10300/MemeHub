@@ -1,7 +1,10 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import axios from 'axios'
-const server_ip = 'http://localhost:3000'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+
 // 待审核、已审核列表
 const pendingList = ref([])      // 待审核
 const finishedList = ref([])     // 已审核
@@ -26,18 +29,20 @@ const submitting = ref(false)
 
 // 模拟后端接口 —— 改成你自己的 API
 async function fetchLists() {
-  const { data } = await axios.get(`${server_ip}/api/review/pending-meme-list`)
-//   pendingList.value = data.pending || []
-  pendingList.value = data.memeIds || []
-  finishedList.value = data.finished || []
-// 测试用
-  if (pendingList.value.length === 0)
-    pendingList.value = ["691e88308f7d46e75bef82b0","691e88f18f7d46e75bef82d3"]
+  try {
+    const { data } = await axios.get(`${authStore.server_ip}/api/review/pending-meme-list`, {
+      headers: {
+        token: authStore.token
+      }
+    })
+    pendingList.value = data.memeIds || []
+    finishedList.value = data.finished || []
 
-  // 获取待审核模因的详细信息
-  await fetchPendingMemeDetails()
-//   console.log("待审核列表:", pendingList.value)
-//   console.log("已审核列表:", finishedList.value)
+    // 获取待审核模因的详细信息
+    await fetchPendingMemeDetails()
+  } catch (err) {
+    console.error('获取审核列表失败:', err)
+  }
 }
 
 // 获取待审核模因的详细信息
@@ -46,7 +51,7 @@ async function fetchPendingMemeDetails() {
 
   try {
     // 使用批量接口获取模因详情
-    const { data } = await axios.post(`${server_ip}/api/meme/list`, {
+    const { data } = await axios.post(`${authStore.server_ip}/api/meme/list`, {
       memeIds: pendingList.value
     })
 
@@ -83,8 +88,6 @@ function selectMeme(meme) {
     image: '',
     desc: '',
   }
-//   console.log("选中模因:", current.value.name)
-//   console.log("选中模因:", meme)
   aiResult.value = null
   manualComment.value = ''
 }
@@ -92,7 +95,7 @@ function selectMeme(meme) {
 watch(
   () => current.value?.memeId,
   (newVal) => {
-      fetchMemeDetails(newVal);
+    if (newVal) fetchMemeDetails(newVal);
   }
 )
 
@@ -101,10 +104,12 @@ const fetchMemeDetails = async (memeId) => {
   error.value = null;
 
   try {
-    // console.log("🟦 二次请求 memeIds:", memeId);
-
     // 并发请求
-    const { data } = await axios.get(`http://localhost:3000/api/meme/${memeId}`);
+    const { data } = await axios.get(`${authStore.server_ip}/api/meme/${memeId}`, {
+      headers: {
+        token: authStore.token
+      }
+    });
 
     current.value = {
       memeId: data._id,
@@ -114,14 +119,11 @@ const fetchMemeDetails = async (memeId) => {
       time: new Date(data.createdAt).toLocaleString(),
       mc: data.likes,
       mcPercent: Math.min(data.likes * 10, 100),
-      image: data.imageUrl ? `http://localhost:3000/${data.imageUrl.replace(/^\/+/, '')}` : '',
+      image: data.imageUrl ? `${authStore.server_ip}${data.imageUrl}` : '', // 修正图片路径
       desc: data.description,
     };
 
-    // console.log("🟩 二次请求详情结果:", current.value);
-
   } catch (err) {
-    // console.error("❌ 二次请求失败:", err);
     error.value = "Failed to load project data.";
   } finally {
     loading.value = false;
@@ -133,10 +135,13 @@ async function runAI() {
   if (!current.value) return
   loadingAI.value = true
   try {
-    const { data } = await axios.post('/api/meme/ai-audit', {
-      meme_id: current.value.id
-    })
-    aiResult.value = data
+    // TODO: 后端暂无此接口，暂时模拟返回
+    // const { data } = await axios.post(`${authStore.server_ip}/api/meme/ai-audit`, {
+    //   meme_id: current.value.memeId
+    // })
+    // aiResult.value = data
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    aiResult.value = "AI 审核功能暂未上线，请人工审核。";
   } finally {
     loadingAI.value = false
   }
@@ -144,22 +149,41 @@ async function runAI() {
 
 // 提交人工审核结果
 async function submitAudit(result) {
+  // if (result === 'reject' && !manualComment.value.trim()) {
+  //   alert("拒绝时请填写人工审核意见。")
+  //   return
+  // }
   if (!manualComment.value.trim()) {
-    alert("请填写人工审核意见后再提交。")
-    return
+     // 为了保险，通过时也要求填写一下，或者根据需求放开
+     // 这里原逻辑是都要求填
+     alert("请填写人工审核意见后再提交。")
+     return
   }
+
   submitting.value = true
   try {
-    await axios.post('/api/meme/manual-audit', {
-      meme_id: current.value.id,
-      comment: manualComment.value,
-      result, // "pass" / "reject"
-    })
+    // 转换 result 为后端需要的 action
+    const action = result === 'pass' ? 'approve' : 'reject';
+    
+    await axios.post(`${authStore.server_ip}/api/review/meme/${current.value.memeId}`, 
+      {
+        action: action,
+        description: manualComment.value, // 后端使用 description 字段
+      },
+      {
+        headers: {
+          token: authStore.token
+        }
+      }
+    )
     alert("提交成功！")
 
     // 刷新列表
     await fetchLists()
     current.value = null
+  } catch (error) {
+    console.error('提交审核失败:', error);
+    alert(error.response?.data?.message || "提交失败，请重试");
   } finally {
     submitting.value = false
   }

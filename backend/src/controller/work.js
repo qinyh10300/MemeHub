@@ -66,7 +66,7 @@ async function findUserByToken(token) {
 // 创建模因
 export const createMeme = async (req, res) => {
   try {
-    const { title, ticker, description } = req.body;
+    const { title, ticker, description, website, weibo, xiaohongshu } = req.body;
     const file = req.file;
     const token = req.headers.token;
     const username = token;// TODO:暂时用username作为token内容
@@ -97,7 +97,17 @@ export const createMeme = async (req, res) => {
     }
 
     // 先用原文件名创建meme，后续再重命名
-    const newMeme = new Meme({ title, ticker, description, author: user._id });
+    const newMeme = new Meme({ 
+      title, 
+      ticker, 
+      description, 
+      author: user._id,
+      social: {
+        website: website || '',
+        weibo: weibo || '',
+        xiaohongshu: xiaohongshu || ''
+      }
+    });
     await newMeme.save();
 
     // 只有创建成功后才重命名文件
@@ -157,7 +167,7 @@ export const getMemeDetail = async (req, res) => {
     const username = token;// TODO:暂时用username作为token内容
 
     const meme = await Meme.findById(memeId)
-      .select('title imageUrl ticker description author createdAt likes favorites status likeList')
+      .select('title imageUrl ticker description author createdAt likes favorites status social likeList')
       .populate('author', 'username nickname avatar bio -_id');
     if (!meme) {
       return res.status(404).json({ message: '模因不存在' });
@@ -245,7 +255,7 @@ export const getMemeList = async (req, res) => {
     const sortBy = req.query.sortBy === 'hot' ? 'likes' : 'createdAt';
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1; // 默认倒序
 
-    const memes = await Meme.find()
+    const memes = await Meme.find({ status: 'active' })
       .select('_id likes createdAt')
       .sort({ [sortBy]: sortOrder });
 
@@ -746,5 +756,88 @@ export const deleteComment = async (req, res) => {
         ...error
       }
     });
+  }
+};
+
+// 更新模因（重新提交审核）
+export const updateMeme = async (req, res) => {
+  try {
+    const memeId = req.params.id;
+    const { title, ticker, description, website, weibo, xiaohongshu } = req.body;
+    const file = req.file;
+    const token = req.headers.token;
+    const username = token; // TODO: Verify token
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
+      return res.status(401).json({ code: 1002, message: '用户不存在' });
+    }
+
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
+      return res.status(404).json({ code: 1004, message: '模因不存在' });
+    }
+
+    if (meme.author.toString() !== user._id.toString()) {
+      if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
+      return res.status(403).json({ code: 1005, message: '无权修改此模因' });
+    }
+
+    // Check title/ticker uniqueness
+    if (title && title !== meme.title) {
+      const exist = await Meme.findOne({ title });
+      if (exist) {
+        if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
+        return res.status(400).json({ code: 1007, message: '该标题已存在' });
+      }
+      meme.title = title;
+    }
+    if (ticker && ticker !== meme.ticker) {
+      const exist = await Meme.findOne({ ticker });
+      if (exist) {
+        if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
+        return res.status(400).json({ code: 1008, message: '该ticker已存在' });
+      }
+      meme.ticker = ticker;
+    }
+
+    if (description) meme.description = description;
+
+    // Update social
+    if (website !== undefined) meme.social.website = website;
+    if (weibo !== undefined) meme.social.weibo = weibo;
+    if (xiaohongshu !== undefined) meme.social.xiaohongshu = xiaohongshu;
+
+    // Handle file update
+    if (file) {
+      // Delete old file if exists
+      if (meme.imageUrl) {
+         const oldFilename = path.basename(meme.imageUrl);
+         const oldFilePath = path.join(Const.MEME_DIR, oldFilename);
+         if (fs.existsSync(oldFilePath)) {
+           try { fs.unlinkSync(oldFilePath); } catch(e) {}
+         }
+      }
+      
+      const ext = path.extname(file.originalname);
+      const newFilename = `${meme._id}-${Date.now()}${ext}`; // Add timestamp to avoid cache issues
+      const newPath = path.join(file.destination, newFilename);
+      
+      fs.renameSync(path.join(file.destination, file.filename), newPath);
+      meme.imageUrl = `/${Const.MEME_DIR}${newFilename}`;
+    }
+
+    // Reset status to pending
+    meme.status = 'pending';
+    await meme.save();
+
+    res.json({ code: 0, message: '模因已更新并重新提交审核', data: meme });
+
+  } catch (error) {
+    if (req.file) fs.unlink(path.join(req.file.destination, req.file.filename), () => {});
+    console.error('更新模因失败:', error);
+    res.status(500).json({ message: '更新模因失败', error: error.message });
   }
 };

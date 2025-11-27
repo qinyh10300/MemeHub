@@ -52,6 +52,13 @@ import FieldInput from './FieldInput.vue'
 import TextArea from './TextArea.vue'
 import ExpandableSection from './ExpandableSection.vue'
 
+const props = defineProps({
+  modelValue: {
+    type: Object,
+    default: () => ({})
+  }
+})
+
 const emit = defineEmits(['update:modelValue'])
 
 // 本地表单数据
@@ -65,44 +72,44 @@ const localForm = reactive({
     xiaohongshu: ''
   }
 })
-console.log('init localForm')
 
-// 监听父组件传入的数据变化
+// 监听 props 变化，回显数据
+watch(() => props.modelValue, (newVal) => {
+  // console.log('CoinDetailsForm props changed:', newVal)
+  if (newVal) {
+    // 只有当新值与当前值不同时才更新，防止光标跳动或死循环
+    if (newVal.coinname !== undefined && newVal.coinname !== localForm.name) {
+      localForm.name = newVal.coinname
+    }
+    if (newVal.ticker !== undefined && newVal.ticker !== localForm.symbol) {
+      localForm.symbol = newVal.ticker
+    }
+    if (newVal.description !== undefined && newVal.description !== localForm.description) {
+      localForm.description = newVal.description
+    }
+    if (newVal.social) {
+      if (newVal.social.website !== undefined && newVal.social.website !== localForm.social.website) {
+        localForm.social.website = newVal.social.website
+      }
+      if (newVal.social.weibo !== undefined && newVal.social.weibo !== localForm.social.weibo) {
+        localForm.social.weibo = newVal.social.weibo
+      }
+      if (newVal.social.xiaohongshu !== undefined && newVal.social.xiaohongshu !== localForm.social.xiaohongshu) {
+        localForm.social.xiaohongshu = newVal.social.xiaohongshu
+      }
+    }
+  }
+}, { immediate: true, deep: true })
+
+// 监听本地数据变化，通知父组件
 watch(localForm, () => {
   emit("update:modelValue", {
     coinname: localForm.name,
     ticker: localForm.symbol,
     description: localForm.description,
     social: { ...localForm.social }
-  },)
+  })
 }, { deep: true })
-// 调试
-// watch(localForm, () => {
-//   console.log("[CoinDetailsForm] emit update:modelValue:", {
-//     coinname: localForm.name,
-//     ticker: localForm.symbol,
-//     description: localForm.description,
-//     social: { ...localForm.social }
-//   })
-
-//   emit("update:modelValue", {
-//     coinname: localForm.name,
-//     ticker: localForm.symbol,
-//     description: localForm.description,
-//     social: { ...localForm.social }
-//   })
-// }, { deep: true })
-
-// 表单变化时通知父组件
-// function onFormChange() {
-//   const formData = {
-//     coinname: localForm.name,
-//     ticker: localForm.symbol,
-//     description: localForm.description,
-//     social: { ...localForm.social }
-//   }
-//   emit('update:modelValue', formData)
-// }
 </script>
 
 <style scoped>

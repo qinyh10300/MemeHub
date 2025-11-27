@@ -27,15 +27,15 @@ export const getUserProfile = async (req, res) => {
     let user;
     // 先尝试作为用户名查询
     user = await User.findOne({ username })
-      .populate('workList', 'title ticker imageUrl description likes _id')
-      .populate('favoriteList', 'title ticker imageUrl description likes _id');
+      .populate('workList', 'title ticker imageUrl description likes status _id')
+      .populate('favoriteList', 'title ticker imageUrl description likes status _id');
     
     // 如果用户名查询失败，尝试作为用户ID查询
     if (!user) {
       try {
         user = await User.findById(username)
-          .populate('workList', 'title ticker imageUrl description likes _id')
-          .populate('favoriteList', 'title ticker imageUrl description likes _id');
+          .populate('workList', 'title ticker imageUrl description likes status _id')
+          .populate('favoriteList', 'title ticker imageUrl description likes status _id');
       } catch (idError) {
         // ID格式无效，忽略错误
       }
@@ -68,6 +68,7 @@ export const getUserProfile = async (req, res) => {
         code: meme.ticker || '',
         description: meme.description || '作者很懒，没有填写简介',
         id: meme._id.toString(),
+        status: meme.status,
       };
     });
 

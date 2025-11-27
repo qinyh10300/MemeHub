@@ -38,9 +38,12 @@
 
       <!-- 模因列表：显示模因信息 -->
       <template v-else>
-        <button
+        <div
           v-for="meme in pagedMemes"
           :key="meme.id || meme.code"
+          class="meme-item-container"
+        >
+        <button
           class="meme-item"
           @click="goToMemeDetail(meme.id)"
         >
@@ -49,8 +52,22 @@
             <h3 class="meme-name">{{ meme.name }}</h3>
             <p class="meme-code">代号: {{ meme.code }}</p>
             <p class="meme-desc">{{ meme.description }}</p>
+            
+            <div v-if="isOwnProfile && activeTab === '我创作的模因'" class="status-bar">
+               <span v-if="meme.status === 'pending'" class="status-tag pending">⏳ 审核中</span>
+               <span v-if="meme.status === 'banned'" class="status-tag banned">❌ 已拒绝</span>
+               
+               <button 
+                 v-if="meme.status === 'banned'" 
+                 class="edit-action"
+                 @click.stop="goToEdit(meme.id)"
+               >
+                 重新修改
+               </button>
+            </div>
           </div>
         </button>
+        </div>
       </template>
 
       <!-- 分页按钮 -->
@@ -116,6 +133,11 @@ const goToUserProfile = (username) => {
   // 移除 @ 符号（如果有）
   const cleanUsername = username.replace('@', '')
   router.push(`/profile/${cleanUsername}`)
+}
+
+// 跳转到编辑页面
+const goToEdit = (id) => {
+  router.push(`/create-meme?id=${id}`)
 }
 
 // 默认头像URL
@@ -261,5 +283,45 @@ const totalPages = computed(() => {
 .pagination button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+/* Status Styles */
+.status-bar {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.status-tag.pending {
+  background: #e6a23c;
+  color: #fff;
+}
+
+.status-tag.banned {
+  background: #f56c6c;
+  color: #fff;
+}
+
+.edit-action {
+  background: #409eff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.edit-action:hover {
+  background: #66b1ff;
 }
 </style>

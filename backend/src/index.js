@@ -128,6 +128,8 @@ app.post('/api/meme/list', Work.getListMeme);
 app.get('/api/meme-list', Work.getMemeList);
 // 删除模因
 app.delete('/api/meme/:id', Work.deleteMeme);
+// 更新模因（重新提交审核）
+app.put('/api/meme/:id', upload.single('file'), Work.updateMeme);
 // 点赞模因
 app.post('/api/meme/:id/like', Work.likeMeme);
 // 收藏模因

@@ -1,6 +1,7 @@
 <template>
     <div class="create-coin-card">
         <coin-details-form 
+            :key="formKey"
             v-model="coinForm"
             @update:modelValue="onFormUpdate"
         />
@@ -18,6 +19,8 @@ import UploadBox from './UploadBox.vue'
 import { ref, watch } from 'vue'
 
 const emit = defineEmits(['form-data', 'file-selected'])
+
+const formKey = ref(0)
 
 const coinForm = ref({
     coinname: '',
@@ -61,8 +64,19 @@ function resetForm() {
     }
 }
 
+// 设置表单数据（用于回显）
+function setForm(data) {
+    coinForm.value = { 
+        ...coinForm.value, 
+        ...data,
+        social: { ...coinForm.value.social, ...(data.social || {}) }
+    }
+    formKey.value++ // 强制重新渲染子组件以回显数据
+}
+
 defineExpose({
-    resetForm
+    resetForm,
+    setForm
 })
 </script>
 
