@@ -11,7 +11,11 @@
 
       <ProfileStats :userData="userData" />
 
-      <Tabs :userData="userData" :isOwnProfile="isOwnProfile" />
+      <Tabs 
+        :userData="userData" 
+        :isOwnProfile="isOwnProfile" 
+        @refresh="fetchUserProfile"
+      />
     </div>
   </div>
 </template>

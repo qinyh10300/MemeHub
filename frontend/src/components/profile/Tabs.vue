@@ -59,10 +59,17 @@
                
                <button 
                  v-if="meme.status === 'banned'" 
-                 class="edit-action"
+                 class="action-btn edit-btn"
                  @click.stop="goToEdit(meme.id)"
                >
                  重新修改
+               </button>
+               <button 
+                 v-if="meme.status === 'banned'" 
+                 class="action-btn delete-btn"
+                 @click.stop="deleteMeme(meme.id)"
+               >
+                 删除
                </button>
             </div>
           </div>
@@ -83,9 +90,14 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 // ✅ 使用 Vue Router
 const router = useRouter()
+const authStore = useAuthStore()
+const server_ip = authStore.server_ip || 'http://localhost:3000'
+
+const emit = defineEmits(['refresh'])
 
 // ✅ 接收 props
 const props = defineProps({
@@ -138,6 +150,36 @@ const goToUserProfile = (username) => {
 // 跳转到编辑页面
 const goToEdit = (id) => {
   router.push(`/create-meme?id=${id}`)
+}
+
+// 删除模因
+const deleteMeme = async (id) => {
+  if (!confirm('确定要删除这个模因吗？此操作无法撤销。')) return
+
+  try {
+    const res = await fetch(`${server_ip}/api/meme/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'token': authStore.username || authStore.token || ''
+      }
+    })
+    
+    // 尝试解析 JSON
+    let data = {}
+    try {
+      data = await res.json()
+    } catch (e) {}
+
+    if (res.ok) {
+      alert('删除成功')
+      emit('refresh')
+    } else {
+      alert(data.message || '删除失败')
+    }
+  } catch (e) {
+    console.error(e)
+    alert('网络错误，请稍后重试')
+  }
 }
 
 // 默认头像URL
@@ -310,8 +352,7 @@ const totalPages = computed(() => {
   color: #fff;
 }
 
-.edit-action {
-  background: #409eff;
+.action-btn {
   color: white;
   border: none;
   border-radius: 4px;
@@ -321,7 +362,17 @@ const totalPages = computed(() => {
   transition: background 0.2s;
 }
 
-.edit-action:hover {
+.edit-btn {
+  background: #409eff;
+}
+.edit-btn:hover {
   background: #66b1ff;
+}
+
+.delete-btn {
+  background: #f56c6c;
+}
+.delete-btn:hover {
+  background: #ff7875;
 }
 </style>
