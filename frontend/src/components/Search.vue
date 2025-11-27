@@ -72,7 +72,7 @@ const handleSearch = async () => {
           v-model="searchQuery"
           type="text"
           class="search-input"
-          placeholder="请输入关键词..."
+          placeholder="搜索模因、用户或关键词..."
           @keyup.enter="handleSearch"
         />
       </div>
