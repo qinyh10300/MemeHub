@@ -73,9 +73,10 @@ const fetchMemeData = async () => {
       meme.desc = result.description || '暂无描述'
       meme.time = new Date(result.createdAt).toLocaleString()
       meme.likes = result.likes
+      meme.favorites = result.favorites
       meme.id = result._id
-      meme.is_liked = result.is_liked
-      meme.is_favorited = result.is_favorited
+      meme.is_liked = result.userinfo.is_liked
+      meme.is_favorited = result.userinfo.is_favorited
     } else if (response.status == 404){
       console.error('该模因不存在', response.status)
     } else {

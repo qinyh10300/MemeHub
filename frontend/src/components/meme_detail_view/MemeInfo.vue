@@ -52,13 +52,17 @@
     </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watchEffect } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
 const props = defineProps({
     meme: Object,
 });
+
+// console.log("props.meme: ", props.meme)
+// console.log("props.meme.is_liked: ", props.meme.is_liked)
+// console.log("props.meme.is_favorited: ", props.meme.is_favorited)
 
 // auth store
 const authStore = useAuthStore();
@@ -69,7 +73,19 @@ const user_token = authStore.user_token;
 const likes = ref(props.meme.likes || 0);
 const collections = ref(props.meme.favorites || 0);
 const isLiked = ref(props.meme.is_liked || false)
+// console.log(isLiked.value)
 const isCollected = ref(props.meme.is_favorited || false)
+// console.log(isCollected.value)
+
+// 使用 watchEffect 或 watch 监听 props，保证异步加载也能正常显示是否已经进行了 点赞 收藏
+watchEffect(() => {
+    if (props.meme) {
+        likes.value = props.meme.likes || 0
+        collections.value = props.meme.favorites || 0
+        isLiked.value = !!props.meme.is_liked
+        isCollected.value = !!props.meme.is_favorited
+    }
+})
 
 const router = useRouter();
 
@@ -247,6 +263,6 @@ const toggleCollect = async () => {
 
 .like-button:hover,
 .collect-button:hover {
-    color: #ff6b6b; /* 悬停时颜色变化 */
+    color: #e4e4db; /* 悬停时颜色变化 */
 }
 </style>

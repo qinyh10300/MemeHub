@@ -9,6 +9,7 @@ export const useAuthStore = defineStore('auth', {
     avatar: '', // 登录的头像
     server_ip: 'http://localhost:3000', // 后端服务器地址
     user_token: '', // 用户 token
+    user_role: '', // 用户身份
   }),
   actions: {
     // 设置 token
@@ -35,6 +36,10 @@ export const useAuthStore = defineStore('auth', {
     setUserToken(newUserToken) {
       this.user_token = newUserToken;
     },
+    // 设置身份
+    setUserRole(newUserRole) {
+      this.user_role = newUserRole;
+    },
     // 清除登录状态
     clearAuth() {
       this.token = '';
@@ -42,6 +47,7 @@ export const useAuthStore = defineStore('auth', {
       this.nickname = '';
       this.avatar = '';
       this.user_token = '';
+      this.user_role = '';
     },
   },
 });

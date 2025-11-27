@@ -198,6 +198,7 @@ const handleLogin = async () => {
     if (response.status == 201) {
       alert('登录成功！');
       authStore.setToken(data.token); // 设置全局 token
+      authStore.setUserRole(data.user.role); // 保存用户role
       authStore.setUsername(loginForm.username); // 保存用户名
       authStore.setUserToken(loginForm.username); // 保存用户token，目前就是用户名
       await fetchUserData(loginForm.username);
@@ -207,7 +208,11 @@ const handleLogin = async () => {
       // 保存 token 和登录时间到 localStorage
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('auth_username', loginForm.username);
+      localStorage.setItem('auth_role', data.user.role);
       localStorage.setItem('login_time', Date.now()); // 保存当前时间戳
+
+      // console.log("data.user.role: ", data.user.role)
+      console.log("data: ", data)
 
       emit('login-success', loginForm.username); // ✅ 通知父组件登录成功，传递用户名
       closeModal();

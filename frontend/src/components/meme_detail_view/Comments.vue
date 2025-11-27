@@ -55,7 +55,7 @@
             <span class="comment-time">{{ new Date(c.createdAt).toLocaleString() }}</span>
             <button
               class="like-button"
-              :class="{ liked: c.is_liked }"
+              :class="{ liked: c.userinfo.is_liked }"
               @click="toggleLike(c)"
             >
               ❤ <span>{{ c.likes }}</span>
@@ -135,12 +135,12 @@ const scrollToComment = async (id) => {
 
 // 点赞 / 取消点赞
 const toggleLike = async (comment) => {
-  const oldLiked = comment.is_liked;
+  const oldLiked = comment.userinfo.is_liked;
   const oldLikes = comment.likes;
 
   // 乐观更新
-  comment.is_liked = !comment.is_liked;
-  comment.likes += comment.is_liked ? 1 : -1;
+  comment.userinfo.is_liked = !comment.userinfo.is_liked;
+  comment.likes += comment.userinfo.is_liked ? 1 : -1;
 
   try {
     const response = await fetch(`${server_ip}/api/comment/${comment._id}/like`, {
@@ -155,7 +155,7 @@ const toggleLike = async (comment) => {
 
     if (!response.ok) {
       // 撤回
-      comment.is_liked = oldLiked;
+      comment.userinfo.is_liked = oldLiked;
       comment.likes = oldLikes;
       alert(data.message || '点赞失败');
       return;
@@ -163,7 +163,7 @@ const toggleLike = async (comment) => {
 
   } catch (err) {
     console.error('点赞失败:', err);
-    comment.is_liked = oldLiked;
+    comment.userinfo.is_liked = oldLiked;
     comment.likes = oldLikes;
     alert('网络错误，稍后重试');
   }
