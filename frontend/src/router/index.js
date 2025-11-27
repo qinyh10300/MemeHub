@@ -4,6 +4,7 @@ import CreateMemeView from '../views/CreateMeme.vue';
 import ProfileView from '../views/ProfileView.vue';
 import SearchView from '../views/SearchView.vue';
 import AuditView from '../views/AuditMeme.vue';
+import NotificationView from '../views/NotificationView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,6 +28,11 @@ const router = createRouter({
       path: '/create-meme',
       name: 'CreateMeme',
       component: CreateMemeView,
+    },
+    {
+      path: '/notification',
+      name: 'Notification',
+      component: NotificationView,
     },
     {
       path: '/profile/:id', // 动态路由，:id 表示用户的唯一标识

@@ -53,6 +53,7 @@ const fetchUserData = async (user_token) => {
 const checkLoginStatus = async () => {
   const token = localStorage.getItem('auth_token');
   const username = localStorage.getItem('auth_username');
+  const userrole = localStorage.getItem('auth_role');
   const loginTime = localStorage.getItem('login_time');
 
   if (token && username && loginTime) {
@@ -64,6 +65,7 @@ const checkLoginStatus = async () => {
       authStore.setToken(token);
       authStore.setUsername(username);
       authStore.setUserToken(username);
+      authStore.setUserRole(userrole);
       await fetchUserData(username);
       authStore.setNickname(userData.value.nickname); // 保存昵称
       authStore.setAvatar(userData.value.avatar); // 保存头像
@@ -73,6 +75,7 @@ const checkLoginStatus = async () => {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_username');
       localStorage.removeItem('login_time');
+      localStorage.removeItem('auth_role');
       console.log('登录状态已过期');
     }
   }
@@ -137,6 +140,19 @@ const goToProfile = (username) => {
           <img class="nav-icon" src="@/assets/doge.png" alt="Profile" />
           <span class="nav-text">创建模因</span>
         </RouterLink>
+        <RouterLink v-if="isLoggedIn" :to="`/notification`" class="nav-item" active-class="active">
+          <img class="nav-icon" src="@/assets/pumpfun.png" alt="Profile" />
+          <span class="nav-text">消息通知</span>
+        </RouterLink>
+        <RouterLink 
+          v-if="isLoggedIn && authStore.user_role === 'reviewer'" 
+          :to="`/audit`" 
+          class="nav-item" 
+          active-class="active"
+        >
+          <img class="nav-icon" src="@/assets/search.png" alt="Profile" />
+          <span class="nav-text">审核模因</span>
+        </RouterLink>
         <div v-if="!isLoggedIn" @click="showLogin = true" class="nav-item" active-class="active">
           <span class="nav-icon">🔑</span>
           <span class="nav-text">登录</span>
@@ -166,6 +182,9 @@ const goToProfile = (username) => {
             <div class="user-text">
               <span class="nickname">{{ authStore.nickname }}</span>
               <span class="username">@{{ authStore.username }}</span>
+            </div>
+            <div v-if="authStore.user_role === 'reviewer'" class="reviewer-badge">
+              审核员
             </div>
           </div>
 
@@ -478,5 +497,16 @@ const goToProfile = (username) => {
   font-size: 14px;
   color: #3498db;
   font-weight: 500;
+}
+
+.reviewer-badge {
+  margin-left: 10px;
+  padding: 4px 8px;
+  background-color: #3498db; /* 蓝色背景 */
+  color: white; /* 白色文字 */
+  border-radius: 4px; /* 圆角 */
+  font-size: 12px; /* 字体大小 */
+  font-weight: bold; /* 加粗 */
+  display: inline-block; /* 内联块元素 */
 }
 </style>
