@@ -63,7 +63,11 @@
             <button class="reply-button" @click="startReply(c)">
               回复
             </button>
-            <button class="delete-button" @click="deleteComment(c)">
+            <button 
+              v-if="c.userinfo.is_author" 
+              class="delete-button" 
+              @click="deleteComment(c)"
+            >
               删除
             </button>
           </div>
