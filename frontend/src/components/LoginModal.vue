@@ -211,6 +211,7 @@ const handleLogin = async () => {
 
       emit('login-success', loginForm.username); // ✅ 通知父组件登录成功，传递用户名
       closeModal();
+      console.log('Login info:', data);
 
       // // 登录成功后自动跳转到当前用户的个人主页
       // router.push(`/profile/${loginForm.username}`);
