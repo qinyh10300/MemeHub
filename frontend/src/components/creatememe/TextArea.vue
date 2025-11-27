@@ -1,13 +1,28 @@
 <template>
     <div class="textarea">
         <label>{{ label }}</label>
-        <textarea :placeholder="placeholder" rows="4"></textarea>
+        <textarea 
+            :placeholder="placeholder" 
+            rows="4"
+            :value="modelValue"
+            @input="onInput"
+        ></textarea>
     </div>
 </template>
 
 
 <script setup>
-defineProps({ label: { type: String, default: '' }, placeholder: { type: String, default: '' } })
+defineProps({ 
+    label: { type: String, default: '' }, 
+    placeholder: { type: String, default: '' },
+    modelValue: { type: String, default: '' }
+})
+
+const emit = defineEmits(['update:modelValue'])
+
+function onInput(e) {
+    emit('update:modelValue', e.target.value)
+}
 </script>
 
 

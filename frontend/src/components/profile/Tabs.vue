@@ -38,9 +38,12 @@
 
       <!-- 模因列表：显示模因信息 -->
       <template v-else>
-        <button
+        <div
           v-for="meme in pagedMemes"
           :key="meme.id || meme.code"
+          class="meme-item-container"
+        >
+        <button
           class="meme-item"
           @click="goToMemeDetail(meme.id)"
         >
@@ -49,8 +52,29 @@
             <h3 class="meme-name">{{ meme.name }}</h3>
             <p class="meme-code">代号: {{ meme.code }}</p>
             <p class="meme-desc">{{ meme.description }}</p>
+            
+            <div v-if="isOwnProfile && activeTab === '我创作的模因'" class="status-bar">
+               <span v-if="meme.status === 'pending'" class="status-tag pending">⏳ 审核中</span>
+               <span v-if="meme.status === 'banned'" class="status-tag banned">❌ 已拒绝</span>
+               
+               <button 
+                 v-if="meme.status === 'banned'" 
+                 class="action-btn edit-btn"
+                 @click.stop="goToEdit(meme.id)"
+               >
+                 重新修改
+               </button>
+               <button 
+                 v-if="meme.status === 'banned'" 
+                 class="action-btn delete-btn"
+                 @click.stop="deleteMeme(meme.id)"
+               >
+                 删除
+               </button>
+            </div>
           </div>
         </button>
+        </div>
       </template>
 
       <!-- 分页按钮 -->
@@ -66,9 +90,14 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 // ✅ 使用 Vue Router
 const router = useRouter()
+const authStore = useAuthStore()
+const server_ip = authStore.server_ip || 'http://localhost:3000'
+
+const emit = defineEmits(['refresh'])
 
 // ✅ 接收 props
 const props = defineProps({
@@ -116,6 +145,41 @@ const goToUserProfile = (username) => {
   // 移除 @ 符号（如果有）
   const cleanUsername = username.replace('@', '')
   router.push(`/profile/${cleanUsername}`)
+}
+
+// 跳转到编辑页面
+const goToEdit = (id) => {
+  router.push(`/create-meme?id=${id}`)
+}
+
+// 删除模因
+const deleteMeme = async (id) => {
+  if (!confirm('确定要删除这个模因吗？此操作无法撤销。')) return
+
+  try {
+    const res = await fetch(`${server_ip}/api/meme/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'token': authStore.username || authStore.token || ''
+      }
+    })
+    
+    // 尝试解析 JSON
+    let data = {}
+    try {
+      data = await res.json()
+    } catch (e) {}
+
+    if (res.ok) {
+      alert('删除成功')
+      emit('refresh')
+    } else {
+      alert(data.message || '删除失败')
+    }
+  } catch (e) {
+    console.error(e)
+    alert('网络错误，请稍后重试')
+  }
 }
 
 // 默认头像URL
@@ -261,5 +325,54 @@ const totalPages = computed(() => {
 .pagination button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+/* Status Styles */
+.status-bar {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.status-tag.pending {
+  background: #e6a23c;
+  color: #fff;
+}
+
+.status-tag.banned {
+  background: #f56c6c;
+  color: #fff;
+}
+
+.action-btn {
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.edit-btn {
+  background: #409eff;
+}
+.edit-btn:hover {
+  background: #66b1ff;
+}
+
+.delete-btn {
+  background: #f56c6c;
+}
+.delete-btn:hover {
+  background: #ff7875;
 }
 </style>

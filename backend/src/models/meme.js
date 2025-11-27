@@ -14,6 +14,11 @@ const memeSchema = new mongoose.Schema({
   favorites: { type: Number, default: 0 },
   comments: { type: [mongoose.Schema.Types.ObjectId], ref: 'Comment', default: [] },
   status: { type: String, enum: ['pending', 'active', 'banned'], default: 'pending' },
+  social: {
+    website: { type: String, default: '' },
+    weibo: { type: String, default: '' },
+    xiaohongshu: { type: String, default: '' }
+  }
 });
 
 export const Meme = mongoose.model('Meme', memeSchema);
