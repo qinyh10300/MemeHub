@@ -101,7 +101,6 @@
 <script setup>
 import { reactive, ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
 
 // 接收父组件传入的 meme_id
 const props = defineProps({
@@ -116,6 +115,7 @@ const error = ref(null); // 错误信息
 const replyTarget = ref(null);
 const router = useRouter();
 
+import { useAuthStore } from '@/stores/auth';
 const authStore = useAuthStore();
 const server_ip = authStore.server_ip // 后端服务器地址
 const user_token = authStore.user_token // user token

@@ -8,7 +8,10 @@ const route = useRoute()
 
 const searchResults = ref([])
 const searchKeyword = ref('')
-const server_ip = 'http://localhost:3000'
+import { useAuthStore } from '@/stores/auth';
+const authStore = useAuthStore();
+const server_ip = authStore.server_ip // 后端服务器地址
+const user_token = authStore.user_token // user token
 
 // 执行一次搜索
 const fetchSearchResults = async () => {

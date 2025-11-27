@@ -60,7 +60,8 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save']);
 
 const authStore = useAuthStore();
-const server_ip = 'http://localhost:3000';
+const server_ip = authStore.server_ip // 后端服务器地址
+const user_token = authStore.user_token // user token
 
 const errorMsg = ref('');
 const saving = ref(false);

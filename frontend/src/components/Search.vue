@@ -2,12 +2,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+const authStore = useAuthStore();
+const server_ip = authStore.server_ip // 后端服务器地址
+const user_token = authStore.user_token // user token
 
-const server_ip = 'http://localhost:3000'
 const searchQuery = ref('')
 const router = useRouter()
 const isLoading = ref(false)
-const authStore = useAuthStore()
 
 // 点击"搜索"按钮后的处理逻辑
 const handleSearch = async () => {
