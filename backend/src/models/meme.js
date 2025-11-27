@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import * as Const from '../configs/const.js';
+import { favoriteMeme } from '../controller/work.js';
 
 const memeSchema = new mongoose.Schema({
   title: { type: String, required: true, maxlength: Const.MEME_TITLE_MAX_LENGTH},
@@ -10,6 +11,7 @@ const memeSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   likes: { type: Number, default: 0 },
   likeList: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] },
+  favorites: { type: Number, default: 0 },
   comments: { type: [mongoose.Schema.Types.ObjectId], ref: 'Comment', default: [] },
   status: { type: String, enum: ['pending', 'active', 'banned'], default: 'pending' },
 });
