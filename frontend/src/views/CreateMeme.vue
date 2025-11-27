@@ -209,12 +209,12 @@ async function handleCreateMeme() {
 
 
 <style scoped>
-.app-root{ min-height:100vh; background:var(--bg); color:var(--fg); font-family:Inter,system-ui,Arial; overflow-y: auto; background: var(--my-bg-soft); width:100%}
+.app-root{ height:100vh; background:var(--bg); color:var(--fg); font-family:Inter,system-ui,Arial; overflow: hidden; background: var(--muted); width:100%; display:flex; flex-direction: column;}
 .topbar{ padding:24px 40px; border-bottom:1px solid rgba(255, 255, 255, 0.03)}
-.container{ display:flex; gap:28px; padding:28px 40px; width:100%; margin:0 auto;  }
+.container{ flex:1; display:flex; gap:28px; padding:28px 40px; width:100%; margin:0 auto; overflow-y: auto; background: var(--muted); }
 .container h1{ display:flex; margin:0; font-size:20px; font-weight:600; padding:36px 0 0 36px;}
-.left{ flex:1; min-width:0 }
-.right{ width:320px; padding:48px; }
+.left{ flex:1; min-width:0; background: var(--muted); }
+.right{ width:320px; padding:48px; background: var(--muted); }
 .notice{ padding:36px; background:var(--panel); border-radius:10px; color:var(--my-c-text-soft); font-size:13px }
 .create-btn{ margin-left:36px }
 .preview{ background:transparent }
@@ -244,4 +244,24 @@ async function handleCreateMeme() {
 }
 
 @media (max-width:900px){ .container{flex-direction:column} .right{width:100%} }
+
+/* 自定义滚动条样式 */
+.container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
 </style>

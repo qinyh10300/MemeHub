@@ -27,7 +27,7 @@
         />
 
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <label for="fileInput" class="login" style="cursor:pointer;">选择文件</label>
+          <label class="login" style="cursor:pointer;">选择文件</label>
         </div>
       </div>
     </div>

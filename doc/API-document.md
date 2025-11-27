@@ -13,6 +13,19 @@
     - 400：用户名已被注册
     - 500：服务器错误
 
+### 1.1 **审核员注册**
+  - 方法：POST
+  - 路径：/api/reviewer/register
+  - 请求体：
+    - username：审核员用户名，String
+    - password：审核员密码，String
+    - reviewerCode：审核员注册密钥，String（需与环境变量 `REVIEWER_REGISTER_SECRET` 一致）
+  - 响应体：
+    - 201：成功
+    - 400：用户名或密码缺失
+    - 403：审核员注册密钥错误
+    - 500：服务器错误
+
 ### 2. **用户登录**
   - 方法：POST
   - 路径：/api/login
@@ -21,6 +34,8 @@
     - password：用户密码，String
   - 响应体：
     - 201：成功
+       - token：JWT
+       - user：包含 id、username、nickname、role，其中 role 可用于区分普通用户与审核员
 
 ### 3. **重设密码**
   - 方法：POST
@@ -60,6 +75,9 @@
     - description：描述，String
     - author：作者信息
       - username：用户名，String
+      - nickname：昵称
+      - avatar：头像
+      - bio：简介
     - likes：点赞数，Number
     - createdAt：创建时间，Date
     - imageUrl：图片链接，String
@@ -68,14 +86,41 @@
       - is_liked：已经点赞
       - is_favorited：已经收藏
 
-### 2. **获取模因文件**
+### 2. **获取列表的模因信息**
+  - 方法：POST
+  - 路径：/api/meme/list
+    - 查询id请使用获取模因列表
+  - Headers：
+    - token：加密登录信息（暂时用username），用于查询点赞、收藏、货币等信息
+  - 请求体：
+    - memeIds：模因id列表
+  - 响应体：
+    - status：状态码
+      - 200：成功
+      - 404：id不存在
+      - 500：失败
+    - memes：模因信息列表，每一个元素如下：
+      - _id：模因id（前端需检查此项是否为null）
+      - title：标题，String
+      - ticker：代号，String
+      - description：描述，String
+      - author：作者信息
+        - username：用户名，String
+        - nickname：昵称
+        - avatar：头像
+        - bio：简介
+      - likes：点赞数，Number
+      - createdAt：创建时间，Date
+
+
+### 3. **获取模因文件**
   - 方法：GET
   - 路径：/:imageUrl
     - :imageUrl替换为访问模因对象的imageUrl属性
     - 查询iamgeUrl请使用获取模因信息
     - 注意不需要加/api
 
-### 3. **获取模因列表**
+### 4. **获取模因列表**
   - 方法：GET
   - 路径：/api/meme-list
   - Params：在路径后添加对应字符串，例如：/api/meme-list?sortBy=hot&sortOrder=asc -> 按热度升序排序
@@ -193,16 +238,39 @@
   - 响应体：
     - 状态码
     - message：
-    - comments：List
-    每个元素：
-      - _id：
-      - content：
-      - user：评论用户的nickname
-      - reference：引用评论的id
+    - comments：评论列表
+      - _id：评论id
+      - reference：引用id，没有引用则为null
+  
+### 3. **获取列表评论**
+  - 方法：POST
+  - 路径：/api/comment/list
+  - Headers：
+    - token: 暂时用username
+  - 请求体：
+    - commentIds：评论id列表
+  - 响应体：
+    - comments：评论内容列表，每一个元素如下
+      - content：内容，String（前端需检查此项是否为null，若是，引用已删除）
       - likes：点赞数
-      - createdAt：
+      - is_liked：浏览用户是否已经点赞
+      - user：作者信息
+        - username
+        - nickname
+        - avatar
+        - bio
+      - reference：引用评论信息（前端需检查此项是否为null，若是，未引用或引用已删除，暂时无法区分两者）
+        - content：
+        - likes：点赞数
+        - user
+          - username
+          - nickname
+          - avatar
+          - bio
 
-### 3. **点赞评论**
+
+
+### 4. **点赞评论**
   - 方法：POST
   - 路径：/api/comment/:id/like
   - Headers：
@@ -215,7 +283,7 @@
       - content：
       - likes：
 
-### 4. **删除评论**
+### 5. **删除评论**
   - 方法：DELETE
   - 路径：/api/comment/:id
   - Headers：
@@ -243,3 +311,14 @@
       - asc：升序排序
   - 响应体：
     - 模因id的列表，List(String)，每个元素是Meme的_id
+
+## 六、审核操作
+
+### 1. **获取待审核模因列表**
+
+  - 方法：GET
+  - 路径：/api/review/pending-meme-list
+  - Headers：
+    - token
+  - 响应体
+    - memeIds：模因id列表

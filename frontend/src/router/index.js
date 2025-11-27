@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import CreateMemeView from '../views/CreateMeme.vue';
 import ProfileView from '../views/ProfileView.vue';
 import SearchView from '../views/SearchView.vue';
+import AuditView from '../views/AuditMeme.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -13,9 +14,14 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/',
-      name: 'search',
+      path: '/search',
+      name: 'SearchView',
       component: SearchView,
+    },
+    {
+      path: '/audit',
+      name: 'AuditView',
+      component: AuditView,
     },
     {
       path: '/create-meme',
