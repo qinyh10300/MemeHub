@@ -23,14 +23,19 @@
     <div class="action-container">
       <button v-if="isOwnProfile" class="config-button" @click="openModal">编辑</button>
       <div v-else class="follow-wrapper">
-        <button
-          class="follow-button"
-          :class="{ following: userData?.isFollowing }"
-          :disabled="followLoading || !isLoggedIn"
-          @click="handleFollowToggle"
-        >
-          {{ followLoading ? '处理中...' : followButtonLabel }}
-        </button>
+        <div class="user-actions">
+          <button
+            class="follow-button"
+            :class="{ following: userData?.isFollowing }"
+            :disabled="followLoading || !isLoggedIn"
+            @click="handleFollowToggle"
+          >
+            {{ followLoading ? '处理中...' : followButtonLabel }}
+          </button>
+          <button class="message-button" @click="handleSendMessage">
+            私信
+          </button>
+        </div>
         <p v-if="followError" class="follow-error">{{ followError }}</p>
       </div>
     </div>
@@ -56,6 +61,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import EditModal from './EditModal.vue'
 import AvatarModal from './AvatarModal.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -66,6 +72,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:userData'])
 
+const router = useRouter()
 const authStore = useAuthStore()
 
 // 判断是否是当前用户自己的主页
@@ -207,6 +214,16 @@ const handleFollowToggle = async () => {
     followLoading.value = false
   }
 }
+
+const handleSendMessage = () => {
+  if (!isLoggedIn.value) {
+    alert('请先登录')
+    return
+  }
+  if (props.userData && props.userData.id) {
+    router.push(`/chat?target=${props.userData.id}`)
+  }
+}
 </script>
 
 <style scoped>
@@ -320,8 +337,13 @@ const handleFollowToggle = async () => {
   flex-direction: column;
 }
 
-.follow-button {
+.user-actions {
+  display: flex;
+  gap: 10px;
   margin-bottom: 4px;
+}
+
+.follow-button {
   background-color: #34a853;
   color: #fff;
   border: none;
@@ -339,6 +361,21 @@ const handleFollowToggle = async () => {
 .follow-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.message-button {
+  background-color: #4285f4;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.55rem 1.1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.message-button:hover {
+  background-color: #3367d6;
 }
 
 .follow-error {
