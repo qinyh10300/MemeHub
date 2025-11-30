@@ -45,6 +45,7 @@
         >
         <button
           class="meme-item"
+          :disabled="meme.status === 'banned' || meme.status === 'pending'"
           @click="goToMemeDetail(meme.id)"
         >
           <img :src="meme.image" alt="meme" class="meme-image" />

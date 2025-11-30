@@ -130,6 +130,11 @@ const loading = ref(false);
 const error = ref(null);
 const projects = ref([]);
 
+import { useAuthStore } from '@/stores/auth';
+const authStore = useAuthStore();
+const server_ip = authStore.server_ip // 后端服务器地址
+const user_token = authStore.user_token // user token
+
 /* 模拟数据请求 */
 const fetchProjects = async () => {
   loading.value = true;
@@ -137,13 +142,13 @@ const fetchProjects = async () => {
 
   try {
     // 第一步：获取 memeIds 列表
-    const res = await axios.get("http://localhost:3000/api/meme-list?sortBy=time&sortOrder=asc");
+    const res = await axios.get(`${server_ip}/api/meme-list?sortBy=time&sortOrder=asc`);
     const memeIds = Array.isArray(res.data.memeIds) ? res.data.memeIds : [];
 
     // 第二步：并发获取每个 meme 的详细信息
     const memeDetails = await Promise.all(
       memeIds.slice(0, 10).map(id =>
-        axios.get(`http://localhost:3000/api/meme/${id}`).then(r => r.data)
+        axios.get(`${server_ip}/api/meme/${id}`).then(r => r.data)
       )
     );
 
@@ -157,7 +162,7 @@ const fetchProjects = async () => {
       mc: item.likes,
       mcPercent: Math.min(item.likes * 10, 100),
       change: 0,
-      image: item.imageUrl ? `http://localhost:3000/${item.imageUrl.replace(/^\/+/, '')}` : '',
+      image: item.imageUrl ? `${server_ip}/${item.imageUrl.replace(/^\/+/, '')}` : '',
       desc: item.description
     }));
   } 

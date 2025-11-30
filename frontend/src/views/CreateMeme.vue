@@ -224,9 +224,11 @@ async function handleCreateMeme() {
         }
         
         // 跳转到创建的模因详情页 (或者列表页)
+        // 这里改为跳转到个人主页
         const newId = result.data?._id || route.query.id
         if (newId) {
-          router.push(`/meme/${newId}`)
+          // router.push(`/meme/${newId}`)
+          router.push(`/profile/${authStore.username}`)
         } else {
           router.push('/')
         }

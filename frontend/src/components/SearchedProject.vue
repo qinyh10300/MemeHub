@@ -136,6 +136,11 @@ const loading = ref(false);
 const error = ref(null);
 const projects = ref([]);
 
+import { useAuthStore } from '@/stores/auth';
+const authStore = useAuthStore();
+const server_ip = authStore.server_ip // 后端服务器地址
+const user_token = authStore.user_token // user token
+
 // 二次请求：根据 memeIDs 请求详细信息
 const fetchProjectsByIds = async (memeIds) => {
   if (!Array.isArray(memeIds) || memeIds.length === 0) {
@@ -152,7 +157,7 @@ const fetchProjectsByIds = async (memeIds) => {
     // 并发请求
     const memeDetails = await Promise.all(
       memeIds.map(id =>
-        axios.get(`http://localhost:3000/api/meme/${id}`).then(r => r.data)
+        axios.get(`${server_ip}/api/meme/${id}`).then(r => r.data)
       )
     );
 
@@ -166,7 +171,7 @@ const fetchProjectsByIds = async (memeIds) => {
       mc: item.likes,
       mcPercent: Math.min(item.likes * 10, 100),
       change: 0, // 添加默认值
-      image: item.imageUrl ? `http://localhost:3000/${item.imageUrl.replace(/^\/+/, '')}` : '',
+      image: item.imageUrl ? `${server_ip}/${item.imageUrl.replace(/^\/+/, '')}` : '',
       desc: item.description,
     }));
 

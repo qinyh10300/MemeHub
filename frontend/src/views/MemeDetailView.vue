@@ -23,7 +23,6 @@ import CommentSection from '@/components/meme_detail_view/Comments.vue'
 import KlineChart from '@/components/meme_detail_view/KlineChart.vue'
 import { useRoute } from 'vue-router'
 
-// const server_ip = 'http://localhost:3000' // 后端服务器地址
 import { useAuthStore } from '@/stores/auth';
 const authStore = useAuthStore();
 const server_ip = authStore.server_ip // 后端服务器地址
@@ -70,7 +69,7 @@ const fetchMemeData = async () => {
 
     if (response.status === 200) {
       // meme.image = result.imageUrl
-      meme.image = result.imageUrl ? `http://localhost:3000/${result.imageUrl.replace(/^\/+/, '')}` : '',
+      meme.image = result.imageUrl ? `${server_ip}/${result.imageUrl.replace(/^\/+/, '')}` : '',
       meme.title = result.title
       meme.code = result.ticker
       meme.author = result.author
