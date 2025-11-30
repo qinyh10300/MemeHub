@@ -54,7 +54,7 @@
             <p class="meme-code">代号: {{ meme.code }}</p>
             <p class="meme-desc">{{ meme.description }}</p>
             
-            <div v-if="isOwnProfile && activeTab === '我创作的模因'" class="status-bar">
+            <div v-if="isOwnProfile && activeTab.includes('创作的模因')" class="status-bar">
                <span v-if="meme.status === 'pending'" class="status-tag pending">⏳ 审核中</span>
                <span v-if="meme.status === 'banned'" class="status-tag banned">❌ 已拒绝</span>
                
@@ -114,16 +114,87 @@ const isOwnProfile = computed(() => props.isOwnProfile)
 
 const userOnlyTabs = ['关注', '粉丝']
 
-// Tabs - 如果是自己的主页，显示所有标签；如果不是，隐藏粉丝/关注
+// 根据性别获取代词
+const getPronoun = (user) => {
+  if (!user) return '他'
+
+  // 如果后端有性别字段，优先使用
+  if (user.gender) {
+    return user.gender === 'female' ? '她' : '他'
+  }
+
+  // 简单的昵称启发式检测（可根据需要扩展）
+  const nickname = user.nickname || user.username || ''
+
+  // 常见女性昵称后缀
+  const femaleSuffixes = ['妹', '姐', '妈', '婆', '娘', '女', '仙子', '公主']
+  const femalePrefixes = ['小', '美', '甜']
+
+  // 检查是否包含女性标识词
+  const hasFemaleIndicator =
+    femaleSuffixes.some(suffix => nickname.includes(suffix)) ||
+    femalePrefixes.some(prefix => nickname.includes(prefix)) ||
+    nickname.includes('girl') || nickname.includes('women') ||
+    nickname.match(/[♀♀]/)
+
+  // 检查是否包含男性标识词
+  const maleSuffixes = ['哥', '弟', '爸', '叔', '爷', '男', '先生', '帅哥']
+  const hasMaleIndicator =
+    maleSuffixes.some(suffix => nickname.includes(suffix)) ||
+    nickname.includes('boy') || nickname.includes('man') ||
+    nickname.match(/[♂♂]/)
+
+  // 如果检测到女性标识，使用"她"
+  if (hasFemaleIndicator && !hasMaleIndicator) {
+    return '她'
+  }
+
+  // 默认使用"他"
+  return '他'
+}
+
+// Tabs - 如果是自己的主页，显示"我"；如果不是，显示"他/她"
 const tabs = computed(() => {
-  const baseTabs = ['我创作的模因', '我的模因币', '我的收藏']
+  const pronoun = props.isOwnProfile ? '我' : getPronoun(props.userData)
+  const baseTabs = [`${pronoun}创作的模因`, `${pronoun}的模因币`, `${pronoun}的收藏`]
   if (props.isOwnProfile) {
     return [...baseTabs, ...userOnlyTabs]
   }
   return baseTabs
 })
 
-const activeTab = ref('我创作的模因')
+// 获取当前标签页的正确代词
+const getCurrentPronoun = () => {
+  return props.isOwnProfile ? '我' : getPronoun(props.userData)
+}
+
+// 获取初始标签
+const getInitialTab = () => {
+  const pronoun = getCurrentPronoun()
+  return `${pronoun}创作的模因`
+}
+
+// 初始激活标签需要根据 isOwnProfile 动态设置
+const activeTab = ref(getInitialTab())
+
+// 监听变化并更新标签
+watch(() => [props.isOwnProfile, props.userData], () => {
+  const newTab = getInitialTab()
+  if (activeTab.value && (activeTab.value.includes('创作的模因') || activeTab.value.includes('的模因币') || activeTab.value.includes('的收藏'))) {
+    // 如果当前标签是包含代词的标签，更新代词部分
+    const tabType = activeTab.value.replace(/[我他她]创作的模因|[我他她]的模因币|[我他她]的收藏/g, '')
+    const pronoun = getCurrentPronoun()
+
+    // 根据标签类型重新构建标签名
+    if (activeTab.value.includes('模因币')) {
+      activeTab.value = `${pronoun}的模因币`
+    } else if (activeTab.value.includes('收藏')) {
+      activeTab.value = `${pronoun}的收藏`
+    } else {
+      activeTab.value = newTab
+    }
+  }
+}, { immediate: true })
 
 const isUserListTab = computed(() => isOwnProfile.value && userOnlyTabs.includes(activeTab.value))
 
