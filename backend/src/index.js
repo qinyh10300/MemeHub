@@ -14,6 +14,7 @@ import * as Profile from './controller/profile.js';
 import * as Avatar from './controller/avatar.js';
 import * as Const from './configs/const.js';
 import * as Review from './controller/review.js';
+import * as MessageController from './controller/message.js';
 
 const app = express();
 app.use(cors());
@@ -152,6 +153,11 @@ app.post('/api/comment/list', Work.getListComment);
 app.post('/api/comment/:id/like', Work.likeComment);
 // 删除评论
 app.delete('/api/comment/:id', Work.deleteComment);
+
+// 私信功能
+app.post('/api/message/send', MessageController.sendMessage);
+app.get('/api/message/conversations', MessageController.getConversations);
+app.get('/api/message/history/:targetId', MessageController.getHistory);
 
 // 审核操作
 
