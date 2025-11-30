@@ -7,9 +7,9 @@
         <div class="trading-section">
           <KlineChart/>
         </div>
-        <div class="orderbook-section">
+        <!-- <div class="orderbook-section">
           <OrderBook @orderSelected="handleOrderSelected" />
-        </div>
+        </div> -->
     </div>
 
     <!-- 右侧：交易面板 + 评论区 -->
@@ -132,7 +132,7 @@ overflow-y: auto;
 display: flex;
 gap: 16px;
 height: auto;
-width: 1400px; /* 扩大宽度以适应交易系统 */
+width: 1250px; /* 扩大宽度以适应交易系统 */
 max-width: 100%;
 }
 
@@ -144,7 +144,8 @@ flex: 7; /* 左侧占 7 份 */
 display: flex;
 flex-direction: column;
 gap: 20px;
-overflow-y: auto; /* 左边可滚动 */
+max-height: calc(100vh - 40px); /* 限制左侧最大高度 */
+  overflow-y: auto; /* 左边可滚动，当内容超出时出现滚动条 */
 
   .trading-section {
     order: 2; /* K线图排在第二位 */
