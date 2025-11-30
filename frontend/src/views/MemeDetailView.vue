@@ -1,16 +1,23 @@
 <template>
 <div class="meme-detail-page">
     <div class="container">
-    <!-- 左半边：模因信息 + K 线图 -->
+    <!-- 左侧：模因信息 + K线图 + 订单簿 -->
     <div class="left-side">
         <MemeCard :meme="meme" />
-        <!-- 这里可以加 KlineChart 组件 -->
-        <KlineChart/>
+        <div class="trading-section">
+          <KlineChart/>
+        </div>
+        <div class="orderbook-section">
+          <OrderBook @orderSelected="handleOrderSelected" />
+        </div>
     </div>
 
-    <!-- 右半边：评论区（异步等待） -->
+    <!-- 右侧：交易面板 + 评论区 -->
     <div class="right-side">
-      <CommentSection v-if="meme.id" :meme_id="meme.id" />
+      <TradingPanel :selectedOrder="selectedOrder" />
+      <div class="comments-section">
+        <CommentSection v-if="meme.id" :meme_id="meme.id" />
+      </div>
     </div>
     </div>
 </div>
@@ -21,6 +28,8 @@ import { reactive, ref, onMounted } from 'vue'
 import MemeCard from '@/components/meme_detail_view/MemeInfo.vue'
 import CommentSection from '@/components/meme_detail_view/Comments.vue'
 import KlineChart from '@/components/meme_detail_view/KlineChart.vue'
+import OrderBook from '@/components/meme_detail_view/OrderBook.vue'
+import TradingPanel from '@/components/meme_detail_view/TradingPanel.vue'
 import { useRoute } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth';
@@ -45,7 +54,14 @@ const meme = reactive({
 
 const route = useRoute() // 获取路由实例
 const memeId = ref(route.params.id).value // 获取动态路由参数 :id（模因ID）
-// console.log('memeId:', memeId)
+
+// 选中的订单（来自订单簿点击）
+const selectedOrder = ref(null)
+
+// 处理订单簿中的订单选择
+const handleOrderSelected = (order) => {
+  selectedOrder.value = order
+}
 
 // 从API加载模因数据
 const fetchMemeData = async () => {
@@ -114,28 +130,44 @@ overflow-y: auto;
 
 .container {
 display: flex;
-gap: 10px;
+gap: 16px;
 height: auto;
-width: 1200px; /* 设置固定宽度 */
+width: 1400px; /* 扩大宽度以适应交易系统 */
+max-width: 100%;
 }
 
-/* 左半边 */
+/* 左侧：模因信息 + K线图 + 订单簿 */
 .left-side {
 position: relative;
 top: 0px;
-flex: 3; /* 左半边占 2 份 */
+flex: 7; /* 左侧占 7 份 */
 display: flex;
 flex-direction: column;
-gap: 24px;
+gap: 20px;
 overflow-y: auto; /* 左边可滚动 */
+
+  .trading-section {
+    order: 2; /* K线图排在第二位 */
+  }
+
+  .orderbook-section {
+    order: 3; /* 订单簿排在第三位 */
+  }
 }
 
-/* 右半边 */
+/* 右侧：交易面板 + 评论区 */
 .right-side {
   position: sticky; /* 设置为 sticky 定位 */
-  top: 0px; /* 距离视口顶部 50px */
-  flex: 2;
+  top: 20px; /* 距离视口顶部 20px */
+  flex: 3; /* 右侧占 3 份 */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
   overflow-y: auto; /* 右边独立滚动 */
-  height: calc(100vh - 50px); /* 设置高度为视口高度减去顶部偏移 */
+  height: calc(100vh - 40px); /* 设置高度为视口高度减去顶部偏移 */
+
+  .comments-section {
+    order: 2; /* 评论区排在交易面板后面 */
+  }
 }
 </style>
