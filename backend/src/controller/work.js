@@ -1,4 +1,5 @@
 import { Meme } from '../models/meme.js';
+import { Token } from '../models/token.js';
 import { User } from '../models/user.js';
 import { Comment } from '../models/comment.js';
 import { Notification } from '../models/notification.js';
@@ -14,10 +15,11 @@ const { verify } = pkg;
 // 创建模因
 export const createMeme = async (req, res) => {
   try {
-    const { title, ticker, description } = req.body;
+    const { title, ticker, description, withToken } = req.body;
     const file = req.file;
     const token = req.headers.token;
     const username = token;// TODO:暂时用username作为token内容
+
     // 检查title和ticker是否已存在
     const existTitle = await Meme.findOne({ title });
     if (existTitle) {
@@ -44,9 +46,34 @@ export const createMeme = async (req, res) => {
       return res.status(401).json({ code: 1002, message: '用户不存在，请先登录' });
     }
 
+    // 检查是否发行虚拟货币
+    if (withToken === 'true') {
+      // 检查用户余额是否足够
+      if (user.coins < Const.TOKEN_COIN_COST) {
+        if (file) {
+          fs.unlink(path.join(file.destination, file.filename), () => {});
+        }
+        return res.status(400).json({ code: 1010, message: '金币余额不足，无法发行虚拟货币' });
+      }
+      // 扣除用户金币
+      user.coins -= Const.TOKEN_COIN_COST;
+      await user.save();
+    }
+
     // 先用原文件名创建meme，后续再重命名
     const newMeme = new Meme({ title, ticker, description, author: user._id });
     await newMeme.save();
+
+    if (withToken === 'true') {
+      newMeme.withToken = true;
+      await newMeme.save();
+      // 创建对应的Token
+      const newToken = new Token({
+        meme: newMeme._id
+      });
+      await newToken.updatePrice();
+      await newToken.save();
+    }
 
     // 只有创建成功后才重命名文件
     const ext = path.extname(file.originalname);
@@ -357,6 +384,162 @@ export const favoriteMeme = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: '收藏模因失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const getTokenPriceByAmount = async (req, res) => {
+  try {
+    const memeId = req.params.id;
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      return res.status(404).json({ message: `模因${memeId}不存在` });
+    }
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
+    }
+    const token = await Token.findOne({ meme: memeId });
+    if (!token) {
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
+    }
+    let amount = Number(req.query.amount);
+    if (isNaN(amount)) {
+      return res.status(400).json({ message: '无效的Token数量参数' });
+    }
+    
+    if (amount > 0){
+      amount = Math.floor(amount);
+    } else if (amount < 0) {
+      amount = -1 * Math.floor(-1 * amount);
+    }
+
+    const price = token.getPriceByAmount(amount);
+    res.status(200).json({ price });
+  } catch (error) {
+    res.status(500).json({
+      message: '获取Token价格失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const buyTokenByAmount = async (req, res) => {
+  try {
+    const userToken = req.headers.token;
+    const username = userToken; // TODO:暂时用username作为token内容
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: `用户${username}不存在` });
+    }
+    const memeId = req.params.id;
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      return res.status(404).json({ message: `模因${memeId}不存在` });
+    }
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
+    }
+    const token = await Token.findOne({ meme: memeId });
+    if (!token) {
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
+    }
+    const amount = Math.floor(Number(req.query.amount));
+    if (isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ message: '无效的购买数量参数' });
+    }
+    const price = token.getPriceByAmount(amount);
+    // 检查用户余额是否足够
+    if (user.coins < price) {
+      return res.status(400).json({ message: '余额不足，无法购买Token' });
+    }
+    user.coins -= price;
+    // 更新User的Token余额
+    // 检查用户是否已有该Token记录
+    const userTokenEntry = user.tokenList.find(entry => entry.token.toString() === token._id.toString());
+    if (userTokenEntry) {
+      userTokenEntry.amount += amount;
+    }
+    else {
+      user.tokenList.push({ token: token._id, amount: amount });
+    }
+    await user.save();
+    // 更新Token的RUsdt和RToken
+    token.RToken -= amount;
+    token.RUsdt += price;
+    await token.updatePrice();
+    res.status(200).json({ 
+      message: `成功购买${amount}个Token，支付USDT：${price.toFixed(6)}`,
+      price: price 
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: '购买Token失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const sellTokenByAmount = async (req, res) => {
+  try {
+    const userToken = req.headers.token;
+    const username = userToken; // TODO:暂时用username作为token内容
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: `用户${username}不存在` });
+    }
+    
+    const memeId = req.params.id;
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      return res.status(404).json({ message: `模因${memeId}不存在` });
+    }
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
+    }
+    const token = await Token.findOne({ meme: memeId });
+    if (!token) {
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
+    }
+    const amount = Math.floor(Number(req.query.amount));
+    if (isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ message: '无效的出售数量参数' });
+    }
+    // 检查用户Token余额是否足够
+    const userTokenEntry = user.tokenList.find(entry => entry.token.toString() === token._id.toString());
+    if (!userTokenEntry || userTokenEntry.amount < amount) {
+      return res.status(400).json({ message: 'Token余额不足，无法出售' });
+    }
+    const price = token.getPriceByAmount(-amount);
+    user.coins += price;
+    userTokenEntry.amount -= amount;
+    await user.save();
+    // 更新Token的RUsdt和RToken
+    token.RToken += amount;
+    token.RUsdt -= price;
+    await token.updatePrice();
+    res.status(200).json({ 
+      message: `成功出售${amount}个Token，获得USDT：${price.toFixed(6)}`,
+      price: price 
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: '出售Token失败',
       error: {
         name: error.name,
         message: error.message,

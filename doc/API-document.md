@@ -199,10 +199,11 @@
 ### 1. **上传模因**
 - 方法：POST
 - 路径：/api/upload-meme
-- 请求体：
+- 请求体Body：
   - title：标题，String
   - ticker：代号，String
   - description：简介，String
+  - withToken:是否发行虚拟货币，Boolen，若是，则需要
   - file：模因文件，File(.jpg, .png, .gif, ...)
 - Headers
   - token：用户的JWT验证码（暂时用作者用户名实现），String
@@ -413,3 +414,43 @@
   - 请求体：
     - action：审核操作，enum['approve', 'reject']
     - description：描述（仅拒绝时需要）
+
+## 七、虚拟货币
+
+### 1. **getTokenPriceByAmount**
+
+- 方法：GET
+- 路径：/api/meme/:id/token/price
+- Param：
+  - amount：购买或卖出的Token数量
+    - 买入为正，卖出为负，自然数，后端自动向零取整
+- Header：
+  - token：用户身份验证码
+- 响应体：
+  - price：买入所需USDT或卖出可得的USDT，返回值非负
+
+### 2. **buyTokenPriceByAmount**
+
+- 方法：GET
+- 路径：/api/meme/:id/token/buy
+- Param：
+  - amount：购买的Token数量
+- Header：
+  - token：用户身份验证码
+- 状态码：
+  - 200：成功
+  - 400：模因没有发行货币；amount参数非法；用户余额不足
+  - 404：用户/模因/货币不存在
+
+### 3. **sellTokenPriceByAmount**
+
+- 方法：GET
+- 路径：/api/meme/:id/token/sell
+- Param：
+  - amount：购买的Token数量
+- Header：
+  - token：用户身份验证码
+- 状态码：
+  - 200：成功
+  - 400：模因没有发行货币；amount参数非法；用户余额不足
+  - 404：用户/模因/货币不存在

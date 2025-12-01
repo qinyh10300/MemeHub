@@ -6,6 +6,7 @@ const memeSchema = new mongoose.Schema({
   ticker: { type: String, required: true, maxlength: Const.MEME_TICKER_MAX_LENGTH },
   imageUrl: { type: String },
   description: { type: String, default: '作者很懒，没有填写简介' },
+  withToken: { type: Boolean, default: false },
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   createdAt: { type: Date, default: Date.now },
   likes: { type: Number, default: 0 },

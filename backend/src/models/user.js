@@ -9,9 +9,15 @@ const userSchema = new Schema({
   bio: { type: String, default: '' }, // 个人简介
   avatar: { type: String, default: '' }, // 头像URL
   loginToken: { type: String },
-  coins: { type: Number, default: 0 },
+  coins: { type: Number, default: 100 },
   workList: { type: [Schema.Types.ObjectId], ref: 'Meme', default: [] },
   favoriteList: { type: [Schema.Types.ObjectId], ref: 'Meme', default: [] },
+  tokenList: [
+    { 
+      token: { type: Schema.Types.ObjectId, ref: 'Token' },
+      amount: { type: Number, default: 0 } 
+    }
+  ],
   following: { type: [Schema.Types.ObjectId], ref: 'User', default: [] }, // 关注列表
   status: { type: String, enum: ['active', 'banned'], default: 'active' },
   role: { type: String, enum: ['user', 'reviewer'], default: 'user' },

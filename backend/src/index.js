@@ -139,6 +139,15 @@ app.get('/api/search-meme', Search.searchMeme);
 // 搜索用户
 app.get('/api/search-user', Search.searchUser);
 
+// 虚拟货币操作
+
+// 查询Token价格
+app.get('/api/meme/:id/token/price', Work.getTokenPriceByAmount);
+// 购买Token
+app.get('/api/meme/:id/token/buy', Work.buyTokenByAmount);
+// 出售Token
+app.get('/api/meme/:id/token/sell', Work.sellTokenByAmount);
+
 // 评论操作
 
 // 评论模因

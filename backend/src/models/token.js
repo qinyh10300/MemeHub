@@ -17,7 +17,6 @@ const tokenSchema = new mongoose.Schema({
   ]
 });
 
-export const Token = mongoose.model('Token', tokenSchema);
 
 tokenSchema.methods.updatePrice = function () {
   // 币价计算公式为 RUsdt / RToken
@@ -37,17 +36,23 @@ tokenSchema.methods.updatePrice = function () {
 */
 tokenSchema.methods.getPriceByAmount = function (tokenAmount) {
   const isBuy = tokenAmount > 0;
-  // 根据恒定乘积公式计算需要支付的USDT数量
   const RUsdt = this.RUsdt;
   const RToken = this.RToken;
-  const newRToken = RToken + tokenAmount;
+  // 检查买入数量是否超过池中数量
+  if (isBuy && Math.abs(tokenAmount) >= RToken) {
+    throw new Error('无法买入池中所有Token');
+  }
+  // 根据恒定乘积公式计算需要支付的USDT数量
+  const newRToken = RToken - tokenAmount;
   const newRUsdt = (RToken * RUsdt) / newRToken;
-  const usdtAmount = RUsdt - newRUsdt;
+  const usdtAmount = newRUsdt - RUsdt;
   if (isBuy) {
     // 买入时加上手续费
     return usdtAmount * (1 + Const.FEE);
   } else {
     // 卖出时扣除手续费
-    return usdtAmount * (1 - Const.FEE);
+    return -1 * usdtAmount * (1 - Const.FEE);
   }
 };
+
+export const Token = mongoose.model('Token', tokenSchema);
