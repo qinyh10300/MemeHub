@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import * as Const from '../configs/const.js';
-import { favoriteMeme } from '../controller/work.js';
 
 const memeSchema = new mongoose.Schema({
   title: { type: String, required: true, maxlength: Const.MEME_TITLE_MAX_LENGTH},
