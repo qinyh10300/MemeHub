@@ -26,5 +26,25 @@ const userSchema = new Schema({
   verificationCodeExpiresAt: Date,
 }, { timestamps: true });
 
-// export default model('User', userSchema);
+userSchema.methods.changeToken = async function(token, amount) {
+    // 检查用户是否已有该Token记录
+    console.log(`Changing token ${token._id} by amount ${amount} for user ${this._id}`);
+    const userTokenEntry = this.tokenList.find(entry => entry.token.toString() === token._id.toString());
+    if (userTokenEntry) {
+      // 更新后的tokenAmount不能小于0
+      if (userTokenEntry.amount + amount < 0) {
+        amount = -userTokenEntry.amount;
+      }
+      userTokenEntry.amount += amount;
+    }
+    else {
+      this.tokenList.push({ token: token._id, amount: amount });
+    }
+    // 如果amount为0，则移除该记录
+    this.tokenList = this.tokenList.filter(entry => entry.amount !== 0);
+    await this.save();
+    return amount;
+};
+
+
 export const User = model('User', userSchema);

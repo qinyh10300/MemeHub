@@ -1,12 +1,13 @@
 import { Meme } from '../models/meme.js';
 import { Token } from '../models/token.js';
+import { Order } from '../models/order.js';
 import { User } from '../models/user.js';
 import { Comment } from '../models/comment.js';
 import { Notification } from '../models/notification.js';
 
 import * as Const from '../configs/const.js';
 
-import fs from 'fs';
+import fs, { stat } from 'fs';
 import path from 'path';
 import pkg from 'jsonwebtoken';
 
@@ -409,17 +410,18 @@ export const getTokenPriceByAmount = async (req, res) => {
       return res.status(404).json({ message: `模因${memeId}的Token不存在` });
     }
     let amount = Number(req.query.amount);
+    let expectedPrice = Number(req.query.expectedPrice) || 0;
     if (isNaN(amount)) {
       return res.status(400).json({ message: '无效的Token数量参数' });
     }
-    
+
     if (amount > 0){
       amount = Math.floor(amount);
     } else if (amount < 0) {
       amount = -1 * Math.floor(-1 * amount);
     }
 
-    const price = token.getPriceByAmount(amount);
+    const price = token.getPriceByAmount(amount, expectedPrice);
     res.status(200).json({ price });
   } catch (error) {
     res.status(500).json({
@@ -454,7 +456,7 @@ export const buyTokenByAmount = async (req, res) => {
     if (!token) {
       return res.status(404).json({ message: `模因${memeId}的Token不存在` });
     }
-    const amount = Math.floor(Number(req.query.amount));
+    const amount = Math.floor(Number(req.body.amount));
     if (isNaN(amount) || amount <= 0) {
       return res.status(400).json({ message: '无效的购买数量参数' });
     }
@@ -465,18 +467,8 @@ export const buyTokenByAmount = async (req, res) => {
     }
     user.coins -= price;
     // 更新User的Token余额
-    // 检查用户是否已有该Token记录
-    const userTokenEntry = user.tokenList.find(entry => entry.token.toString() === token._id.toString());
-    if (userTokenEntry) {
-      userTokenEntry.amount += amount;
-    }
-    else {
-      user.tokenList.push({ token: token._id, amount: amount });
-    }
-    await user.save();
-    // 更新Token的RUsdt和RToken
+    await user.changeToken(token, amount);
     token.RToken -= amount;
-    token.RUsdt += price;
     await token.updatePrice();
     res.status(200).json({ 
       message: `成功购买${amount}个Token，支付USDT：${price.toFixed(6)}`,
@@ -516,7 +508,7 @@ export const sellTokenByAmount = async (req, res) => {
     if (!token) {
       return res.status(404).json({ message: `模因${memeId}的Token不存在` });
     }
-    const amount = Math.floor(Number(req.query.amount));
+    const amount = Math.floor(Number(req.body.amount));
     if (isNaN(amount) || amount <= 0) {
       return res.status(400).json({ message: '无效的出售数量参数' });
     }
@@ -526,12 +518,11 @@ export const sellTokenByAmount = async (req, res) => {
       return res.status(400).json({ message: 'Token余额不足，无法出售' });
     }
     const price = token.getPriceByAmount(-amount);
+    await user.changeToken(token, -amount);
     user.coins += price;
-    userTokenEntry.amount -= amount;
     await user.save();
     // 更新Token的RUsdt和RToken
     token.RToken += amount;
-    token.RUsdt -= price;
     await token.updatePrice();
     res.status(200).json({ 
       message: `成功出售${amount}个Token，获得USDT：${price.toFixed(6)}`,
@@ -540,6 +531,176 @@ export const sellTokenByAmount = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: '出售Token失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const buyTokenReservation = async (req, res) => {
+  try {
+    const userToken = req.headers.token;
+    const username = userToken; // TODO:暂时用username作为token内容
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: `用户${username}不存在` });
+    }
+    const memeId = req.params.id;
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      return res.status(404).json({ message: `模因${memeId}不存在` });
+    }
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
+    }
+    const token = await Token.findOne({ meme: memeId });
+    if (!token) {
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
+    }
+    // 获取预约参数
+    const { expectedPrice, amount } = req.body;
+    const buyAmount = Math.floor(Number(amount));
+    const buyExpectedPrice = Number(expectedPrice);
+    if (isNaN(buyAmount) || buyAmount <= 0) {
+      return res.status(400).json({ message: '无效的预约购买数量参数' });
+    }
+    if (isNaN(buyExpectedPrice) || buyExpectedPrice <= 0) {
+      return res.status(400).json({ message: '无效的预约购买期望价格参数' });
+    }
+    // 创建预约订单
+    const newOrder = new Order({
+      user: user._id,
+      token: token._id,
+      side: 'BUY',
+      expectedPrice: buyExpectedPrice,
+      amount: buyAmount
+    });
+    await newOrder.save();
+    // 预约后检查一次是否满足
+    await token.checkOrderFulfillment();
+    res.status(200).json({ message: '预约购买Token成功' });
+  } catch (error) {
+    res.status(500).json({
+      message: '预约购买Token失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const sellTokenReservation = async (req, res) => {
+  try {
+    const userToken = req.headers.token;
+    const username = userToken; // TODO:暂时用username作为token内容
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: `用户${username}不存在` });
+    }
+    const memeId = req.params.id;
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      return res.status(404).json({ message: `模因${memeId}不存在` });
+    }
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
+    }
+    const token = await Token.findOne({ meme: memeId });
+    if (!token) {
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
+    }
+    // 获取预约参数
+    const { expectedPrice, amount } = req.body;
+    let sellAmount = Math.floor(Number(amount));
+    const sellExpectedPrice = Number(expectedPrice);
+    if (isNaN(sellAmount) || sellAmount <= 0) {
+      return res.status(400).json({ message: '无效的预约出售数量参数' });
+    }
+    if (isNaN(sellExpectedPrice) || sellExpectedPrice <= 0) {
+      return res.status(400).json({ message: '无效的预约出售期望价格参数' });
+    }
+    // 检查用户是否有足够的Token
+    sellAmount = await user.changeToken(token, -sellAmount);
+    // 创建预约订单
+    const newOrder = new Order({
+      user: user._id,
+      token: token._id,
+      side: 'SELL',
+      expectedPrice: sellExpectedPrice,
+      amount: -sellAmount
+    });
+    await newOrder.save();
+    // 预约后检查一次是否满足
+    await token.checkOrderFulfillment();
+    res.status(200).json({ message: '预约出售Token成功' });
+  } catch (error) {
+    res.status(500).json({
+      message: '预约出售Token失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const cancelOrderReservation = async (req, res) => {
+  try {
+    const userToken = req.headers.token;
+    const username = userToken; // TODO:暂时用username作为token内容
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: `用户${username}不存在` });
+    }
+    const orderId = req.params.id;
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: `订单${orderId}不存在` });
+    }
+    // 检查订单归属
+    if (order.user.toString() !== user._id.toString()) {
+      return res.status(403).json({ message: `没有权限取消订单${orderId}` });
+    }
+    // 卖单返还Token
+    if (order.side === 'SELL') {
+      await user.changeToken(await Token.findById(order.token), order.amount);
+    }
+    await Order.findByIdAndUpdate(orderId, { status: 'CANCELLED' });
+    res.status(200).json({ message: `成功取消订单${orderId}` });
+  } catch (error) {
+    res.status(500).json({
+      message: '取消订单失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const manualCheckOrderFulfillment = async (req, res) => {
+  try {
+    const tokenId = req.params.id;
+    const token = await Token.findById(tokenId);
+    if (!token) {
+      return res.status(404).json({ message: `Token${tokenId}不存在` });
+    }
+    await token.checkOrderFulfillment();
+    res.status(200).json({ message: '手动检查订单成交完成' });
+  } catch (error) {
+    res.status(500).json({
+      message: '手动检查订单成交失败',
       error: {
         name: error.name,
         message: error.message,
