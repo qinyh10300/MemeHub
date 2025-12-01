@@ -9,6 +9,7 @@ import path from 'path';
 
 import * as Auth from './controller/auth.js';
 import * as Work from './controller/work.js';
+import * as CommentCtrl from './controller/commentCtrl.js';
 import * as Search from './controller/search.js';
 import * as Profile from './controller/profile.js';
 import * as Avatar from './controller/avatar.js';
@@ -141,15 +142,16 @@ app.get('/api/search-user', Search.searchUser);
 // 评论操作
 
 // 评论模因
-app.post('/api/meme/:id/comment', Work.commentMeme);
+app.post('/api/meme/:id/comment', CommentCtrl.commentMeme);
 // 读取指定模因的评论区
-app.get('/api/meme/:id/comments', Work.getMemeComments);
+app.get('/api/meme/:id/comments', CommentCtrl.getMemeComments);
 // 读取指定评论id列表的评论信息
-app.post('/api/comment/list', Work.getListComment);
+app.post('/api/comment/list', CommentCtrl.getListComment);
 // 点赞评论
-app.post('/api/comment/:id/like', Work.likeComment);
+app.post('/api/comment/:id/like', CommentCtrl.likeComment);
 // 删除评论
-app.delete('/api/comment/:id', Work.deleteComment);
+app.delete('/api/comment/:id', CommentCtrl.deleteComment);
+
 
 // 审核操作
 
