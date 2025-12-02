@@ -13,7 +13,7 @@ const memeSchema = new mongoose.Schema({
   likeList: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] },
   favorites: { type: Number, default: 0 },
   comments: { type: [mongoose.Schema.Types.ObjectId], ref: 'Comment', default: [] },
-  status: { type: String, enum: ['pending', 'active', 'banned'], default: 'pending' },
+  status: { type: String, enum: ['PENDING', 'ACTIVE', 'BANNED'], default: 'PENDING' },
 });
 
 export const Meme = mongoose.model('Meme', memeSchema);

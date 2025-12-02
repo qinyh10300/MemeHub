@@ -14,3 +14,5 @@ export const TOKEN_INIT_PRICE = 0.1; // 初始价格
 export const TOKEN_USDT_LIQUIDITY = 1000; // 初始流动性
 
 export const FEE = 0.003; // 交易手续费
+
+export const PRICE_HISTORY_LIMIT = 20; // 价格历史记录条数限制

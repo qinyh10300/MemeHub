@@ -72,7 +72,7 @@ export const createMeme = async (req, res) => {
       const newToken = new Token({
         meme: newMeme._id
       });
-      await newToken.updatePrice();
+      await newToken.updatePrice(null, -Const.TOKEN_USDT_LIQUIDITY / Const.TOKEN_INIT_PRICE);
       await newToken.save();
     }
 
@@ -98,7 +98,7 @@ export const createMeme = async (req, res) => {
     fs.renameSync(oldPath, newPath);
 
     const memeData = await Meme.findById(newMeme._id)
-      .select('title imageUrl description author createdAt likes ticker _id')
+      .select('title imageUrl description author createdAt likes ticker _id withToken')
       .populate('author', 'username -_id')
       .lean();
 
@@ -133,7 +133,7 @@ export const getMemeDetail = async (req, res) => {
     const username = token;// TODO:暂时用username作为token内容
 
     const meme = await Meme.findById(memeId)
-      .select('title imageUrl ticker description author createdAt likes favorites status likeList')
+      .select('title imageUrl ticker description author createdAt likes favorites status likeList withToken')
       .populate('author', 'username nickname avatar bio -_id');
     if (!meme) {
       return res.status(404).json({ message: '模因不存在' });
@@ -154,11 +154,49 @@ export const getMemeDetail = async (req, res) => {
       is_liked = Array.isArray(meme.likeList) && meme.likeList.some(id => id.toString() === user._id.toString());
       is_favorited = Array.isArray(user.favoriteList) && user.favoriteList.includes(meme._id);
     }
+    
+    // 获取虚拟货币信息
+    let tokenInfo = null;
+    if (meme.withToken) {
+      const token = await Token.findOne({ meme: meme._id });
+      if (token) {
+        // 批量查找涉及的用户
+        const userIds = token.priceHistory
+          .map(item => item.user)
+          .filter(id => !!id);
+        const users = await User.find({ _id: { $in: userIds } }).select('nickname username');
+        const userMap = new Map(users.map(u => [u._id.toString(), u.nickname || u.username]));
+        
+        // 按时间降序排序并保留前20条
+        const sortedHistory = [...token.priceHistory]
+          .sort((a, b) => new Date(b.time) - new Date(a.time))
+          .slice(0, Const.PRICE_HISTORY_LIMIT);
+
+        // 替换 user 字段为 nickname
+        const priceHistoryWithNickname = sortedHistory.map(item => ({
+          time: item.time,
+          user: item.user ? userMap.get(item.user.toString()) || '' : '',
+          side: item.side,
+          amount: item.amount,
+          price: item.price,
+          newPrice: item.newPrice,
+          // _id: item._id
+        }));
+
+        tokenInfo = {
+          price: token.price,
+          priceHistory: priceHistoryWithNickname
+        }
+      }
+    } else {
+      tokenInfo = null;
+    }
 
     const memeObj = meme.toObject();
     delete memeObj.likeList;
     res.status(200).json({
       ...memeObj,
+      token : tokenInfo,
       userinfo: {
         is_author,
         is_liked,
@@ -221,7 +259,7 @@ export const getMemeList = async (req, res) => {
     const sortBy = req.query.sortBy === 'hot' ? 'likes' : 'createdAt';
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1; // 默认倒序
 
-    const memes = await Meme.find()
+    const memes = await Meme.find({ status: 'ACTIVE' })// 筛选ACTIVE
       .select('_id likes createdAt')
       .sort({ [sortBy]: sortOrder });
 
@@ -436,6 +474,34 @@ export const getTokenPriceByAmount = async (req, res) => {
   }
 };
 
+export const getTokenPriceHistoryByTime = async (req, res) => {
+  try {
+    const memeId = req.params.id;
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      return res.status(404).json({ message: `模因${memeId}不存在` });
+    }
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
+    }
+    const token = await Token.findOne({ meme: memeId });
+    if (!token) {
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
+    }
+    res.status(200).json({ priceHistory: token.priceHistory });
+  } catch (error) {
+    res.status(500).json({
+      message: '获取Token价格历史失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
 export const buyTokenByAmount = async (req, res) => {
   try {
     const userToken = req.headers.token;
@@ -469,7 +535,7 @@ export const buyTokenByAmount = async (req, res) => {
     // 更新User的Token余额
     await user.changeToken(token, amount);
     token.RToken -= amount;
-    await token.updatePrice();
+    await token.updatePrice(user._id, amount, price);
     res.status(200).json({ 
       message: `成功购买${amount}个Token，支付USDT：${price.toFixed(6)}`,
       price: price 
@@ -523,7 +589,7 @@ export const sellTokenByAmount = async (req, res) => {
     await user.save();
     // 更新Token的RUsdt和RToken
     token.RToken += amount;
-    await token.updatePrice();
+    await token.updatePrice(user._id, -amount, price);
     res.status(200).json({ 
       message: `成功出售${amount}个Token，获得USDT：${price.toFixed(6)}`,
       price: price 
@@ -574,7 +640,8 @@ export const buyTokenReservation = async (req, res) => {
     // 创建预约订单
     const newOrder = new Order({
       user: user._id,
-      token: token._id,
+      meme: meme._id,
+      // token: token._id,
       side: 'BUY',
       expectedPrice: buyExpectedPrice,
       amount: buyAmount
@@ -631,7 +698,8 @@ export const sellTokenReservation = async (req, res) => {
     // 创建预约订单
     const newOrder = new Order({
       user: user._id,
-      token: token._id,
+      meme: meme._id,
+      // token: token._id,
       side: 'SELL',
       expectedPrice: sellExpectedPrice,
       amount: -sellAmount
@@ -689,12 +757,20 @@ export const cancelOrderReservation = async (req, res) => {
   }
 };
 
+// 仅测试使用，手动触发订单成交检查
 export const manualCheckOrderFulfillment = async (req, res) => {
   try {
-    const tokenId = req.params.id;
-    const token = await Token.findById(tokenId);
+    const memeId = req.params.id;
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      return res.status(404).json({ message: `模因${memeId}不存在` });
+    }
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
+    }
+    const token = await Token.findOne({ meme: memeId });
     if (!token) {
-      return res.status(404).json({ message: `Token${tokenId}不存在` });
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
     }
     await token.checkOrderFulfillment();
     res.status(200).json({ message: '手动检查订单成交完成' });

@@ -125,11 +125,11 @@
   - 查询id请使用获取模因列表
 - Headers：
   - token：加密登录信息（暂时用username），用于查询点赞、收藏、货币等信息
+- status：状态码
+  - 200：成功
+  - 404：id不存在
+  - 500：失败
 - 响应体：
-  - status：状态码
-    - 200：成功
-    - 404：id不存在
-    - 500：失败
   - title：标题，String
   - ticker：代号，String
   - description：描述，String
@@ -141,6 +141,17 @@
   - likes：点赞数，Number
   - createdAt：创建时间，Date
   - imageUrl：图片链接，String
+  - withToken：是否发行了货币，若否，token字段为null
+  - token：货币信息
+    - price：当前单价
+    - priceHistory：历史交易记录（最新20条），列表，每一个元素如下
+      - time：交易时间
+      - user：用户昵称
+      - side：交易模式（BUY买入，SELL卖出）
+      - amount：交易数量
+      - price：交易USDT金额
+      - newPrice：交易后的单价
+
   - userinfo：用户关于该作品的信息
     - is_author：是作者
     - is_liked：已经点赞
@@ -341,7 +352,6 @@
         - bio
 
 
-
 ### 4. **点赞评论**
 - 方法：POST
 - 路径：/api/comment/:id/like
@@ -433,9 +443,9 @@
 
 ### 2. **buyTokenPriceByAmount**
 
-- 方法：GET
+- 方法：POST
 - 路径：/api/meme/:id/token/buy
-- Param：
+- Body：
   - amount：购买的Token数量
 - Header：
   - token：用户身份验证码
@@ -446,9 +456,9 @@
 
 ### 3. **sellTokenPriceByAmount**
 
-- 方法：GET
+- 方法：POST
 - 路径：/api/meme/:id/token/sell
-- Param：
+- Body：
   - amount：购买的Token数量
 - Header：
   - token：用户身份验证码
@@ -456,3 +466,23 @@
   - 200：成功
   - 400：模因没有发行货币；amount参数非法；用户余额不足
   - 404：用户/模因/货币不存在
+
+### 4. **buyTokenReservation**
+
+- 方法：POST
+- 路径：/api/meme/:id/token/buy-reservation
+- Body：
+  - amount：购买的Token数量
+  - expectedPrice：触发预约订单的价格
+- Header：
+  - token：用户身份验证码
+  
+### 45. **sellTokenReservation**
+
+- 方法：POST
+- 路径：/api/meme/:id/token/sell-reservation
+- Body：
+  - amount：出售的Token数量
+  - expectedPrice：触发预约订单的价格
+- Header：
+  - token：用户身份验证码

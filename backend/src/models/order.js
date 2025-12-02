@@ -2,8 +2,8 @@ import mongoose from 'mongoose';
 
 const orderSchema = new mongoose.Schema({
   user:  { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  token: { type: mongoose.Schema.Types.ObjectId, ref: 'Token', required: true },
-//   meme:  { type: mongoose.Schema.Types.ObjectId, ref: 'Meme', required: true },
+  // token: { type: mongoose.Schema.Types.ObjectId, ref: 'Token', required: true },
+  meme:  { type: mongoose.Schema.Types.ObjectId, ref: 'Meme', required: true },
 
   side: { type: String, enum: ['BUY', 'SELL'], required: true }, // 买入预约 / 卖出预约
 
