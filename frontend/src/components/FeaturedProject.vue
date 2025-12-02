@@ -3,17 +3,28 @@
     <!-- 顶部筛选栏 -->
     <div class="filter-bar">
       <div class="filter-left">
-        <button
-          class="filter-btn"
-          :class="{ active: currentFilter === 'featured' }"
-          @click="changeFilter('featured')"
-        >
-          热门 🔥
-        </button>
-        <!-- <label class="toggle">
-          <input type="checkbox" v-model="nsfw" @change="fetchProjects" />
-          <span>NSFW</span>
-        </label> -->
+        <div class="sort-group">
+          <button
+            class="sort-btn"
+            :class="{ active: sortBy === 'hot' }"
+            @click="changeSortBy('hot')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            热门
+          </button>
+          <button
+            class="sort-btn"
+            :class="{ active: sortBy === 'time' }"
+            @click="changeSortBy('time')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+            </svg>
+            时间
+          </button>
+        </div>
         <label class="toggle">
           <input type="checkbox" v-model="animations" @change="fetchProjects" />
           <span>动画</span>
@@ -123,12 +134,17 @@ const router = useRouter();
 
 const nsfw = ref(false);
 const animations = ref(true);
-const currentFilter = ref("featured");
+const sortBy = ref("hot"); // 新增排序状态：'hot' 或 'time'
 const isGridView = ref(true);
 
 const loading = ref(false);
 const error = ref(null);
 const projects = ref([]);
+
+import { useAuthStore } from '@/stores/auth';
+const authStore = useAuthStore();
+const server_ip = authStore.server_ip // 后端服务器地址
+const user_token = authStore.user_token // user token
 
 /* 模拟数据请求 */
 const fetchProjects = async () => {
@@ -136,14 +152,16 @@ const fetchProjects = async () => {
   error.value = null;
 
   try {
-    // 第一步：获取 memeIds 列表
-    const res = await axios.get("http://localhost:3000/api/meme-list?sortBy=time&sortOrder=asc");
+    // 根据选择的方式获取 memeIds 列表
+    const sortParam = sortBy.value === 'hot' ? 'hot' : 'time';
+    const sortOrder = sortBy.value === 'hot' ? 'desc' : 'desc';
+    const res = await axios.get(`${server_ip}/api/meme-list?sortBy=${sortParam}&sortOrder=${sortOrder}`);
     const memeIds = Array.isArray(res.data.memeIds) ? res.data.memeIds : [];
 
     // 第二步：并发获取每个 meme 的详细信息
     const memeDetails = await Promise.all(
       memeIds.slice(0, 10).map(id =>
-        axios.get(`http://localhost:3000/api/meme/${id}`).then(r => r.data)
+        axios.get(`${server_ip}/api/meme/${id}`).then(r => r.data)
       )
     );
 
@@ -157,7 +175,7 @@ const fetchProjects = async () => {
       mc: item.likes,
       mcPercent: Math.min(item.likes * 10, 100),
       change: 0,
-      image: item.imageUrl ? `http://localhost:3000/${item.imageUrl.replace(/^\/+/, '')}` : '',
+      image: item.imageUrl ? `${server_ip}/${item.imageUrl.replace(/^\/+/, '')}` : '',
       desc: item.description
     }));
   } 
@@ -221,6 +239,11 @@ const goToMemeDetail = (item) => {
   router.push(`/meme/${item.memeId}`);
 };
 
+const changeSortBy = (type) => {
+  sortBy.value = type;
+  fetchProjects();
+};
+
 const changeFilter = (type) => {
   currentFilter.value = type;
   fetchProjects();
@@ -233,27 +256,42 @@ onMounted(() => {
 
 
 <style scoped>
-/* 右上角按钮 */
-.view-btn {
+/* 右上角按钮组 */
+.filter-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   background-color: #1a1a1a;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.view-btn {
+  background-color: transparent;
   border: none;
   border-radius: 8px;
-  padding: 6px 10px;
+  padding: 8px;
   cursor: pointer;
-  color: #fff;
-  font-size: 18px;
+  color: #888;
+  font-size: 16px;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  transition: background-color 0.2s, color 0.2s;
+  width: 36px;
+  height: 36px;
+  transition: all 0.3s ease;
+}
+
+.view-btn:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .view-btn.active {
   background-color: #65c281;
   color: #000;
+  box-shadow: 0 2px 8px rgba(101, 194, 129, 0.3);
 }
 
 .view-btn .icon {
@@ -261,11 +299,6 @@ onMounted(() => {
   text-align: center;
 }
 
-.filter-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 
 .card-grid {
   display: grid;
@@ -347,7 +380,42 @@ onMounted(() => {
 .filter-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+}
+
+/* 排序按钮组 */
+.sort-group {
+  display: flex;
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  padding: 4px;
+  gap: 2px;
+}
+
+.sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sort-btn:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.sort-btn.active {
+  background-color: #65c281;
+  color: #000;
+  box-shadow: 0 2px 8px rgba(101, 194, 129, 0.3);
 }
 
 .filter-btn {
@@ -368,9 +436,45 @@ onMounted(() => {
 .toggle {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 14px;
   color: #ccc;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.toggle input[type="checkbox"] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #444;
+  border-radius: 4px;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.toggle input[type="checkbox"]:checked {
+  background-color: #65c281;
+  border-color: #65c281;
+}
+
+.toggle input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: -2px;
+  left: 2px;
+  color: #000;
+  font-size: 12px;
+  font-weight: bold;
 }
 
 .filter-right {

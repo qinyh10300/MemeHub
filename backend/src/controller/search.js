@@ -21,6 +21,7 @@ export const searchMeme = async (req, res) => {
 
     // 构造查询条件，任意字段匹配
     const query = {
+      status: 'active',
       $or: [
         { title: { $regex: regex } },
         { ticker: { $regex: regex } },

@@ -11,7 +11,11 @@
 
       <ProfileStats :userData="userData" />
 
-      <Tabs :userData="userData" :isOwnProfile="isOwnProfile" />
+      <Tabs 
+        :userData="userData" 
+        :isOwnProfile="isOwnProfile" 
+        @refresh="fetchUserProfile"
+      />
     </div>
   </div>
 </template>
@@ -35,7 +39,8 @@ const isOwnProfile = computed(() => {
   return currentUsername === profileUsername
 })
 
-const server_ip = 'http://localhost:3000' // 后端服务器地址
+const server_ip = authStore.server_ip // 后端服务器地址
+const user_token = authStore.user_token // user token
 
 // 默认头像URL
 const defaultAvatar = 'https://i.pravatar.cc/150?img=1'

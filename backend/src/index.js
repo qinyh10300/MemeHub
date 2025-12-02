@@ -17,6 +17,7 @@ import * as Const from './configs/const.js';
 import * as Review from './controller/review.js';
 import { Token } from './models/token.js';
 
+import * as MessageController from './controller/message.js';
 
 const app = express();
 app.use(cors());
@@ -148,6 +149,8 @@ app.post('/api/meme/list', Work.getListMeme);
 app.get('/api/meme-list', Work.getMemeList);
 // 删除模因
 app.delete('/api/meme/:id', Work.deleteMeme);
+// 更新模因（重新提交审核）
+app.put('/api/meme/:id', upload.single('file'), Work.updateMeme);
 // 点赞模因
 app.post('/api/meme/:id/like', Work.likeMeme);
 // 收藏模因
@@ -191,12 +194,19 @@ app.post('/api/comment/:id/like', CommentCtrl.likeComment);
 app.delete('/api/comment/:id', CommentCtrl.deleteComment);
 
 
+// 私信功能
+app.post('/api/message/send', MessageController.sendMessage);
+app.get('/api/message/conversations', MessageController.getConversations);
+app.get('/api/message/history/:targetId', MessageController.getHistory);
+
 // 审核操作
 
 // 获取待审核模因列表
 app.get('/api/review/pending-meme-list', Review.getPendingMemeList);
 // 审核模因（通过或拒绝）
 app.post('/api/review/meme/:id', Review.reviewMeme);
+// AI 审核
+app.post('/api/review/meme/:id/ai', Review.aiReviewMeme);
 
 // 消息推送
 

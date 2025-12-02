@@ -1,6 +1,14 @@
 <template>
   <div class="comment-section">
-    <h3>评论</h3>
+    <!-- <h3>评论</h3> -->
+    <h3 class="comment-title">
+      评论
+      <div class="sort-toggle">
+        <span :class="{ active: sortMode === 'time' }" @click="setSort('time')">时间</span>
+        <span :class="{ active: sortMode === 'hot' }" @click="setSort('hot')">热度</span>
+        <div class="slider" :class="sortMode"></div>
+      </div>
+    </h3>
 
     <!-- 评论列表 -->
     <div v-if="comments.length" class="comment-list" ref="commentListRef">
@@ -55,7 +63,7 @@
             <span class="comment-time">{{ new Date(c.createdAt).toLocaleString() }}</span>
             <button
               class="like-button"
-              :class="{ liked: c.is_liked }"
+              :class="{ liked: c.userinfo.is_liked }"
               @click="toggleLike(c)"
             >
               ❤ <span>{{ c.likes }}</span>
@@ -63,7 +71,11 @@
             <button class="reply-button" @click="startReply(c)">
               回复
             </button>
-            <button class="delete-button" @click="deleteComment(c)">
+            <button 
+              v-if="c.userinfo.is_author" 
+              class="delete-button" 
+              @click="deleteComment(c)"
+            >
               删除
             </button>
           </div>
@@ -89,7 +101,6 @@
 <script setup>
 import { reactive, ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
 
 // 接收父组件传入的 meme_id
 const props = defineProps({
@@ -104,11 +115,22 @@ const error = ref(null); // 错误信息
 const replyTarget = ref(null);
 const router = useRouter();
 
+import { useAuthStore } from '@/stores/auth';
 const authStore = useAuthStore();
 const server_ip = authStore.server_ip // 后端服务器地址
 const user_token = authStore.user_token // user token
 
 const commentListRef = ref(null); // 定义 ref
+
+// 默认按时间排序
+const sortMode = ref('time');
+
+const setSort = (mode) => {
+  if (sortMode.value !== mode) {
+    sortMode.value = mode;     // 更新 UI
+    fetchComments();           // 重新加载
+  }
+};
 
 // 获取引用评论的用户名
 const getReplyComment = (reference) => {
@@ -135,12 +157,12 @@ const scrollToComment = async (id) => {
 
 // 点赞 / 取消点赞
 const toggleLike = async (comment) => {
-  const oldLiked = comment.is_liked;
+  const oldLiked = comment.userinfo.is_liked;
   const oldLikes = comment.likes;
 
   // 乐观更新
-  comment.is_liked = !comment.is_liked;
-  comment.likes += comment.is_liked ? 1 : -1;
+  comment.userinfo.is_liked = !comment.userinfo.is_liked;
+  comment.likes += comment.userinfo.is_liked ? 1 : -1;
 
   try {
     const response = await fetch(`${server_ip}/api/comment/${comment._id}/like`, {
@@ -155,7 +177,7 @@ const toggleLike = async (comment) => {
 
     if (!response.ok) {
       // 撤回
-      comment.is_liked = oldLiked;
+      comment.userinfo.is_liked = oldLiked;
       comment.likes = oldLikes;
       alert(data.message || '点赞失败');
       return;
@@ -163,7 +185,7 @@ const toggleLike = async (comment) => {
 
   } catch (err) {
     console.error('点赞失败:', err);
-    comment.is_liked = oldLiked;
+    comment.userinfo.is_liked = oldLiked;
     comment.likes = oldLikes;
     alert('网络错误，稍后重试');
   }
@@ -273,12 +295,18 @@ const fetchComments = async () => {
 
   try {
     // 第一次请求：获取评论 ID 列表
-    const memeResponse = await fetch(`${server_ip}/api/meme/${props.meme_id}/comments`, {
-      method: 'GET',
-      headers: {
-        'token': user_token,
-      },
-    });
+    const sortBy = sortMode.value === 'time' ? 'time' : 'hot';
+    const sortOrder = sortBy === "time" ? "asc" : "des";
+
+    const memeResponse = await fetch(
+      `${server_ip}/api/meme/${props.meme_id}/comments?sortBy=${sortBy}&sortOrder=${sortOrder}`,
+      {
+        method: 'GET',
+        headers: {
+          'token': user_token,
+        },
+      }
+    );
 
     if (!memeResponse.ok) {
       error.value = '获取评论 ID 列表失败';
@@ -529,4 +557,56 @@ watch(() => props.meme_id, fetchComments);
   cursor: pointer; /* 鼠标悬停时显示手型光标 */
   background: #444; /* 鼠标悬停时背景变深 */
 }
+
+.comment-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sort-toggle {
+  position: relative;
+  width: 120px;
+  background: #333;
+  border-radius: 20px;
+  padding: 4px;
+  display: flex;
+  justify-content: space-between;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+  /* transform: translateX(-10px);  */
+  transform: translateY(-2px); 
+}
+
+.sort-toggle span {
+  flex: 1;
+  text-align: center;
+  z-index: 2;
+}
+
+.sort-toggle span.active {
+  color: white;
+  font-weight: bold;
+}
+
+.sort-toggle .slider {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 50%;
+  background: #6c47ff;
+  border-radius: 18px;
+  transition: transform 0.3s;
+  z-index: 1;
+}
+
+.sort-toggle .slider.time {
+  transform: translateX(0%);
+}
+
+.sort-toggle .slider.hot {
+  transform: translateX(90%);
+}
+
 </style>

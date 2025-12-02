@@ -62,7 +62,17 @@ export const createMeme = async (req, res) => {
     }
 
     // 先用原文件名创建meme，后续再重命名
-    const newMeme = new Meme({ title, ticker, description, author: user._id });
+    const newMeme = new Meme({ 
+      title, 
+      ticker, 
+      description, 
+      author: user._id,
+      social: {
+        website: website || '',
+        weibo: weibo || '',
+        xiaohongshu: xiaohongshu || ''
+      }
+    });
     await newMeme.save();
 
     if (withToken === 'true') {
