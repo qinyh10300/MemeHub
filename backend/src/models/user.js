@@ -9,9 +9,15 @@ const userSchema = new Schema({
   bio: { type: String, default: '' }, // 个人简介
   avatar: { type: String, default: '' }, // 头像URL
   loginToken: { type: String },
-  coins: { type: Number, default: 0 },
+  coins: { type: Number, default: 100 },
   workList: { type: [Schema.Types.ObjectId], ref: 'Meme', default: [] },
   favoriteList: { type: [Schema.Types.ObjectId], ref: 'Meme', default: [] },
+  tokenList: [
+    { 
+      token: { type: Schema.Types.ObjectId, ref: 'Token' },
+      amount: { type: Number, default: 0 } 
+    }
+  ],
   following: { type: [Schema.Types.ObjectId], ref: 'User', default: [] }, // 关注列表
   status: { type: String, enum: ['active', 'banned'], default: 'active' },
   role: { type: String, enum: ['user', 'reviewer'], default: 'user' },
@@ -20,5 +26,32 @@ const userSchema = new Schema({
   verificationCodeExpiresAt: Date,
 }, { timestamps: true });
 
-// export default model('User', userSchema);
+userSchema.methods = {
+  /**
+   * 修改用户持有的Token数量
+   * @param {ObjectId} token 
+   * @param {Number} amount - 正数表示增加，负数表示减少
+   * @returns {Number} 实际变动的数量，正数或负数
+   */
+  async changeToken(token, amount) {
+    console.log(`Changing token ${token._id} by amount ${amount} for user ${this._id}`);
+    const userTokenEntry = this.tokenList.find(entry => entry.token.toString() === token._id.toString());
+    if (userTokenEntry) {
+      // 更新后的tokenAmount不能小于0
+      if (userTokenEntry.amount + amount < 0) {
+        amount = -userTokenEntry.amount;
+      }
+      userTokenEntry.amount += amount;
+    }
+    else {
+      this.tokenList.push({ token: token._id, amount: amount });
+    }
+    // 如果amount为0，则移除该记录
+    this.tokenList = this.tokenList.filter(entry => entry.amount !== 0);
+    await this.save();
+    return amount;
+  }
+};
+
+
 export const User = model('User', userSchema);

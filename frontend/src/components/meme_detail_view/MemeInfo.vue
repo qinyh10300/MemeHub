@@ -13,12 +13,12 @@
                         class="author-avatar"
                         :src="meme.author.avatar"
                         alt="作者头像"
-                        @click="goToProfile(meme.authorId)"
+                        @click="goToProfile(meme.author.username)"
                     />
-                    <span class="author-nickname" @click="goToProfile(meme.authorId)">
+                    <span class="author-nickname" @click="goToProfile(meme.author.username)">
                         {{ meme.author.nickname }}
                     </span>
-                    <span class="author-username" @click="goToProfile(meme.authorId)">
+                    <span class="author-username" @click="goToProfile(meme.author.username)">
                         @{{ meme.author.username }}
                     </span>
                 </span>

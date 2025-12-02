@@ -1,75 +1,26 @@
 import { Meme } from '../models/meme.js';
+import { Token } from '../models/token.js';
+import { Order } from '../models/order.js';
 import { User } from '../models/user.js';
 import { Comment } from '../models/comment.js';
 import { Notification } from '../models/notification.js';
 
 import * as Const from '../configs/const.js';
 
-import fs from 'fs';
+import fs, { stat } from 'fs';
 import path from 'path';
 import pkg from 'jsonwebtoken';
 
 const { verify } = pkg;
 
-function buildAvatarUrl(userDoc = {}, baseUrl = '') {
-  const rawAvatar = userDoc.avatar?.trim();
-  if (rawAvatar && rawAvatar.length > 0) {
-    const isAbsolute = /^https?:\/\//i.test(rawAvatar);
-    if (isAbsolute) {
-      return rawAvatar;
-    }
-    if (rawAvatar.startsWith('//')) {
-      return `${baseUrl ? baseUrl.split('://')[0] : 'http'}:${rawAvatar}`;
-    }
-
-    if (baseUrl) {
-      const normalized = rawAvatar.startsWith('/') ? rawAvatar : `/${rawAvatar}`;
-      return `${baseUrl}${normalized}`;
-    }
-    return rawAvatar;
-  }
-
-  const seed = userDoc._id?.toString() || userDoc.username || 'default';
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
-    hash |= 0; // 转为32位整数
-  }
-  const imgNum = Math.abs(hash % 70) + 1;
-  return `https://i.pravatar.cc/150?img=${imgNum}`;
-}
-
-async function findUserByToken(token) {
-  if (!token) {
-    return null;
-  }
-
-  let user = await User.findOne({ username: token });
-  if (user) {
-    return user;
-  }
-
-  try {
-    const decoded = verify(token, process.env.JWT_SECRET);
-    const userId = decoded?.user?.id;
-    if (userId) {
-      user = await User.findById(userId);
-      return user;
-    }
-  } catch (error) {
-    return null;
-  }
-
-  return null;
-}
-
 // 创建模因
 export const createMeme = async (req, res) => {
   try {
-    const { title, ticker, description, website, weibo, xiaohongshu } = req.body;
+    const { title, ticker, description, withToken } = req.body;
     const file = req.file;
     const token = req.headers.token;
     const username = token;// TODO:暂时用username作为token内容
+
     // 检查title和ticker是否已存在
     const existTitle = await Meme.findOne({ title });
     if (existTitle) {
@@ -96,6 +47,20 @@ export const createMeme = async (req, res) => {
       return res.status(401).json({ code: 1002, message: '用户不存在，请先登录' });
     }
 
+    // 检查是否发行虚拟货币
+    if (withToken === 'true') {
+      // 检查用户余额是否足够
+      if (user.coins < Const.TOKEN_COIN_COST) {
+        if (file) {
+          fs.unlink(path.join(file.destination, file.filename), () => {});
+        }
+        return res.status(400).json({ code: 1010, message: '金币余额不足，无法发行虚拟货币' });
+      }
+      // 扣除用户金币
+      user.coins -= Const.TOKEN_COIN_COST;
+      await user.save();
+    }
+
     // 先用原文件名创建meme，后续再重命名
     const newMeme = new Meme({ 
       title, 
@@ -109,6 +74,17 @@ export const createMeme = async (req, res) => {
       }
     });
     await newMeme.save();
+
+    if (withToken === 'true') {
+      newMeme.withToken = true;
+      await newMeme.save();
+      // 创建对应的Token
+      const newToken = new Token({
+        meme: newMeme._id
+      });
+      await newToken.updatePrice(null, -Const.TOKEN_USDT_LIQUIDITY / Const.TOKEN_INIT_PRICE);
+      await newToken.save();
+    }
 
     // 只有创建成功后才重命名文件
     const ext = path.extname(file.originalname);
@@ -132,7 +108,7 @@ export const createMeme = async (req, res) => {
     fs.renameSync(oldPath, newPath);
 
     const memeData = await Meme.findById(newMeme._id)
-      .select('title imageUrl description author createdAt likes ticker _id')
+      .select('title imageUrl description author createdAt likes ticker _id withToken')
       .populate('author', 'username -_id')
       .lean();
 
@@ -163,40 +139,89 @@ export const createMeme = async (req, res) => {
 export const getMemeDetail = async (req, res) => {
   try {
     const memeId = req.params.id;
-    const token = req.headers.token;
-    const username = token;// TODO:暂时用username作为token内容
+    const userToken = req.headers.token;
+    const username = userToken;// TODO:暂时用username作为token内容
 
     const meme = await Meme.findById(memeId)
-      .select('title imageUrl ticker description author createdAt likes favorites status social likeList')
+      .select('title imageUrl ticker description author createdAt likes favorites status likeList withToken')
       .populate('author', 'username nickname avatar bio -_id');
     if (!meme) {
       return res.status(404).json({ message: '模因不存在' });
+    }
+    
+    // 获取虚拟货币信息
+    let tokenInfo = null;
+    if (meme.withToken) {
+      const token = await Token.findOne({ meme: meme._id });
+      if (token) {
+        // 按时间降序排序并保留前20条
+        const sortedHistory = [...token.priceHistory]
+          .sort((a, b) => new Date(b.time) - new Date(a.time))
+          .slice(0, Const.PRICE_HISTORY_LIMIT);
+
+        // 批量查找涉及的用户
+        const userIds = sortedHistory
+          .map(item => item.user)
+          .filter(id => !!id);
+        const users = await User.find({ _id: { $in: userIds } }).select('nickname username');
+        const userMap = new Map(users.map(u => [u._id.toString(), u.nickname || u.username]));
+        
+        // 替换 user 字段为 nickname
+        const priceHistoryWithNickname = sortedHistory.map(item => ({
+          time: item.time,
+          user: item.user ? userMap.get(item.user.toString()) || '' : '',
+          side: item.side,
+          amount: item.amount,
+          price: item.price,
+          newPrice: item.newPrice,
+          // _id: item._id
+        }));
+
+        tokenInfo = {
+          price: token.price,
+          priceHistory: priceHistoryWithNickname
+        }
+      }
+    } else {
+      tokenInfo = null;
     }
 
     // 当前用户关于该模因的信息
     let is_author = false;
     let is_liked = false;
     let is_favorited = false;
+    let tokenAmount = 0;
+    let tokenValue = 0;
 
     const user = await User.findOne({ username });
     if (user) {
       is_author = meme.author.username === username;
 
-      // console.log('likeList:', meme.likeList);
-      // console.log('user._id:', user._id);
-      // is_liked = Array.isArray(meme.likeList) && meme.likeList.includes(user._id);
       is_liked = Array.isArray(meme.likeList) && meme.likeList.some(id => id.toString() === user._id.toString());
       is_favorited = Array.isArray(user.favoriteList) && user.favoriteList.includes(meme._id);
+      if (meme.withToken) {
+        const token = await Token.findOne({ meme: meme._id });
+        if (token) {
+          const userTokenEntry = user.tokenList.find(entry => entry.token.toString() === token._id.toString());
+          if (userTokenEntry) {
+            tokenAmount = userTokenEntry.amount;
+            tokenValue = token.getPriceByAmount(-tokenAmount);
+          }
+        }
+      }
     }
 
     const memeObj = meme.toObject();
     delete memeObj.likeList;
     res.status(200).json({
       ...memeObj,
+      token : tokenInfo,
       userinfo: {
         is_author,
         is_liked,
-        is_favorited
+        is_favorited,
+        tokenAmount,
+        tokenValue
       }
     });
   } catch (error) {
@@ -255,7 +280,7 @@ export const getMemeList = async (req, res) => {
     const sortBy = req.query.sortBy === 'hot' ? 'likes' : 'createdAt';
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1; // 默认倒序
 
-    const memes = await Meme.find({ status: 'active' })
+    const memes = await Meme.find({ status: 'active' })// 筛选active
       .select('_id likes createdAt')
       .sort({ [sortBy]: sortOrder });
 
@@ -429,76 +454,37 @@ export const favoriteMeme = async (req, res) => {
   }
 };
 
-export const commentMeme = async (req, res) => {
+export const getTokenPriceByAmount = async (req, res) => {
   try {
     const memeId = req.params.id;
-    const { content, reference } = req.body;
-    const token = req.headers.token;
-    const username = token; // TODO:暂时用username作为token内容
-
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(404).json({ message: `用户${username}不存在` });
-    }
-
-    const comment = new Comment({
-      content,
-      reference: reference || null,
-      meme: memeId,
-      user: user._id
-    });
-    await comment.save();
-
-    // 加入模因评论列表
     const meme = await Meme.findById(memeId);
     if (!meme) {
       return res.status(404).json({ message: `模因${memeId}不存在` });
     }
-    meme.comments.push(comment._id);
-    await meme.save();
-
-    const host = req.get('host');
-    const baseUrl = host ? `${req.protocol}://${host}` : '';
-
-    // 消息推送，如果是回复评论，则通知被回复用户
-    if (reference) {
-      const refComment = await Comment.findById(reference);
-      // 注释则接收来自自己的回复通知
-      // if (refComment && refComment.user.toString() !== user._id.toString()) {
-        await Notification.create({
-          user: refComment.user,
-          type: 'interaction',
-          message: `您的评论收到来自${user.nickname || user.username}的回复：${content.substring(0, 100)}`,
-        });
-      // }
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
     }
-    else {
-      // 否则通知模因作者
-      if (meme.author.toString() !== user._id.toString()) {
-        await Notification.create({
-          user: meme.author,
-          type: 'interaction',
-          message: `您的模因'${meme.title.substring(0, 100)}'收到来自${user.nickname || user.username}的新评论：${content.substring(0, 100)}`,
-        });
-      }
+    const token = await Token.findOne({ meme: memeId });
+    if (!token) {
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
+    }
+    let amount = Number(req.query.amount);
+    let expectedPrice = Number(req.query.expectedPrice) || 0;
+    if (isNaN(amount)) {
+      return res.status(400).json({ message: '无效的Token数量参数' });
     }
 
-    res.status(201).json({
-      code: 0,
-      message: '创建模因评论成功',
-      comment: {
-        _id: comment._id,
-        content: comment.content,
-        reference: comment.reference,
-        meme: comment.meme,
-        user: user.username,
-        nickname: user.nickname,
-        avatar: buildAvatarUrl(user, baseUrl),
-      }
-    });
+    if (amount > 0){
+      amount = Math.floor(amount);
+    } else if (amount < 0) {
+      amount = -1 * Math.floor(-1 * amount);
+    }
+
+    const price = token.getPriceByAmount(amount, expectedPrice);
+    res.status(200).json({ price });
   } catch (error) {
     res.status(500).json({
-      message: '创建模因评论失败',
+      message: '获取Token价格失败',
       error: {
         name: error.name,
         message: error.message,
@@ -509,59 +495,51 @@ export const commentMeme = async (req, res) => {
   }
 };
 
-export const getMemeComments = async (req, res) => {
+export const getTokenPriceHistoryByTime = async (req, res) => {
   try {
     const memeId = req.params.id;
-    const sortBy = req.query.sortBy === 'time' ? 'createdAt' : 'likes';
-    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1; // 默认倒序
-    const token = req.headers.token || req.headers.authorization?.replace('Bearer ', '');
-    const host = req.get('host');
-    const baseUrl = host ? `${req.protocol}://${host}` : '';
-
-    // 检查meme是否存在
     const meme = await Meme.findById(memeId);
     if (!meme) {
       return res.status(404).json({ message: `模因${memeId}不存在` });
     }
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
+    }
+    const token = await Token.findOne({ meme: memeId });
+    if (!token) {
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
+    }
 
-    const viewUser = await findUserByToken(token);
+    // 获取分段间隔（单位：秒）
+    const timeSpan = Number(req.query.timeSpan) || 3600;
+    const startTime = new Date(token.createdAt).getTime();
+    const endTime = Date.now();
 
-    const comments = await Comment.find({ meme: memeId })
-      .select('_id content reference user createdAt likes likeList')
-      .populate('user', 'username nickname avatar')
-      .sort({ [sortBy]: sortOrder })
-      .lean();
+    // 按时间分段
+    const segments = [];
+    for (let t = startTime; t < endTime; t += timeSpan * 1000) {
+      segments.push({ start: t, end: t + timeSpan * 1000 });
+    }
 
-    const formattedComments = comments.map((comment) => {
-      const userInfo = comment.user || {};
-      const userId = userInfo._id ? userInfo._id.toString() : '';
-      const avatar = buildAvatarUrl(userInfo, baseUrl);
-      const isLiked = viewUser
-        ? Array.isArray(comment.likeList) && comment.likeList.some((id) => id.toString() === viewUser._id.toString())
-        : false;
-
+    // 统计每段最高价
+    let lastPrice = null;
+    const result = segments.map(seg => {
+      const prices = token.priceHistory.filter(item => {
+        const itemTime = new Date(item.time).getTime();
+        return itemTime >= seg.start && itemTime < seg.end;
+      }).map(item => item.newPrice ?? item.price);
+      const highestPrice = prices.length > 0 ? Math.max(...prices) : lastPrice;
+      lastPrice = highestPrice;
       return {
-        _id: comment._id.toString(),
-        content: comment.content,
-        reference: comment.reference ? comment.reference.toString() : null,
-        createdAt: comment.createdAt,
-        likes: comment.likes || 0,
-        isLiked,
-        user: userInfo.username || '',
-        userId,
-        nickname: userInfo.nickname || '',
-        avatar,
+        time: new Date(seg.start),
+        highestPrice
       };
     });
 
-    res.status(200).json({
-      code: 0,
-      message: '获取模因评论成功',
-      comments: formattedComments
-    });
+    res.status(200).json({ priceHistory: result });
   } catch (error) {
     res.status(500).json({
-      message: '获取模因评论ID列表失败',
+      message: '获取Token价格历史失败',
       error: {
         name: error.name,
         message: error.message,
@@ -572,272 +550,287 @@ export const getMemeComments = async (req, res) => {
   }
 };
 
-export const getListComment = async (req, res) => {
+export const buyTokenByAmount = async (req, res) => {
   try {
-    console.log('req.body:', req.body);
-    const commentIds = req.body.commentIds;
-    const token = req.headers.token;
-    const username = token; // TODO:暂时用username作为token内容、
-    const host = req.get('host');
-    const baseUrl = host ? `${req.protocol}://${host}` : '';
-
-    const view_user = await User.findOne({ username });
-    if (!view_user) {
-      return res.status(404).json({ message: `用户${username}不存在` });
-    }
-
-    // 查询所有存在的 comment
-    const comments = await Comment.find({ _id: { $in: commentIds } })
-      .select('_id content reference user createdAt likes likeList')
-      .populate({
-        path: 'reference',
-        select: '_id content user createdAt likes',
-        populate: {
-          path: 'user',
-          select: 'username nickname avatar bio -_id'
-        }
-      })
-      .populate('user', 'username nickname avatar bio -_id')
-      .lean();
-    
-    let is_liked = false;
-    let is_author = false;
-    // 构建返回列表，按请求顺序，缺失的comment补null
-    const commentMap = new Map(comments.map(comment => [comment._id.toString(), comment]));
-    const result = commentIds.map(id => {
-      const comment = commentMap.get(id);
-      if (comment) {
-        // 处理 reference
-        if (!comment.reference) {
-          comment.reference = null;
-        } else {
-          // 处理 reference.user
-          if (!comment.reference.user) {
-            comment.reference.user = null;
-          }
-        }
-        // 处理 user
-        if (!comment.user) {
-          comment.user = null;
-        } else {
-          comment.user.avatar = buildAvatarUrl(comment.user, baseUrl);
-        }
-        if (comment.reference?.user) {
-          comment.reference.user.avatar = buildAvatarUrl(comment.reference.user, baseUrl);
-        }
-        is_liked = Array.isArray(comment.likeList) && comment.likeList.some(id => id.toString() === view_user._id.toString());
-        is_author = comment.user && (comment.user.username === username);
-        comment.userinfo = {
-          is_liked,
-          is_author
-        };
-        delete comment.likeList;
-        return comment;
-      } else {
-        return { content: null };
-      }
-    });
-
-    res.status(200).json({
-      message: '获取评论列表成功',
-      comments: result
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: '获取评论列表失败',
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-        ...error
-      }
-    });
-  }
-};
-
-export const likeComment = async (req, res) => {
-  try {
-    const commentId = req.params.id;
-    const token = req.headers.token;
-    const username = token; // TODO:暂时用username作为token内容
-    // 查找评论
-    const comment = await Comment.findById(commentId);
-    if (!comment) {
-      return res.status(404).json({ message: `评论${commentId}不存在` });
-    }
-    // 查找用户
+    const userToken = req.headers.token;
+    const username = userToken; // TODO:暂时用username作为token内容
     const user = await User.findOne({ username });
     if (!user) {
       return res.status(404).json({ message: `用户${username}不存在` });
     }
-    // 检查用户是否已点赞
-    const isLiked = comment.likeList.includes(user._id);
-    if (isLiked) {
-      // 取消点赞
-      comment.likeList.pull(user._id);
-    } else {
-      // 点赞
-      comment.likeList.push(user._id);
-    }
-    // 更新点赞数
-    comment.likes = comment.likeList.length;
-    await comment.save();
-
-    // 消息推送，如果点赞评论的用户不是评论作者，则通知评论作者
-    if (!isLiked && comment.user.toString() !== user._id.toString()) {
-      await Notification.create({
-        user: comment.user,
-        type: 'interaction',
-        message: `您的评论收到来自${user.nickname || user.username}的点赞`,
-      });
-    }
-
-    res.status(200).json({
-      message: isLiked ? `取消点赞评论${commentId}` : `点赞评论${commentId}`,
-      comment: {
-        _id: comment._id,
-        content: comment.content,
-        likes: comment.likes
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: '点赞评论失败',
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-        ...error
-      }
-    });
-  }
-};
-// TODO: 删除评论时需要同时从模因的评论列表中移除该评论ID（目前未成功）
-export const deleteComment = async (req, res) => {
-  try {
-    const commentId = req.params.id;
-    const token = req.headers.token;
-    const username = token; // TODO:暂时用username作为token内容
-
-    // 查找评论
-    const comment = await Comment.findById(commentId);
-    if (!comment) {
-      return res.status(404).json({ message: `评论${commentId}不存在` });
-    }
-
-    // 查找用户
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(404).json({ message: `用户${username}不存在` });
-    }
-
-    // 检查用户权限
-    if (comment.user.toString() !== user._id.toString()) {
-      return res.status(403).json({ message: `没有权限删除评论${commentId}` });
-    }
-
-    // 从模因的评论列表中移除
-    const meme = await Meme.findById(comment.meme);
-    if (meme) {
-      meme.comments.pull(comment._id);
-      await meme.save();
-    }
-
-    // 删除评论
-    await Comment.findByIdAndDelete(commentId);
-    res.status(200).json({ message: `评论${commentId}已删除` });
-  } catch (error) {
-    res.status(500).json({
-      message: '删除评论失败',
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-        ...error
-      }
-    });
-  }
-};
-
-// 更新模因（重新提交审核）
-export const updateMeme = async (req, res) => {
-  try {
     const memeId = req.params.id;
-    const { title, ticker, description, website, weibo, xiaohongshu } = req.body;
-    const file = req.file;
-    const token = req.headers.token;
-    const username = token; // TODO: Verify token
-
-    const user = await User.findOne({ username });
-    if (!user) {
-      if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
-      return res.status(401).json({ code: 1002, message: '用户不存在' });
-    }
-
     const meme = await Meme.findById(memeId);
     if (!meme) {
-      if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
-      return res.status(404).json({ code: 1004, message: '模因不存在' });
+      return res.status(404).json({ message: `模因${memeId}不存在` });
     }
-
-    if (meme.author.toString() !== user._id.toString()) {
-      if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
-      return res.status(403).json({ code: 1005, message: '无权修改此模因' });
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
     }
-
-    // Check title/ticker uniqueness
-    if (title && title !== meme.title) {
-      const exist = await Meme.findOne({ title });
-      if (exist) {
-        if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
-        return res.status(400).json({ code: 1007, message: '该标题已存在' });
-      }
-      meme.title = title;
+    const token = await Token.findOne({ meme: memeId });
+    if (!token) {
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
     }
-    if (ticker && ticker !== meme.ticker) {
-      const exist = await Meme.findOne({ ticker });
-      if (exist) {
-        if (file) fs.unlink(path.join(file.destination, file.filename), () => {});
-        return res.status(400).json({ code: 1008, message: '该ticker已存在' });
-      }
-      meme.ticker = ticker;
+    const amount = Math.floor(Number(req.body.amount));
+    if (isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ message: '无效的购买数量参数' });
     }
-
-    if (description) meme.description = description;
-
-    // Update social
-    if (website !== undefined) meme.social.website = website;
-    if (weibo !== undefined) meme.social.weibo = weibo;
-    if (xiaohongshu !== undefined) meme.social.xiaohongshu = xiaohongshu;
-
-    // Handle file update
-    if (file) {
-      // Delete old file if exists
-      if (meme.imageUrl) {
-         const oldFilename = path.basename(meme.imageUrl);
-         const oldFilePath = path.join(Const.MEME_DIR, oldFilename);
-         if (fs.existsSync(oldFilePath)) {
-           try { fs.unlinkSync(oldFilePath); } catch(e) {}
-         }
-      }
-      
-      const ext = path.extname(file.originalname);
-      const newFilename = `${meme._id}-${Date.now()}${ext}`; // Add timestamp to avoid cache issues
-      const newPath = path.join(file.destination, newFilename);
-      
-      fs.renameSync(path.join(file.destination, file.filename), newPath);
-      meme.imageUrl = `/${Const.MEME_DIR}${newFilename}`;
+    const price = token.getPriceByAmount(amount);
+    // 检查用户余额是否足够
+    if (user.coins < price) {
+      return res.status(400).json({ message: '余额不足，无法购买Token' });
     }
-
-    // Reset status to pending
-    meme.status = 'pending';
-    await meme.save();
-
-    res.json({ code: 0, message: '模因已更新并重新提交审核', data: meme });
-
+    user.coins -= price;
+    // 更新User的Token余额
+    await user.changeToken(token, amount);
+    token.RToken -= amount;
+    await token.updatePrice(user._id, amount, price);
+    res.status(200).json({ 
+      message: `成功购买${amount}个Token，支付USDT：${price.toFixed(6)}`,
+      price: price 
+    });
   } catch (error) {
-    if (req.file) fs.unlink(path.join(req.file.destination, req.file.filename), () => {});
-    console.error('更新模因失败:', error);
-    res.status(500).json({ message: '更新模因失败', error: error.message });
+    res.status(500).json({
+      message: '购买Token失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const sellTokenByAmount = async (req, res) => {
+  try {
+    const userToken = req.headers.token;
+    const username = userToken; // TODO:暂时用username作为token内容
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: `用户${username}不存在` });
+    }
+    
+    const memeId = req.params.id;
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      return res.status(404).json({ message: `模因${memeId}不存在` });
+    }
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
+    }
+    const token = await Token.findOne({ meme: memeId });
+    if (!token) {
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
+    }
+    const amount = Math.floor(Number(req.body.amount));
+    if (isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ message: '无效的出售数量参数' });
+    }
+    // 检查用户Token余额是否足够
+    const userTokenEntry = user.tokenList.find(entry => entry.token.toString() === token._id.toString());
+    if (!userTokenEntry || userTokenEntry.amount < amount) {
+      return res.status(400).json({ message: 'Token余额不足，无法出售' });
+    }
+    const price = token.getPriceByAmount(-amount);
+    await user.changeToken(token, -amount);
+    user.coins += price;
+    await user.save();
+    // 更新Token的RUsdt和RToken
+    token.RToken += amount;
+    await token.updatePrice(user._id, -amount, price);
+    res.status(200).json({ 
+      message: `成功出售${amount}个Token，获得USDT：${price.toFixed(6)}`,
+      price: price 
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: '出售Token失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const buyTokenReservation = async (req, res) => {
+  try {
+    const userToken = req.headers.token;
+    const username = userToken; // TODO:暂时用username作为token内容
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: `用户${username}不存在` });
+    }
+    const memeId = req.params.id;
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      return res.status(404).json({ message: `模因${memeId}不存在` });
+    }
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
+    }
+    const token = await Token.findOne({ meme: memeId });
+    if (!token) {
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
+    }
+    // 获取预约参数
+    const { expectedPrice, amount } = req.body;
+    const buyAmount = Math.floor(Number(amount));
+    const buyExpectedPrice = Number(expectedPrice);
+    if (isNaN(buyAmount) || buyAmount <= 0) {
+      return res.status(400).json({ message: '无效的预约购买数量参数' });
+    }
+    if (isNaN(buyExpectedPrice) || buyExpectedPrice <= 0) {
+      return res.status(400).json({ message: '无效的预约购买期望价格参数' });
+    }
+    // 创建预约订单
+    const newOrder = new Order({
+      user: user._id,
+      meme: meme._id,
+      // token: token._id,
+      side: 'BUY',
+      expectedPrice: buyExpectedPrice,
+      amount: buyAmount
+    });
+    await newOrder.save();
+    token.hasPendingOrder = true;
+    await token.save();
+    res.status(200).json({ message: '预约购买Token成功' });
+  } catch (error) {
+    res.status(500).json({
+      message: '预约购买Token失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const sellTokenReservation = async (req, res) => {
+  try {
+    const userToken = req.headers.token;
+    const username = userToken; // TODO:暂时用username作为token内容
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: `用户${username}不存在` });
+    }
+    const memeId = req.params.id;
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      return res.status(404).json({ message: `模因${memeId}不存在` });
+    }
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
+    }
+    const token = await Token.findOne({ meme: memeId });
+    if (!token) {
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
+    }
+    // 获取预约参数
+    const { expectedPrice, amount } = req.body;
+    let sellAmount = Math.floor(Number(amount));
+    const sellExpectedPrice = Number(expectedPrice);
+    if (isNaN(sellAmount) || sellAmount <= 0) {
+      return res.status(400).json({ message: '无效的预约出售数量参数' });
+    }
+    if (isNaN(sellExpectedPrice) || sellExpectedPrice <= 0) {
+      return res.status(400).json({ message: '无效的预约出售期望价格参数' });
+    }
+    // 检查用户是否有足够的Token
+    sellAmount = await user.changeToken(token, -sellAmount);
+    // 创建预约订单
+    const newOrder = new Order({
+      user: user._id,
+      meme: meme._id,
+      // token: token._id,
+      side: 'SELL',
+      expectedPrice: sellExpectedPrice,
+      amount: -sellAmount
+    });
+    await newOrder.save();
+    token.hasPendingOrder = true;
+    await token.save();
+    res.status(200).json({ message: '预约出售Token成功' });
+  } catch (error) {
+    res.status(500).json({
+      message: '预约出售Token失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+export const cancelOrderReservation = async (req, res) => {
+  try {
+    const userToken = req.headers.token;
+    const username = userToken; // TODO:暂时用username作为token内容
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: `用户${username}不存在` });
+    }
+    const orderId = req.params.id;
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: `订单${orderId}不存在` });
+    }
+    // 检查订单归属
+    if (order.user.toString() !== user._id.toString()) {
+      return res.status(403).json({ message: `没有权限取消订单${orderId}` });
+    }
+    // 卖单返还Token
+    if (order.side === 'SELL') {
+      await user.changeToken(await Token.findById(order.token), order.amount);
+    }
+    await Order.findByIdAndUpdate(orderId, { status: 'CANCELLED' });
+    res.status(200).json({ message: `成功取消订单${orderId}` });
+  } catch (error) {
+    res.status(500).json({
+      message: '取消订单失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
+  }
+};
+
+// 仅测试使用，手动触发订单成交检查
+export const manualCheckOrderFulfillment = async (req, res) => {
+  try {
+    const memeId = req.params.id;
+    const meme = await Meme.findById(memeId);
+    if (!meme) {
+      return res.status(404).json({ message: `模因${memeId}不存在` });
+    }
+    if (!meme.withToken) {
+      return res.status(400).json({ message: `模因${memeId}未关联Token` });
+    }
+    const token = await Token.findOne({ meme: memeId });
+    if (!token) {
+      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
+    }
+    await token.checkOrderFulfillment();
+    res.status(200).json({ message: '手动检查订单成交完成' });
+  } catch (error) {
+    res.status(500).json({
+      message: '手动检查订单成交失败',
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        ...error
+      }
+    });
   }
 };

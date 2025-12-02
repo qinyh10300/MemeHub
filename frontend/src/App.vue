@@ -144,6 +144,10 @@ const goToProfile = (username) => {
           <img class="nav-icon" src="@/assets/pumpfun.png" alt="Profile" />
           <span class="nav-text">消息通知</span>
         </RouterLink>
+        <RouterLink v-if="isLoggedIn" :to="`/chat`" class="nav-item" active-class="active">
+          <img class="nav-icon" src="@/assets/pepe.avif" alt="Profile" />
+          <span class="nav-text">私信、C2C交易</span>
+        </RouterLink>
         <RouterLink 
           v-if="isLoggedIn && authStore.user_role === 'reviewer'" 
           :to="`/audit`" 

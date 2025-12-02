@@ -9,11 +9,15 @@ import path from 'path';
 
 import * as Auth from './controller/auth.js';
 import * as Work from './controller/work.js';
+import * as CommentCtrl from './controller/commentCtrl.js';
 import * as Search from './controller/search.js';
 import * as Profile from './controller/profile.js';
 import * as Avatar from './controller/avatar.js';
 import * as Const from './configs/const.js';
 import * as Review from './controller/review.js';
+import { Token } from './models/token.js';
+
+import * as MessageController from './controller/message.js';
 
 const app = express();
 app.use(cors());
@@ -75,6 +79,23 @@ const uploadAvatar = multer({
 });
 
 
+// 每30秒检查一次预约订单是否可以完成
+setInterval(async () => {
+  try {
+    // 先查出你关心的 token 列表，比如有挂单的
+    const tokens = await Token.find({ hasPendingOrder: true });
+
+    for (const token of tokens) {
+      token.checkOrderFulfillment().catch(err => {
+        console.error(`checkOrderFulfillment error for token ${token._id}:`, err);
+      });
+    }
+  } catch (e) {
+    console.error('periodic checkOrderFulfillment failed:', e);
+  }
+}, Const.CHECK_ORDER_INTERVAL_MS);
+
+
 // 用户个人信息
 
 // 注册
@@ -129,7 +150,7 @@ app.get('/api/meme-list', Work.getMemeList);
 // 删除模因
 app.delete('/api/meme/:id', Work.deleteMeme);
 // 更新模因（重新提交审核）
-app.put('/api/meme/:id', upload.single('file'), Work.updateMeme);
+// app.put('/api/meme/:id', upload.single('file'), Work.updateMeme);
 // 点赞模因
 app.post('/api/meme/:id/like', Work.likeMeme);
 // 收藏模因
@@ -140,18 +161,43 @@ app.get('/api/search-meme', Search.searchMeme);
 // 搜索用户
 app.get('/api/search-user', Search.searchUser);
 
+// 虚拟货币操作
+
+// 查询Token价格
+app.get('/api/meme/:id/token/price', Work.getTokenPriceByAmount);
+// 查看历史价格
+app.get('/api/meme/:id/token/price-history', Work.getTokenPriceHistoryByTime);
+// 购买Token
+app.post('/api/meme/:id/token/buy', Work.buyTokenByAmount);
+// 出售Token
+app.post('/api/meme/:id/token/sell', Work.sellTokenByAmount);
+// 预约买入Token
+app.post('/api/meme/:id/token/buy-reservation', Work.buyTokenReservation);
+// 预约卖出Token
+app.post('/api/meme/:id/token/sell-reservation', Work.sellTokenReservation);
+// 取消预约
+app.post('/api/order/:id/cancel', Work.cancelOrderReservation);
+// 手动检查订单是否完成（测试用）
+app.post('/api/meme/:id/check-orders', Work.manualCheckOrderFulfillment);
+
 // 评论操作
 
 // 评论模因
-app.post('/api/meme/:id/comment', Work.commentMeme);
+app.post('/api/meme/:id/comment', CommentCtrl.commentMeme);
 // 读取指定模因的评论区
-app.get('/api/meme/:id/comments', Work.getMemeComments);
+app.get('/api/meme/:id/comments', CommentCtrl.getMemeComments);
 // 读取指定评论id列表的评论信息
-app.post('/api/comment/list', Work.getListComment);
+app.post('/api/comment/list', CommentCtrl.getListComment);
 // 点赞评论
-app.post('/api/comment/:id/like', Work.likeComment);
+app.post('/api/comment/:id/like', CommentCtrl.likeComment);
 // 删除评论
-app.delete('/api/comment/:id', Work.deleteComment);
+app.delete('/api/comment/:id', CommentCtrl.deleteComment);
+
+
+// 私信功能
+app.post('/api/message/send', MessageController.sendMessage);
+app.get('/api/message/conversations', MessageController.getConversations);
+app.get('/api/message/history/:targetId', MessageController.getHistory);
 
 // 审核操作
 
@@ -159,6 +205,8 @@ app.delete('/api/comment/:id', Work.deleteComment);
 app.get('/api/review/pending-meme-list', Review.getPendingMemeList);
 // 审核模因（通过或拒绝）
 app.post('/api/review/meme/:id', Review.reviewMeme);
+// AI 审核
+app.post('/api/review/meme/:id/ai', Review.aiReviewMeme);
 
 // 消息推送
 
