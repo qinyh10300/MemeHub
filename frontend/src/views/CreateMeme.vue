@@ -13,7 +13,10 @@
           {{ isEditMode ? '修改后模因将重新进入待审核状态' : '模因币数据只能在此时添加，创建后无法更改或编辑' }}
         </div>
         <primary-button class="create-btn" @click="handleCreateMeme">
-          {{ isEditMode ? '提交修改' : '创建模因' }}
+          {{ isEditMode ? '提交修改（仅创建模因）' : '仅创建模因' }}
+        </primary-button>
+        <primary-button class="create-btn" @click="handleCreateMemeCoin">
+          {{ isEditMode ? '提交修改（创建模因与模因币）' : '创建模因与模因币' }}
         </primary-button>
       </section>
 
@@ -175,6 +178,112 @@ async function handleCreateMeme() {
   if (selectedFile.value) {
     uploadData.append('file', selectedFile.value)
   }
+
+  const url = isEditMode.value 
+    ? `${server_ip}/api/meme/${route.query.id}`
+    : `${server_ip}/api/upload-meme`
+    
+  const method = isEditMode.value ? 'PUT' : 'POST'
+
+  try {
+    console.log(`${isEditMode.value ? '更新' : '创建'}模因请求:`, {
+      url,
+      method,
+      username: authStore.username,
+      hasFile: !!selectedFile.value,
+      formData: formData.value
+    })
+
+    const res = await fetch(url, {
+      method: method,
+      headers: {
+        'token': authStore.username || authStore.token || '' // 传递用户名作为token
+      },
+      body: uploadData
+    })
+    
+    let result
+    try {
+      const text = await res.text()
+      result = text ? JSON.parse(text) : {}
+    } catch (parseError) {
+      console.error('JSON解析失败:', parseError)
+      throw new Error(`服务器响应格式错误: ${res.statusText}`)
+    }
+    
+    if (res.ok || res.status === 201) {
+      if (result.code === 0) {
+        alert(isEditMode.value ? '更新模因成功，已提交审核！' : '创建模因成功！')
+        
+        // 如果是创建，清空表单；更新则不用
+        if (!isEditMode.value) {
+           createCoinRef.value?.resetForm()
+           formData.value = null
+           selectedFile.value = null
+           if (filePreviewUrl.value) {
+             URL.revokeObjectURL(filePreviewUrl.value)
+             filePreviewUrl.value = ''
+           }
+        }
+        
+        // 跳转到创建的模因详情页 (或者列表页)
+        // 这里改为跳转到个人主页
+        const newId = result.data?._id || route.query.id
+        if (newId) {
+          // router.push(`/meme/${newId}`)
+          router.push(`/profile/${authStore.username}`)
+        } else {
+          router.push('/')
+        }
+      } else {
+        // 处理业务错误
+        const errorMsg = result.message || '操作失败'
+        alert(errorMsg)
+      }
+    } else {
+      // 处理HTTP错误响应
+      const errorMsg = result.message || `操作失败 (${res.status})`
+      alert(errorMsg)
+    }
+  } catch (err) {
+    console.error('操作时发生错误:', err)
+    alert(`错误: ${err.message || '未知错误，请查看控制台'}`)
+  }
+}
+
+// 处理创建/更新模因币
+async function handleCreateMemeCoin() {
+  // 检查是否登录
+  if (!authStore.username) {
+    alert('请先登录')
+    router.push('/')
+    return
+  }
+
+  // 编辑模式下，文件是可选的；创建模式下必选
+  if (!isEditMode.value && !selectedFile.value) {
+    alert('请先选择文件')
+    return
+  }
+  
+  if (!formData.value?.coinname || !formData.value?.ticker) {
+    alert('请填写币种名称和代号')
+    return
+  }
+
+  const uploadData = new FormData()
+  uploadData.append('title', formData.value.coinname)
+  uploadData.append('ticker', formData.value.ticker)
+  uploadData.append('description', formData.value.description || '')
+  uploadData.append('website', formData.value.social?.website || '')
+  uploadData.append('weibo', formData.value.social?.weibo || '')
+  uploadData.append('xiaohongshu', formData.value.social?.xiaohongshu || '')
+  
+  if (selectedFile.value) {
+    uploadData.append('file', selectedFile.value)
+  }
+
+  uploadData.append('withToken', true);
 
   const url = isEditMode.value 
     ? `${server_ip}/api/meme/${route.query.id}`

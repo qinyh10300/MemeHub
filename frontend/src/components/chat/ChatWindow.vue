@@ -539,4 +539,17 @@ border-radius: 3px;
 ::-webkit-scrollbar-thumb:hover {
 background: #555;
 }
+
+.empty-state {
+  display: flex;                  /* 使用 flex 布局 */
+  justify-content: center;        /* 水平居中 */
+  align-items: center;            /* 垂直居中 */
+  height: 200px;                  /* 高度可根据需求调整 */
+  color: #999999;                 /* 字体颜色柔和 */
+  font-size: 16px;                /* 字体大小 */
+  font-weight: 500;               /* 字体粗细 */
+  border-radius: 8px;             /* 圆角，可选 */
+  text-align: center;             /* 多行文字居中 */
+  padding: 20px;                  /* 内边距 */
+}
 </style>
