@@ -834,3 +834,65 @@ export const manualCheckOrderFulfillment = async (req, res) => {
     });
   }
 };
+
+// 根据 ticker 查询用户持有的代币数量
+export const getUserTokenByTicker = async (req, res) => {
+  try {
+    const { ticker } = req.params;
+    const userToken = req.headers.token;
+    const username = userToken; // TODO: 暂时用 username 作为 token 内容
+
+    if (!username) {
+      return res.status(401).json({ code: 1001, message: '未登录' });
+    }
+
+    // 查找用户
+    const user = await User.findOne({ username }).populate({
+      path: 'tokenList.token',
+      populate: { path: 'meme', select: 'ticker title' }
+    });
+
+    if (!user) {
+      return res.status(404).json({ code: 1002, message: '用户不存在' });
+    }
+
+    // 查找对应 ticker 的 meme
+    const meme = await Meme.findOne({ ticker });
+    if (!meme) {
+      return res.status(404).json({ code: 1003, message: `未找到 ticker 为 ${ticker} 的模因` });
+    }
+
+    // 查找该 meme 对应的 token
+    const token = await Token.findOne({ meme: meme._id });
+    if (!token) {
+      return res.status(404).json({ code: 1004, message: `该模因未发行代币` });
+    }
+
+    // 在用户的 tokenList 中查找该 token
+    const userTokenEntry = user.tokenList.find(
+      entry => entry.token && entry.token._id.toString() === token._id.toString()
+    );
+
+    const amount = userTokenEntry ? userTokenEntry.amount : 0;
+
+    res.json({
+      code: 0,
+      message: '查询成功',
+      data: {
+        ticker,
+        memeId: meme._id,
+        memeTitle: meme.title,
+        tokenId: token._id,
+        amount,
+        currentPrice: token.price
+      }
+    });
+  } catch (error) {
+    console.error('[getUserTokenByTicker] Error:', error);
+    res.status(500).json({
+      code: 1000,
+      message: '查询用户代币数量失败',
+      error: error.message
+    });
+  }
+};
