@@ -125,11 +125,11 @@
   - 查询id请使用获取模因列表
 - Headers：
   - token：加密登录信息（暂时用username），用于查询点赞、收藏、货币等信息
+- status：状态码
+  - 200：成功
+  - 404：id不存在
+  - 500：失败
 - 响应体：
-  - status：状态码
-    - 200：成功
-    - 404：id不存在
-    - 500：失败
   - title：标题，String
   - ticker：代号，String
   - description：描述，String
@@ -141,10 +141,23 @@
   - likes：点赞数，Number
   - createdAt：创建时间，Date
   - imageUrl：图片链接，String
+  - withToken：是否发行了货币，若否，token字段为null
+  - token：货币信息
+    - price：当前单价
+    - priceHistory：历史交易记录（最新20条），列表，每一个元素如下
+      - time：交易时间
+      - user：用户昵称
+      - side：交易模式（BUY买入，SELL卖出）
+      - amount：交易数量
+      - price：交易USDT金额
+      - newPrice：交易后的单价
+
   - userinfo：用户关于该作品的信息
     - is_author：是作者
     - is_liked：已经点赞
     - is_favorited：已经收藏
+    - tokenAmount：用户拥有的该模因币数量
+    - tokenValue：用户拥有的该模因币价值
 
 ### 2. **获取列表的模因信息**
 - 方法：POST
@@ -199,10 +212,11 @@
 ### 1. **上传模因**
 - 方法：POST
 - 路径：/api/upload-meme
-- 请求体：
+- 请求体Body：
   - title：标题，String
   - ticker：代号，String
   - description：简介，String
+  - withToken:是否发行虚拟货币，Boolen，若是，则需要
   - file：模因文件，File(.jpg, .png, .gif, ...)
 - Headers
   - token：用户的JWT验证码（暂时用作者用户名实现），String
@@ -340,7 +354,6 @@
         - bio
 
 
-
 ### 4. **点赞评论**
 - 方法：POST
 - 路径：/api/comment/:id/like
@@ -413,3 +426,73 @@
   - 请求体：
     - action：审核操作，enum['approve', 'reject']
     - description：描述（仅拒绝时需要）
+
+## 七、虚拟货币
+
+### 1. **按买卖数量获取当前币价/期望价格时的币价**
+
+- 方法：GET
+- 路径：/api/meme/:id/token/price
+- Param：
+  - amount：购买或卖出的Token数量
+    - 买入为正，卖出为负，自然数，后端自动向零取整
+  - expectedPrice：预约订单时的期望价格
+    - 非订单无需此参数（也可赋值0），根据期望价格计算购买指定数量的货币需要多少USDT
+- Header：
+  - token：用户身份验证码
+- 响应体：
+  - price：买入所需USDT或卖出可得的USDT，返回值非负
+
+### 2. **获取历史币价**
+
+- 方法：GET
+- 路径：/api/meme/:id/token/price-history
+- 说明：按照时间间隔从发行起至现在分组，统计每一组的最高价
+- Param:
+  - timeSpan：分组的时间间隔
+
+### 3. **购买指定数量货币**
+
+- 方法：POST
+- 路径：/api/meme/:id/token/buy
+- Body：
+  - amount：购买的Token数量
+- Header：
+  - token：用户身份验证码
+- 状态码：
+  - 200：成功
+  - 400：模因没有发行货币；amount参数非法；用户余额不足
+  - 404：用户/模因/货币不存在
+
+### 4. **卖出指定数量货币**
+
+- 方法：POST
+- 路径：/api/meme/:id/token/sell
+- Body：
+  - amount：购买的Token数量
+- Header：
+  - token：用户身份验证码
+- 状态码：
+  - 200：成功
+  - 400：模因没有发行货币；amount参数非法；用户余额不足
+  - 404：用户/模因/货币不存在
+
+### 5. **预定购买货币**
+
+- 方法：POST
+- 路径：/api/meme/:id/token/buy-reservation
+- Body：
+  - amount：购买的Token数量
+  - expectedPrice：触发预约订单的价格
+- Header：
+  - token：用户身份验证码
+  
+### 6. **预定卖出货币**
+
+- 方法：POST
+- 路径：/api/meme/:id/token/sell-reservation
+- Body：
+  - amount：出售的Token数量
+  - expectedPrice：触发预约订单的价格
+- Header：
+  - token：用户身份验证码

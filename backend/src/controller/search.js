@@ -30,7 +30,7 @@ export const searchMeme = async (req, res) => {
     };
 
     // 查询并排序
-    const memes = await Meme.find(query)
+    const memes = await Meme.find({ ...query, status: 'ACTIVE' })  // 筛选ACTIVE
       .select('_id title ticker imageUrl description author createdAt likes')
       .populate('author', 'username nickname -_id')
       .sort({ [sortBy]: sortOrder });
@@ -74,8 +74,8 @@ export const searchUser = async (req, res) => {
         { nickname: { $regex: regex } }
       ]
     };
-    // 查询用户
-    const users = await User.find(query)
+    // 查询用户，筛选ACTIVE用户
+    const users = await User.find({ ...query, status: 'ACTIVE' })
       .select('-_id username nickname avatarUrl bio followersCount followingCount memesCount')
       .sort({ followersCount: -1 }); // 按关注者数量降序排序
     const userIds = users.map(user => user.username);
