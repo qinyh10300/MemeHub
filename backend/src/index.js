@@ -165,6 +165,8 @@ app.get('/api/message/history/:targetId', MessageController.getHistory);
 app.get('/api/review/pending-meme-list', Review.getPendingMemeList);
 // 审核模因（通过或拒绝）
 app.post('/api/review/meme/:id', Review.reviewMeme);
+// AI 审核
+app.post('/api/review/meme/:id/ai', Review.aiReviewMeme);
 
 // 消息推送
 

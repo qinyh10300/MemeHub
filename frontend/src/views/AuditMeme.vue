@@ -22,6 +22,11 @@ const manualComment = ref('')
 
 // AI 审核反馈
 const aiResult = ref(null)
+const decisionLabelMap = {
+  approve: '建议通过',
+  reject: '建议拒绝',
+  manual_review: '建议人工复审'
+}
 
 // 是否正在请求
 const loadingAI = ref(false)
@@ -134,14 +139,27 @@ const fetchMemeDetails = async (memeId) => {
 async function runAI() {
   if (!current.value) return
   loadingAI.value = true
+  aiResult.value = null
   try {
-    // TODO: 后端暂无此接口，暂时模拟返回
-    // const { data } = await axios.post(`${authStore.server_ip}/api/meme/ai-audit`, {
-    //   meme_id: current.value.memeId
-    // })
-    // aiResult.value = data
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    aiResult.value = "AI 审核功能暂未上线，请人工审核。";
+    const { data } = await axios.post(
+      `${authStore.server_ip}/api/review/meme/${current.value.memeId}/ai`,
+      {},
+      {
+        headers: {
+          token: authStore.token
+        }
+      }
+    )
+    aiResult.value = {
+      decision: data.result?.decision || 'manual_review',
+      riskScore: data.result?.riskScore ?? null,
+      summary: data.result?.summary || data.raw || 'AI 未返回总结',
+      reasons: Array.isArray(data.result?.reasons) ? data.result.reasons : [],
+      raw: data.raw
+    }
+  } catch (error) {
+    console.error('AI 审核失败:', error)
+    alert(error.response?.data?.message || 'AI 审核失败，请稍后重试')
   } finally {
     loadingAI.value = false
   }
@@ -253,7 +271,7 @@ onMounted(() => {
 
           <button 
             @click="runAI" 
-            :disabled="loadingAI"
+            :disabled="loadingAI || !current"
             class="btn ai-btn"
           >
             {{ loadingAI ? 'AI 正在分析...' : '运行 AI 审核' }}
@@ -261,7 +279,21 @@ onMounted(() => {
 
           <div v-if="aiResult" class="ai-box">
             <h4>AI 反馈：</h4>
-            <pre class="ai-result">{{ aiResult }}</pre>
+            <div class="ai-summary">
+              <p><strong>结论：</strong>{{ decisionLabelMap[aiResult.decision] || aiResult.decision }}</p>
+              <p v-if="aiResult.riskScore !== null"><strong>风险值：</strong>{{ (aiResult.riskScore * 100).toFixed(1) }}%</p>
+              <p><strong>摘要：</strong>{{ aiResult.summary }}</p>
+              <div v-if="aiResult.reasons.length" class="ai-reasons">
+                <strong>原因：</strong>
+                <ul>
+                  <li v-for="reason in aiResult.reasons" :key="reason">{{ reason }}</li>
+                </ul>
+              </div>
+            </div>
+            <details class="ai-raw">
+              <summary>查看原始响应</summary>
+              <pre>{{ aiResult.raw }}</pre>
+            </details>
           </div>
         </div>
 
@@ -545,6 +577,31 @@ onMounted(() => {
   padding: 16px;
   border-radius: 8px;
   border-left: 4px solid #65c281;
+}
+
+.ai-summary p {
+  margin: 4px 0;
+}
+
+.ai-reasons ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #bbb;
+  font-size: 13px;
+}
+
+.ai-raw {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #888;
+}
+
+.ai-raw pre {
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  border-radius: 8px;
+  white-space: pre-wrap;
 }
 
 /* 按钮与输入框 */

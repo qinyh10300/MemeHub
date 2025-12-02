@@ -1,6 +1,7 @@
 import { User } from '../models/user.js';
 import { Meme } from '../models/meme.js';
 import { Notification } from '../models/notification.js';
+import { runAIAudit } from '../services/aiReview.js';
 
 export const getPendingMemeList = async (req, res) => {
   try {
@@ -79,6 +80,54 @@ export const reviewMeme = async (req, res) => {
         message: '服务器内部错误，审核模因失败',
         error: error.message,
         stack: error.stack,
+    });
+  }
+};
+
+export const aiReviewMeme = async (req, res) => {
+  try {
+    const reviewerToken = req.headers['token'];
+    if (!reviewerToken) {
+      return res.status(401).json({ code: 1010, message: '未提供审核员身份验证信息' });
+    }
+    // TODO: 验证审核员身份
+
+    const memeId = req.params.id;
+    const meme = await Meme.findById(memeId).populate('author', 'username');
+    if (!meme) {
+      return res.status(404).json({ code: 1004, message: '模因不存在' });
+    }
+
+    const host = req.get('host');
+    const baseUrl = host ? `${req.protocol}://${host}` : '';
+    let imageUrl = meme.imageUrl || '';
+    if (imageUrl && !/^https?:\/\//i.test(imageUrl)) {
+      imageUrl = imageUrl.startsWith('/') ? `${baseUrl}${imageUrl}` : `${baseUrl}/${imageUrl}`;
+    }
+
+    const { raw, parsed } = await runAIAudit({
+      title: meme.title,
+      description: meme.description,
+      createdAt: meme.createdAt,
+      status: meme.status,
+      author: { username: meme.author?.username },
+      imageUrl,
+    });
+
+    res.status(200).json({
+      code: 0,
+      message: 'AI 审核完成',
+      result: parsed,
+      raw,
+    });
+  } catch (error) {
+    if (error.message.includes('GLM_API_KEY')) {
+      return res.status(503).json({ code: 1301, message: 'AI 审核未配置，请联系管理员', detail: error.message });
+    }
+    res.status(500).json({
+      code: 1000,
+      message: 'AI 审核失败',
+      error: error.message,
     });
   }
 };
