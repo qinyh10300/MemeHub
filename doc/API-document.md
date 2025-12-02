@@ -156,6 +156,8 @@
     - is_author：是作者
     - is_liked：已经点赞
     - is_favorited：已经收藏
+    - tokenAmount：用户拥有的该模因币数量
+    - tokenValue：用户拥有的该模因币价值
 
 ### 2. **获取列表的模因信息**
 - 方法：POST

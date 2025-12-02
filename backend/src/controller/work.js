@@ -129,8 +129,8 @@ export const createMeme = async (req, res) => {
 export const getMemeDetail = async (req, res) => {
   try {
     const memeId = req.params.id;
-    const token = req.headers.token;
-    const username = token;// TODO:暂时用username作为token内容
+    const userToken = req.headers.token;
+    const username = userToken;// TODO:暂时用username作为token内容
 
     const meme = await Meme.findById(memeId)
       .select('title imageUrl ticker description author createdAt likes favorites status likeList withToken')
@@ -138,40 +138,24 @@ export const getMemeDetail = async (req, res) => {
     if (!meme) {
       return res.status(404).json({ message: '模因不存在' });
     }
-
-    // 当前用户关于该模因的信息
-    let is_author = false;
-    let is_liked = false;
-    let is_favorited = false;
-
-    const user = await User.findOne({ username });
-    if (user) {
-      is_author = meme.author.username === username;
-
-      // console.log('likeList:', meme.likeList);
-      // console.log('user._id:', user._id);
-      // is_liked = Array.isArray(meme.likeList) && meme.likeList.includes(user._id);
-      is_liked = Array.isArray(meme.likeList) && meme.likeList.some(id => id.toString() === user._id.toString());
-      is_favorited = Array.isArray(user.favoriteList) && user.favoriteList.includes(meme._id);
-    }
     
     // 获取虚拟货币信息
     let tokenInfo = null;
     if (meme.withToken) {
       const token = await Token.findOne({ meme: meme._id });
       if (token) {
-        // 批量查找涉及的用户
-        const userIds = token.priceHistory
-          .map(item => item.user)
-          .filter(id => !!id);
-        const users = await User.find({ _id: { $in: userIds } }).select('nickname username');
-        const userMap = new Map(users.map(u => [u._id.toString(), u.nickname || u.username]));
-        
         // 按时间降序排序并保留前20条
         const sortedHistory = [...token.priceHistory]
           .sort((a, b) => new Date(b.time) - new Date(a.time))
           .slice(0, Const.PRICE_HISTORY_LIMIT);
 
+        // 批量查找涉及的用户
+        const userIds = sortedHistory
+          .map(item => item.user)
+          .filter(id => !!id);
+        const users = await User.find({ _id: { $in: userIds } }).select('nickname username');
+        const userMap = new Map(users.map(u => [u._id.toString(), u.nickname || u.username]));
+        
         // 替换 user 字段为 nickname
         const priceHistoryWithNickname = sortedHistory.map(item => ({
           time: item.time,
@@ -192,6 +176,31 @@ export const getMemeDetail = async (req, res) => {
       tokenInfo = null;
     }
 
+    // 当前用户关于该模因的信息
+    let is_author = false;
+    let is_liked = false;
+    let is_favorited = false;
+    let tokenAmount = 0;
+    let tokenValue = 0;
+
+    const user = await User.findOne({ username });
+    if (user) {
+      is_author = meme.author.username === username;
+
+      is_liked = Array.isArray(meme.likeList) && meme.likeList.some(id => id.toString() === user._id.toString());
+      is_favorited = Array.isArray(user.favoriteList) && user.favoriteList.includes(meme._id);
+      if (meme.withToken) {
+        const token = await Token.findOne({ meme: meme._id });
+        if (token) {
+          const userTokenEntry = user.tokenList.find(entry => entry.token.toString() === token._id.toString());
+          if (userTokenEntry) {
+            tokenAmount = userTokenEntry.amount;
+            tokenValue = token.getPriceByAmount(-tokenAmount);
+          }
+        }
+      }
+    }
+
     const memeObj = meme.toObject();
     delete memeObj.likeList;
     res.status(200).json({
@@ -200,7 +209,9 @@ export const getMemeDetail = async (req, res) => {
       userinfo: {
         is_author,
         is_liked,
-        is_favorited
+        is_favorited,
+        tokenAmount,
+        tokenValue
       }
     });
   } catch (error) {

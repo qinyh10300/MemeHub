@@ -1,5 +1,7 @@
 import { User } from '../models/user.js';
 import { Meme } from '../models/meme.js';
+import { Token } from '../models/token.js';
+import { Order } from '../models/order.js';
 import { Notification } from "../models/notification.js";
 import mongoose from 'mongoose';
 import fs from 'fs';
@@ -87,21 +89,43 @@ export const getUserProfile = async (req, res) => {
       };
     });
 
-    // 我的模因币 - 将用户创作的模因作为模因币返回（每个模因代表一个模因币）
-    const myCoins = (user.workList || []).map(meme => {
-      let imageUrl = meme.imageUrl || `https://i.pravatar.cc/150?img=${meme._id}`;
-      // 如果是相对路径，转换为完整URL
+    // 我的模因币 
+    const myTokenEntries = user.tokenList || [];
+    const tokenIds = myTokenEntries.map(entry => entry.token).filter(id => !!id);
+    const tokens = await Token.find({ _id: { $in: tokenIds } })
+      .populate('meme', 'title ticker imageUrl description')
+      .lean();
+    const tokenMap = new Map(tokens.map(token => [token._id.toString(), token]));
+    const myTokens = myTokenEntries.map(entry => {
+      const token = tokenMap.get(entry.token.toString());
+      if (!token || !token.meme) return null;
+      let imageUrl = token.meme.imageUrl || `https://i.pravatar.cc/150?img=${token.meme._id}`;
       if (imageUrl && !imageUrl.startsWith('http')) {
         imageUrl = imageUrl.startsWith('/') ? `${baseUrl}${imageUrl}` : `${baseUrl}/${imageUrl}`;
       }
       return {
-        image: imageUrl,
-        name: meme.title || '未命名模因',
-        code: meme.ticker || '',
-        description: meme.description || '作者很懒，没有填写简介',
-        id: meme._id.toString(),
+        imageUrl,
+        name: token.meme.title || '未命名模因币',
+        code: token.meme.ticker || '',
+        description: token.meme.description || '暂无简介',
+        id: token._id.toString(),
+        amount: entry.amount || 0,
+        value: (token.price || 0) * (entry.amount || 0)
       };
-    });
+    }).filter(item => !!item);
+
+    // TODO: 我的订单
+    const orders = await Order.find({ user: user._id })
+      .sort({ createdAt: -1 });
+    const myOrders = orders.map(order => ({
+      memeId: order.meme.toString(),
+      status: order.status,
+      side: order.side,
+      amount: order.amount,
+      pricePerToken: order.pricePerToken,
+      createdAt: order.createdAt,
+    }));
+
 
     // 判断是否是查看自己的主页
     // 比较当前登录用户的ID和目标用户的ID
@@ -217,7 +241,8 @@ export const getUserProfile = async (req, res) => {
       isFollowing: viewerIsFollowing,
       memesData: {
         '我创作的模因': myMemes,
-        '我的模因币': myCoins,
+        '我的模因币': myTokens,
+        '我的订单': myOrders,
         '我的收藏': myFavorites,
         '粉丝': followers,
         '关注': followingForDisplay,
