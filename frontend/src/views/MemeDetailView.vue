@@ -157,7 +157,7 @@ max-height: calc(100vh - 40px);
 
   .comments-section {
     order: 4; /* 评论区排在第四位 */
-    min-height: 400px; /* 为评论区设置最小高度 */
+    /* min-height: 400px; */
     background: rgba(255, 255, 255, 0.02); /* 现代半透明背景 */
     border-radius: 12px; /* 圆角设计 */
     padding: 20px;
