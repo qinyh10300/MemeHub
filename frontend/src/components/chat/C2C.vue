@@ -1,108 +1,147 @@
 <template>
-<div class="c2c-container">
-
+  <div class="c2c-container">
     <!-- ========== 发起交易区域 ========== -->
     <h2 class="title">发起 C2C 交易</h2>
 
     <div class="form">
-    <input v-model="targetUser" placeholder="对方用户名" />
+      <input v-model="targetUser" placeholder="对方用户名" />
 
-    <div class="row">
+      <div class="row">
         <input v-model="myToken" placeholder="我付出的币种，如 DOGE" />
         <input
-        v-model.number="myAmount"
-        type="number"
-        placeholder="数量"
+          v-model.number="myAmount"
+          type="number"
+          placeholder="数量"
         />
-    </div>
+      </div>
 
-    <div class="row">
+      <div class="row">
         <input v-model="theirToken" placeholder="对方付出的币种，如 CAT" />
         <input
-        v-model.number="theirAmount"
-        type="number"
-        placeholder="数量"
+          v-model.number="theirAmount"
+          type="number"
+          placeholder="数量"
         />
+      </div>
+
+      <button class="submit-btn" @click="createTrade" :disabled="loading">
+        {{ loading ? '发送中...' : '发起交易' }}
+      </button>
     </div>
 
-    <button @click="createTrade">发起交易</button>
+    <!-- ========== Tabs 切换 ========== -->
+    <div class="tabs-wrapper">
+      <div class="tabs-slider">
+        <div 
+          class="slider-indicator" 
+          :style="{ transform: `translateX(${activeTab === 'outgoing' ? '0' : '100%'})` }"
+        ></div>
+        <button 
+          class="tab-btn" 
+          :class="{ active: activeTab === 'outgoing' }"
+          @click="activeTab = 'outgoing'"
+        >
+          我发起的
+          <span v-if="outgoingTrades.length" class="badge">{{ outgoingTrades.length }}</span>
+        </button>
+        <button 
+          class="tab-btn" 
+          :class="{ active: activeTab === 'incoming' }"
+          @click="activeTab = 'incoming'"
+        >
+          我收到的
+          <span v-if="pendingIncomingCount" class="badge pending">{{ pendingIncomingCount }}</span>
+        </button>
+      </div>
+      <button class="refresh-btn" @click="refreshCurrentTab" :disabled="loading">
+        <span class="refresh-icon">↻</span>
+      </button>
     </div>
-
-    <hr />
 
     <!-- ========== 我发起的交易 ========== -->
-    <h3 class="section-title">我发起的交易</h3>
+    <div v-show="activeTab === 'outgoing'" class="trade-list">
+      <div v-if="outgoingTrades.length === 0" class="empty">
+        暂无发起的交易
+      </div>
 
-    <div v-if="outgoingTrades.length === 0" class="empty">
-    暂无发起的交易
+      <div
+        class="trade-card"
+        v-for="trade in outgoingTrades"
+        :key="trade.id"
+      >
+        <div class="trade-info">
+          <p>
+            <strong>对方:</strong> @{{ trade.to }}
+          </p>
+          <p>
+            <strong>我付出:</strong> {{ trade.myToken }} ×
+            {{ trade.myAmount }}
+          </p>
+          <p>
+            <strong>对方付出:</strong> {{ trade.theirToken }} ×
+            {{ trade.theirAmount }}
+          </p>
+          <p>
+            <strong>状态:</strong>
+            <span :class="'status-' + trade.status">{{ statusText(trade.status) }}</span>
+          </p>
+        </div>
+        <div class="actions" v-if="trade.status === 'pending'">
+          <button class="btn cancel" @click="cancelTrade(trade.id)">取消</button>
+        </div>
+      </div>
     </div>
-
-    <div
-    class="trade-card"
-    v-for="trade in outgoingTrades"
-    :key="trade.id"
-    >
-    <div class="trade-info">
-        <p>
-        <strong>对方:</strong> @{{ trade.to }}
-        </p>
-        <p>
-        <strong>我付出:</strong> {{ trade.myToken }} ×
-        {{ trade.myAmount }}
-        </p>
-        <p>
-        <strong>对方付出:</strong> {{ trade.theirToken }} ×
-        {{ trade.theirAmount }}
-        </p>
-        <p>
-        <strong>状态:</strong>
-        <span :class="trade.status">{{ trade.status }}</span>
-        </p>
-    </div>
-    </div>
-
-    <hr />
 
     <!-- ========== 我收到的交易 ========== -->
-    <h3 class="section-title">我收到的交易</h3>
+    <div v-show="activeTab === 'incoming'" class="trade-list">
+      <div v-if="incomingTrades.length === 0" class="empty">
+        暂无收到的交易
+      </div>
 
-    <div v-if="incomingTrades.length === 0" class="empty">
-    暂无收到的交易
-    </div>
+      <div
+        class="trade-card"
+        v-for="trade in incomingTrades"
+        :key="trade.id"
+      >
+        <div class="trade-info">
+          <p>
+            <strong>来自:</strong> @{{ trade.from }}
+          </p>
+          <p>
+            <strong>对方付出:</strong> {{ trade.theirToken }} ×
+            {{ trade.theirAmount }}
+          </p>
+          <p>
+            <strong>我需付出:</strong> {{ trade.myToken }} ×
+            {{ trade.myAmount }}
+          </p>
+          <p>
+            <strong>状态:</strong>
+            <span :class="'status-' + trade.status">{{ statusText(trade.status) }}</span>
+          </p>
+        </div>
 
-    <div
-    class="trade-card"
-    v-for="trade in incomingTrades"
-    :key="trade.id"
-    >
-    <div class="trade-info">
-        <p>
-        <strong>来自:</strong> @{{ trade.from }}
-        </p>
-        <p>
-        <strong>对方付出:</strong> {{ trade.myToken }} ×
-        {{ trade.myAmount }}
-        </p>
-        <p>
-        <strong>我付出:</strong> {{ trade.theirToken }} ×
-        {{ trade.theirAmount }}
-        </p>
+        <div class="actions" v-if="trade.status === 'pending'">
+          <button class="btn accept" @click="acceptTrade(trade.id)">
+            接受
+          </button>
+          <button class="btn reject" @click="rejectTrade(trade.id)">
+            拒绝
+          </button>
+        </div>
+      </div>
     </div>
-
-    <div class="actions">
-        <button class="btn accept" @click="acceptTrade(trade.id)">
-        接受
-        </button>
-        <button class="btn reject" @click="rejectTrade(trade.id)">
-        拒绝
-        </button>
-    </div>
-    </div>
-</div>
+  </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted } from "vue";
+import { useAuthStore } from "@/stores/auth";
+
+const authStore = useAuthStore();
+
+// 当前 Tab
+const activeTab = ref('outgoing');
 
 // 表单字段
 const targetUser = ref("");
@@ -111,159 +150,467 @@ const myAmount = ref(null);
 const theirToken = ref("");
 const theirAmount = ref(null);
 
-// 假设当前用户（真实环境应从 auth store 获取）
-const currentUser = "myself";
-
-// 本地模拟数据
+// 交易列表
 const outgoingTrades = ref([]);
 const incomingTrades = ref([]);
 
-// 发起 C2C
-function createTrade() {
-if (!targetUser.value) return alert("请输入对方用户名");
+// 状态
+const loading = ref(false);
 
-const trade = {
-    id: Date.now(),
-    from: currentUser,
-    to: targetUser.value,
-    myToken: myToken.value,
-    myAmount: myAmount.value,
-    theirToken: theirToken.value,
-    theirAmount: theirAmount.value,
-    status: "pending", // pending / accepted / rejected
-};
-
-outgoingTrades.value.push(trade);
-
-// ❗模拟：对方收到该交易
-// 实际应发送到后端
-incomingTrades.value.push({
-    ...trade,
-    id: trade.id + "_incoming",
+// 待处理的收到交易数量
+const pendingIncomingCount = computed(() => {
+  return incomingTrades.value.filter(t => t.status === 'pending').length;
 });
 
-// 清空表单
-targetUser.value = "";
-myToken.value = "";
-myAmount.value = null;
-theirToken.value = "";
-theirAmount.value = null;
+// 获取 token
+function getToken() {
+  return authStore.username || authStore.token;
+}
+
+// 状态文本
+function statusText(status) {
+  const map = {
+    pending: '待确认',
+    accepted: '已完成',
+    rejected: '已拒绝',
+    cancelled: '已取消'
+  };
+  return map[status] || status;
+}
+
+// 获取服务器地址
+function getServerUrl() {
+  return authStore.serverIp || 'http://localhost:3000';
+}
+
+// 刷新当前 Tab
+function refreshCurrentTab() {
+  if (activeTab.value === 'outgoing') {
+    fetchOutgoing();
+  } else {
+    fetchIncoming();
+  }
+}
+
+// 发起交易
+async function createTrade() {
+  if (!targetUser.value) return alert("请输入对方用户名");
+  if (!myToken.value || !myAmount.value) return alert("请输入您付出的币种和数量");
+  if (!theirToken.value || !theirAmount.value) return alert("请输入对方付出的币种和数量");
+
+  loading.value = true;
+  try {
+    const res = await fetch(`${getServerUrl()}/api/c2c/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'token': getToken()
+      },
+      body: JSON.stringify({
+        targetUsername: targetUser.value,
+        myToken: myToken.value,
+        myAmount: myAmount.value,
+        theirToken: theirToken.value,
+        theirAmount: theirAmount.value
+      })
+    });
+    
+    const data = await res.json();
+    if (data.code === 0) {
+      alert('交易已发起，等待对方确认');
+      // 清空表单
+      targetUser.value = "";
+      myToken.value = "";
+      myAmount.value = null;
+      theirToken.value = "";
+      theirAmount.value = null;
+      // 刷新列表
+      fetchOutgoing();
+    } else {
+      alert(data.message || '发起交易失败');
+    }
+  } catch (error) {
+    console.error('Create trade error:', error);
+    alert('网络错误，请稍后重试');
+  } finally {
+    loading.value = false;
+  }
+}
+
+// 获取我发起的交易
+async function fetchOutgoing() {
+  try {
+    const res = await fetch(`${getServerUrl()}/api/c2c/outgoing`, {
+      headers: { 'token': getToken() }
+    });
+    const data = await res.json();
+    if (data.code === 0) {
+      outgoingTrades.value = data.data || [];
+    }
+  } catch (error) {
+    console.error('Fetch outgoing trades error:', error);
+  }
+}
+
+// 获取我收到的交易
+async function fetchIncoming() {
+  try {
+    const res = await fetch(`${getServerUrl()}/api/c2c/incoming`, {
+      headers: { 'token': getToken() }
+    });
+    const data = await res.json();
+    if (data.code === 0) {
+      incomingTrades.value = data.data || [];
+    }
+  } catch (error) {
+    console.error('Fetch incoming trades error:', error);
+  }
 }
 
 // 接受交易
-function acceptTrade(id) {
-const trade = incomingTrades.value.find((t) => t.id === id);
-if (trade) trade.status = "accepted";
-
-// 同步更新 outgoing
-const out = outgoingTrades.value.find((t) => t.id === parseInt(id));
-if (out) out.status = "accepted";
+async function acceptTrade(id) {
+  if (!confirm('确定接受这笔交易吗？')) return;
+  
+  try {
+    const res = await fetch(`${getServerUrl()}/api/c2c/${id}/accept`, {
+      method: 'POST',
+      headers: { 'token': getToken() }
+    });
+    const data = await res.json();
+    if (data.code === 0) {
+      alert('交易已接受');
+      fetchIncoming();
+      fetchOutgoing();
+    } else {
+      alert(data.message || '操作失败');
+    }
+  } catch (error) {
+    console.error('Accept trade error:', error);
+    alert('网络错误');
+  }
 }
 
 // 拒绝交易
-function rejectTrade(id) {
-const trade = incomingTrades.value.find((t) => t.id === id);
-if (trade) trade.status = "rejected";
-
-const out = outgoingTrades.value.find((t) => t.id === parseInt(id));
-if (out) out.status = "rejected";
+async function rejectTrade(id) {
+  if (!confirm('确定拒绝这笔交易吗？')) return;
+  
+  try {
+    const res = await fetch(`${getServerUrl()}/api/c2c/${id}/reject`, {
+      method: 'POST',
+      headers: { 'token': getToken() }
+    });
+    const data = await res.json();
+    if (data.code === 0) {
+      alert('交易已拒绝');
+      fetchIncoming();
+    } else {
+      alert(data.message || '操作失败');
+    }
+  } catch (error) {
+    console.error('Reject trade error:', error);
+    alert('网络错误');
+  }
 }
+
+// 取消交易
+async function cancelTrade(id) {
+  if (!confirm('确定取消这笔交易吗？')) return;
+  
+  try {
+    const res = await fetch(`${getServerUrl()}/api/c2c/${id}/cancel`, {
+      method: 'POST',
+      headers: { 'token': getToken() }
+    });
+    const data = await res.json();
+    if (data.code === 0) {
+      alert('交易已取消');
+      fetchOutgoing();
+    } else {
+      alert(data.message || '操作失败');
+    }
+  } catch (error) {
+    console.error('Cancel trade error:', error);
+    alert('网络错误');
+  }
+}
+
+// 页面加载时获取交易列表
+onMounted(() => {
+  fetchOutgoing();
+  fetchIncoming();
+});
 </script>
 
 <style scoped>
 .c2c-container {
-padding: 20px;
-color: white;
-height: 100%;
-overflow-y: auto;
+  padding: 20px;
+  color: white;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .title {
-font-size: 20px;
-font-weight: bold;
-margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 16px;
 }
 
 .form input {
-width: 100%;
-padding: 8px 12px;
-margin-bottom: 10px;
-border-radius: 8px;
-background: #1a1a1a;
-border: 1px solid #333;
-color: white;
+  width: 100%;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: white;
+  font-size: 14px;
+}
+
+.form input:focus {
+  outline: none;
+  border-color: #2b9547;
 }
 
 .row {
-display: flex;
-gap: 10px;
+  display: flex;
+  gap: 10px;
 }
 
-button {
-width: 100%;
-padding: 10px;
-background: #2b9547;
-color: white;
-border-radius: 10px;
-border: none;
-cursor: pointer;
+.submit-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #2b9547, #1e7a35);
+  color: white;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
-.section-title {
-margin: 18px 0 10px;
-font-weight: bold;
-opacity: 0.9;
+.submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #33a852, #259a42);
+  transform: translateY(-1px);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Tabs 样式 */
+.tabs-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 16px;
+}
+
+.tabs-slider {
+  flex: 1;
+  display: flex;
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.slider-indicator {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  background: linear-gradient(135deg, #2b9547, #1e7a35);
+  border-radius: 8px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background: transparent;
+  color: #888;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  position: relative;
+  z-index: 1;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tab-btn.active {
+  color: white;
+}
+
+.tab-btn:hover:not(.active) {
+  color: #aaa;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #333;
+  border-radius: 9px;
+  font-size: 11px;
+  color: #888;
+}
+
+.tab-btn.active .badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.badge.pending {
+  background: #ff6b35;
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.refresh-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #222;
+  border-color: #444;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.refresh-icon {
+  font-size: 18px;
+  color: #888;
+}
+
+.refresh-btn:hover .refresh-icon {
+  color: #fff;
+}
+
+/* 交易列表 */
+.trade-list {
+  min-height: 200px;
 }
 
 .trade-card {
-background: #111;
-padding: 14px;
-margin-bottom: 12px;
-border-radius: 12px;
-border: 1px solid #222;
+  background: #111;
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  border: 1px solid #222;
+  transition: border-color 0.2s;
+}
+
+.trade-card:hover {
+  border-color: #333;
 }
 
 .trade-info p {
-margin: 4px 0;
+  margin: 6px 0;
+  font-size: 14px;
 }
 
-.pending {
-color: #ffaa00;
+.trade-info strong {
+  color: #888;
+  font-weight: normal;
 }
 
-.accepted {
-color: #4caf50;
+.status-pending {
+  color: #ffaa00;
+  font-weight: 500;
 }
 
-.rejected {
-color: #ff4444;
+.status-accepted {
+  color: #4caf50;
+  font-weight: 500;
+}
+
+.status-rejected {
+  color: #ff4444;
+  font-weight: 500;
+}
+
+.status-cancelled {
+  color: #666;
+  font-weight: 500;
 }
 
 .actions {
-display: flex;
-gap: 10px;
-margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .btn {
-padding: 8px 12px;
-border-radius: 8px;
-color: white;
-border: none;
-cursor: pointer;
+  padding: 10px 16px;
+  border-radius: 10px;
+  color: white;
+  border: none;
+  cursor: pointer;
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
 .accept {
-background: #207820;
+  background: linear-gradient(135deg, #207820, #186018);
+}
+
+.accept:hover {
+  background: linear-gradient(135deg, #259925, #1e7a1e);
 }
 
 .reject {
-background: #aa1e1e;
+  background: linear-gradient(135deg, #aa1e1e, #881818);
+}
+
+.reject:hover {
+  background: linear-gradient(135deg, #cc2222, #aa1e1e);
+}
+
+.cancel {
+  background: #333;
+}
+
+.cancel:hover {
+  background: #444;
 }
 
 .empty {
-opacity: 0.6;
-font-size: 14px;
-margin-bottom: 10px;
+  text-align: center;
+  opacity: 0.5;
+  font-size: 14px;
+  padding: 40px 20px;
 }
 </style>
