@@ -162,6 +162,8 @@ app.get('/api/search-user', Search.searchUser);
 
 // 查询Token价格
 app.get('/api/meme/:id/token/price', Work.getTokenPriceByAmount);
+// 查看历史价格
+app.get('/api/meme/:id/token/price-history', Work.getTokenPriceHistoryByTime);
 // 购买Token
 app.post('/api/meme/:id/token/buy', Work.buyTokenByAmount);
 // 出售Token
@@ -172,10 +174,8 @@ app.post('/api/meme/:id/token/buy-reservation', Work.buyTokenReservation);
 app.post('/api/meme/:id/token/sell-reservation', Work.sellTokenReservation);
 // 取消预约
 app.post('/api/order/:id/cancel', Work.cancelOrderReservation);
-// 查看历史价格
-app.get('/api/meme/:id/token/price-history', Work.getTokenPriceHistoryByTime);
 // 手动检查订单是否完成（测试用）
-app.post('/api/token/:id/check-orders', Work.manualCheckOrderFulfillment);
+app.post('/api/meme/:id/check-orders', Work.manualCheckOrderFulfillment);
 
 // 评论操作
 

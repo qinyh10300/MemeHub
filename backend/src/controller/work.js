@@ -489,7 +489,7 @@ export const getTokenPriceHistoryByTime = async (req, res) => {
       return res.status(404).json({ message: `模因${memeId}的Token不存在` });
     }
 
-    // 获取分段间隔（单位：秒），默认1小时
+    // 获取分段间隔（单位：秒）
     const timeSpan = Number(req.query.timeSpan) || 3600;
     const startTime = new Date(token.createdAt).getTime();
     const endTime = Date.now();
@@ -501,12 +501,14 @@ export const getTokenPriceHistoryByTime = async (req, res) => {
     }
 
     // 统计每段最高价
+    let lastPrice = null;
     const result = segments.map(seg => {
       const prices = token.priceHistory.filter(item => {
         const itemTime = new Date(item.time).getTime();
         return itemTime >= seg.start && itemTime < seg.end;
       }).map(item => item.newPrice ?? item.price);
-      const highestPrice = prices.length > 0 ? Math.max(...prices) : null;
+      const highestPrice = prices.length > 0 ? Math.max(...prices) : lastPrice;
+      lastPrice = highestPrice;
       return {
         time: new Date(seg.start),
         highestPrice
