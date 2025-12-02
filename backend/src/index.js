@@ -18,6 +18,7 @@ import * as Review from './controller/review.js';
 import { Token } from './models/token.js';
 
 import * as MessageController from './controller/message.js';
+import * as C2CController from './controller/c2cCtrl.js';
 
 const app = express();
 app.use(cors());
@@ -207,6 +208,14 @@ app.get('/api/review/pending-meme-list', Review.getPendingMemeList);
 app.post('/api/review/meme/:id', Review.reviewMeme);
 // AI 审核
 app.post('/api/review/meme/:id/ai', Review.aiReviewMeme);
+
+// C2C 交易
+app.post('/api/c2c/create', C2CController.createC2CTrade);
+app.get('/api/c2c/outgoing', C2CController.getOutgoingTrades);
+app.get('/api/c2c/incoming', C2CController.getIncomingTrades);
+app.post('/api/c2c/:id/accept', C2CController.acceptTrade);
+app.post('/api/c2c/:id/reject', C2CController.rejectTrade);
+app.post('/api/c2c/:id/cancel', C2CController.cancelTrade);
 
 // 消息推送
 

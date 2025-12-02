@@ -16,7 +16,7 @@ const { verify } = pkg;
 // 创建模因
 export const createMeme = async (req, res) => {
   try {
-    const { title, ticker, description, withToken } = req.body;
+    const { title, ticker, description, withToken, website, weibo, xiaohongshu } = req.body;
     const file = req.file;
     const token = req.headers.token;
     const username = token;// TODO:暂时用username作为token内容
