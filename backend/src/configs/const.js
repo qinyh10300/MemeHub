@@ -16,3 +16,5 @@ export const TOKEN_USDT_LIQUIDITY = 1000; // 初始流动性
 export const FEE = 0.003; // 交易手续费
 
 export const PRICE_HISTORY_LIMIT = 20; // 价格历史记录条数限制
+
+export const CHECK_ORDER_INTERVAL_MS = 60 * 1000; // 定时检查订单成交的时间间隔，单位毫秒

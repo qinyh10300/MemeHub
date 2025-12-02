@@ -26,8 +26,14 @@ const userSchema = new Schema({
   verificationCodeExpiresAt: Date,
 }, { timestamps: true });
 
-userSchema.methods.changeToken = async function(token, amount) {
-    // 检查用户是否已有该Token记录
+userSchema.methods = {
+  /**
+   * 修改用户持有的Token数量
+   * @param {ObjectId} token 
+   * @param {Number} amount - 正数表示增加，负数表示减少
+   * @returns {Number} 实际变动的数量，正数或负数
+   */
+  async changeToken(token, amount) {
     console.log(`Changing token ${token._id} by amount ${amount} for user ${this._id}`);
     const userTokenEntry = this.tokenList.find(entry => entry.token.toString() === token._id.toString());
     if (userTokenEntry) {
@@ -44,6 +50,7 @@ userSchema.methods.changeToken = async function(token, amount) {
     this.tokenList = this.tokenList.filter(entry => entry.amount !== 0);
     await this.save();
     return amount;
+  }
 };
 
 

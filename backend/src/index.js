@@ -15,6 +15,8 @@ import * as Profile from './controller/profile.js';
 import * as Avatar from './controller/avatar.js';
 import * as Const from './configs/const.js';
 import * as Review from './controller/review.js';
+import { Token } from './models/token.js';
+
 
 const app = express();
 app.use(cors());
@@ -74,6 +76,23 @@ const uploadAvatar = multer({
     }
   }
 });
+
+
+// 每30秒检查一次预约订单是否可以完成
+setInterval(async () => {
+  try {
+    // 先查出你关心的 token 列表，比如有挂单的
+    const tokens = await Token.find({ hasPendingOrder: true });
+
+    for (const token of tokens) {
+      token.checkOrderFulfillment().catch(err => {
+        console.error(`checkOrderFulfillment error for token ${token._id}:`, err);
+      });
+    }
+  } catch (e) {
+    console.error('periodic checkOrderFulfillment failed:', e);
+  }
+}, Const.CHECK_ORDER_INTERVAL_MS);
 
 
 // 用户个人信息
@@ -153,6 +172,8 @@ app.post('/api/meme/:id/token/buy-reservation', Work.buyTokenReservation);
 app.post('/api/meme/:id/token/sell-reservation', Work.sellTokenReservation);
 // 取消预约
 app.post('/api/order/:id/cancel', Work.cancelOrderReservation);
+// 查看历史价格
+app.get('/api/meme/:id/token/price-history', Work.getTokenPriceHistoryByTime);
 // 手动检查订单是否完成（测试用）
 app.post('/api/token/:id/check-orders', Work.manualCheckOrderFulfillment);
 

@@ -488,7 +488,32 @@ export const getTokenPriceHistoryByTime = async (req, res) => {
     if (!token) {
       return res.status(404).json({ message: `模因${memeId}的Token不存在` });
     }
-    res.status(200).json({ priceHistory: token.priceHistory });
+
+    // 获取分段间隔（单位：秒），默认1小时
+    const timeSpan = Number(req.query.timeSpan) || 3600;
+    const startTime = new Date(token.createdAt).getTime();
+    const endTime = Date.now();
+
+    // 按时间分段
+    const segments = [];
+    for (let t = startTime; t < endTime; t += timeSpan * 1000) {
+      segments.push({ start: t, end: t + timeSpan * 1000 });
+    }
+
+    // 统计每段最高价
+    const result = segments.map(seg => {
+      const prices = token.priceHistory.filter(item => {
+        const itemTime = new Date(item.time).getTime();
+        return itemTime >= seg.start && itemTime < seg.end;
+      }).map(item => item.newPrice ?? item.price);
+      const highestPrice = prices.length > 0 ? Math.max(...prices) : null;
+      return {
+        time: new Date(seg.start),
+        highestPrice
+      };
+    });
+
+    res.status(200).json({ priceHistory: result });
   } catch (error) {
     res.status(500).json({
       message: '获取Token价格历史失败',
@@ -647,8 +672,8 @@ export const buyTokenReservation = async (req, res) => {
       amount: buyAmount
     });
     await newOrder.save();
-    // 预约后检查一次是否满足
-    await token.checkOrderFulfillment();
+    token.hasPendingOrder = true;
+    await token.save();
     res.status(200).json({ message: '预约购买Token成功' });
   } catch (error) {
     res.status(500).json({
@@ -705,8 +730,8 @@ export const sellTokenReservation = async (req, res) => {
       amount: -sellAmount
     });
     await newOrder.save();
-    // 预约后检查一次是否满足
-    await token.checkOrderFulfillment();
+    token.hasPendingOrder = true;
+    await token.save();
     res.status(200).json({ message: '预约出售Token成功' });
   } catch (error) {
     res.status(500).json({
