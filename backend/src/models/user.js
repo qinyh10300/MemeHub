@@ -19,7 +19,7 @@ const userSchema = new Schema({
     }
   ],
   following: { type: [Schema.Types.ObjectId], ref: 'User', default: [] }, // 关注列表
-  status: { type: String, enum: ['ACTIVE', 'BANNED'], default: 'ACTIVE' },
+  status: { type: String, enum: ['active', 'banned'], default: 'active' },
   role: { type: String, enum: ['user', 'reviewer'], default: 'user' },
 
   verificationCode: String,

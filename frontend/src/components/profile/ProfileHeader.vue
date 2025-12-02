@@ -188,7 +188,7 @@ const handleFollowToggle = async () => {
   followLoading.value = true
   followError.value = ''
   try {
-    const response = await fetch(`${serverIp.value}/api/user/${targetUsername}/follow`, {
+    const response = await fetch(`${serverIp}/api/user/${targetUsername}/follow`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

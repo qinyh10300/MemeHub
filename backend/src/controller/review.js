@@ -11,14 +11,14 @@ export const getPendingMemeList = async (req, res) => {
     }
     // TODO: 验证审核员身份
 
-    const PENDINGMemes = await Meme.find({ status: 'PENDING' }).sort({ createdAt: -1 });
+    const pendingMemes = await Meme.find({ status: 'pending' }).sort({ createdAt: -1 });
     // 构建id列表
-    const PENDINGMemeIds = PENDINGMemes.map(meme => meme._id);
+    const pendingMemeIds = pendingMemes.map(meme => meme._id);
 
     res.status(200).json({ 
         code: 0, 
         message: '成功获取待审核模因列表', 
-        memeIds: PENDINGMemeIds 
+        memeIds: pendingMemeIds 
     });
   } catch (error) {
     res.status(500).json({
@@ -50,11 +50,11 @@ export const reviewMeme = async (req, res) => {
       return res.status(404).json({ code: 1004, message: '模因不存在' });
     }
     // // TODO: 暂时忽略模因状态
-    // if (meme.status !== 'PENDING') {
+    // if (meme.status !== 'pending') {
     //   return res.status(400).json({ code: 1012, message: '该模因不在待审核状态' });
     // }
     if (action === 'reject') {
-        meme.status = 'BANNED';
+        meme.status = 'banned';
         await meme.save();
         // 消息推送
         await Notification.create({
@@ -64,7 +64,7 @@ export const reviewMeme = async (req, res) => {
         });
         return res.status(200).json({ code: 0, message: `模因${meme.title || ''}已被拒绝并下架。原因：${req.body.description || "违反社区作品规范条例"}。` });
     } else if (action === 'approve') {
-        meme.status = 'ACTIVE';
+        meme.status = 'active';
         await meme.save();
         // 消息推送
         await Notification.create({

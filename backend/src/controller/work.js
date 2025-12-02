@@ -280,7 +280,7 @@ export const getMemeList = async (req, res) => {
     const sortBy = req.query.sortBy === 'hot' ? 'likes' : 'createdAt';
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1; // 默认倒序
 
-    const memes = await Meme.find({ status: 'ACTIVE' })// 筛选ACTIVE
+    const memes = await Meme.find({ status: 'active' })// 筛选active
       .select('_id likes createdAt')
       .sort({ [sortBy]: sortOrder });
 

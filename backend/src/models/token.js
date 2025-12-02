@@ -113,7 +113,7 @@ tokenSchema.methods = {
     try{
       // 查找所有未完成的订单
       const memeId = this.meme;
-      const pendingOrders = await Order.find({ meme: memeId, status: 'PENDING' });
+      const pendingOrders = await Order.find({ meme: memeId, status: 'pending' });
       // 区分买入和卖出订单
       const buyOrders = pendingOrders.filter(order => order.side === 'BUY');
       const sellOrders = pendingOrders.filter(order => order.side === 'SELL');
@@ -190,7 +190,7 @@ tokenSchema.methods = {
           await firstSellOrder.save();
         }
       }
-      this.hasPendingOrder = await Order.exists({ meme: memeId, status: 'PENDING' });
+      this.hasPendingOrder = await Order.exists({ meme: memeId, status: 'pending' });
       await this.save();
     }
     finally { // 释放锁
