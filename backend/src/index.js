@@ -180,6 +180,8 @@ app.post('/api/meme/:id/token/sell-reservation', Work.sellTokenReservation);
 app.post('/api/order/:id/cancel', Work.cancelOrderReservation);
 // 手动检查订单是否完成（测试用）
 app.post('/api/meme/:id/check-orders', Work.manualCheckOrderFulfillment);
+// 根据 ticker 查询用户持有的代币数量
+app.get('/api/token/by-ticker/:ticker', Work.getUserTokenByTicker);
 
 // 评论操作
 
