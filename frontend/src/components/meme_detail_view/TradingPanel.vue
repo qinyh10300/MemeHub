@@ -275,6 +275,9 @@ const fetchUserBalance = async () => {
     const userData = await userRes.json();
     if (userRes.ok && userData.code === 0) {
       availableBalance.value = userData.data.coins || 0;
+    } else {
+      console.warn('获取用户余额失败:', userData.message);
+      availableBalance.value = 0;
     }
 
     // 获取用户持有的该代币数量
@@ -286,12 +289,15 @@ const fetchUserBalance = async () => {
       if (tokenRes.ok) {
         tokenSymbol.value = tokenData.ticker || 'MEME';
         // 从用户的 tokenList 中查找
-        const holdingRes = await fetch(`${server_ip}/api/token/by-ticker/${tokenData.ticker}`, {
+        const holdingRes = await fetch(`${server_ip}/api/token/by-ticker/${encodeURIComponent(tokenData.ticker)}`, {
           headers: { 'token': token }
         });
         const holdingData = await holdingRes.json();
         if (holdingRes.ok && holdingData.code === 0) {
           availableToken.value = holdingData.data.amount || 0;
+        } else {
+          console.warn('获取代币持有量失败:', holdingData.message);
+          availableToken.value = 0;
         }
       }
     }
@@ -322,12 +328,14 @@ const fetchMyOrders = async () => {
     const token = getToken();
     if (!token || !memeId.value) return;
 
-    const res = await fetch(`${server_ip}/api/user/${token}/orders?memeId=${memeId.value}`, {
+    const res = await fetch(`${server_ip}/api/user/${token}/orders`, {
       headers: { 'token': token }
     });
     const data = await res.json();
     if (res.ok && data.code === 0) {
-      myOrders.value = data.data || [];
+      // 过滤出当前模因的挂单
+      const allOrders = data.data || [];
+      myOrders.value = allOrders.filter(order => order.memeId === memeId.value);
     }
   } catch (error) {
     console.error('获取挂单失败:', error);
@@ -366,7 +374,7 @@ const executeTrade = async () => {
         expectedPrice: price.value
       };
     }
-
+    console.log('交易请求体:', endpoint, body);
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: {
