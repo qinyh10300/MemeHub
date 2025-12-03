@@ -77,11 +77,11 @@ export const createC2CTrade = async (req, res) => {
     if (!targetUsername) {
       return res.status(400).json({ code: 1001, message: '请输入对方用户名' });
     }
-    if (!myToken || !myAmount) {
-      return res.status(400).json({ code: 1002, message: '请输入您付出的币种和数量' });
+    if (!myToken || myAmount === undefined || myAmount < 0) {
+      return res.status(400).json({ code: 1002, message: '请输入您付出的币种和数量，且数量必须大于等于 0' });
     }
-    if (!theirToken || !theirAmount) {
-      return res.status(400).json({ code: 1003, message: '请输入对方付出的币种和数量' });
+    if (!theirToken || theirAmount === undefined || theirAmount < 0) {
+      return res.status(400).json({ code: 1003, message: '请输入对方付出的币种和数量，且数量必须大于等于 0' });
     }
     
     // 查找接收方
