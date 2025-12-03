@@ -559,10 +559,18 @@ const loadStateForKey = (key) => {
   }
 }
 
+const formatDateKey = (date) => {
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const getDayKey = (offset = 0) => {
   const date = new Date()
+  date.setHours(0, 0, 0, 0)
   date.setDate(date.getDate() + offset)
-  return date.toISOString().slice(0, 10)
+  return formatDateKey(date)
 }
 
 const pushActivity = (text, type) => {
@@ -632,8 +640,9 @@ const checkInTimeline = computed(() => {
   const labels = ['日', '一', '二', '三', '四', '五', '六']
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date()
+    date.setHours(0, 0, 0, 0)
     date.setDate(date.getDate() - (6 - index))
-    const key = date.toISOString().slice(0, 10)
+    const key = formatDateKey(date)
     return {
       key,
       label: `周${labels[date.getDay()]}`,
