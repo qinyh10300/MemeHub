@@ -67,11 +67,11 @@ export const createMeme = async (req, res) => {
       ticker, 
       description, 
       author: user._id,
-      social: {
-        website: website || '',
-        weibo: weibo || '',
-        xiaohongshu: xiaohongshu || ''
-      }
+      // social: {
+      //   website: website || '',
+      //   weibo: weibo || '',
+      //   xiaohongshu: xiaohongshu || ''
+      // }
     });
     await newMeme.save();
 
@@ -631,8 +631,8 @@ export const sellTokenByAmount = async (req, res) => {
     if (!userTokenEntry || userTokenEntry.amount < amount) {
       return res.status(400).json({ message: 'Token余额不足，无法出售' });
     }
-    const price = token.getPriceByAmount(-amount);
-    await user.changeToken(token, -amount);
+    amount = await user.changeToken(token, -amount);
+    const price = token.getPriceByAmount(amount);
     user.coins += price;
     await user.save();
     // 更新Token的RUsdt和RToken
@@ -741,7 +741,11 @@ export const sellTokenReservation = async (req, res) => {
     if (isNaN(sellExpectedPrice) || sellExpectedPrice <= 0) {
       return res.status(400).json({ message: '无效的预约出售期望价格参数' });
     }
-    // 检查用户是否有足够的Token
+    // 检查用户Token余额是否足够
+    const userTokenEntry = user.tokenList.find(entry => entry.token.toString() === token._id.toString());
+    if (!userTokenEntry || userTokenEntry.amount < amount) {
+      return res.status(400).json({ message: 'Token余额不足，无法出售' });
+    }
     sellAmount = await user.changeToken(token, -sellAmount);
     // 创建预约订单
     const newOrder = new Order({
