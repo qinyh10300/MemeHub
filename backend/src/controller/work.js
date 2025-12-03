@@ -500,45 +500,100 @@ export const getTokenPriceHistoryByTime = async (req, res) => {
     const memeId = req.params.id;
     const meme = await Meme.findById(memeId);
     if (!meme) {
-      return res.status(404).json({ message: `模因${memeId}不存在` });
+      return res.status(404).json({ code: 1001, message: `模因${memeId}不存在` });
     }
     if (!meme.withToken) {
-      return res.status(400).json({ message: `模因${memeId}未关联Token` });
+      return res.status(400).json({ code: 1002, message: `模因${memeId}未关联Token` });
     }
     const token = await Token.findOne({ meme: memeId });
     if (!token) {
-      return res.status(404).json({ message: `模因${memeId}的Token不存在` });
+      return res.status(404).json({ code: 1003, message: `模因${memeId}的Token不存在` });
     }
 
-    // 获取分段间隔（单位：秒）
-    const timeSpan = Number(req.query.timeSpan) || 3600;
-    const startTime = new Date(token.createdAt).getTime();
-    const endTime = Date.now();
+    const intervalMap = {
+      '1m': 60 * 1000,
+      '5m': 5 * 60 * 1000,
+      '15m': 15 * 60 * 1000,
+      '30m': 30 * 60 * 1000,
+      '1h': 60 * 60 * 1000,
+      '4h': 4 * 60 * 60 * 1000,
+      '1d': 24 * 60 * 60 * 1000,
+      '1w': 7 * 24 * 60 * 60 * 1000
+    };
 
-    // 按时间分段
-    const segments = [];
-    for (let t = startTime; t < endTime; t += timeSpan * 1000) {
-      segments.push({ start: t, end: t + timeSpan * 1000 });
+    const now = Date.now();
+    const intervalKey = (req.query.interval || '1h').toLowerCase();
+    const intervalMs = intervalMap[intervalKey] || intervalMap['1h'];
+    const requestedEnd = Number(req.query.endTime) || now;
+    const requestedStart = Number(req.query.startTime) || (requestedEnd - intervalMs * 120);
+
+    const tokenCreatedAt = new Date(token.createdAt).getTime();
+    const startTime = Math.max(tokenCreatedAt, requestedStart);
+    const endTime = Math.max(startTime + intervalMs, requestedEnd);
+
+    const sortedHistory = (token.priceHistory || [])
+      .map(item => ({
+        time: new Date(item.time).getTime(),
+        price: typeof item.newPrice === 'number'
+          ? item.newPrice
+          : (typeof item.price === 'number' ? item.price : null),
+        amount: Number(item.amount) || 0
+      }))
+      .filter(item => !Number.isNaN(item.time))
+      .sort((a, b) => a.time - b.time);
+
+    let pointer = 0;
+    let lastPrice = token.price || Const.TOKEN_INIT_PRICE;
+
+    // 使用历史中早于起始时间的记录更新lastPrice
+    while (pointer < sortedHistory.length && sortedHistory[pointer].time < startTime) {
+      if (typeof sortedHistory[pointer].price === 'number') {
+        lastPrice = sortedHistory[pointer].price;
+      }
+      pointer++;
     }
 
-    // 统计每段最高价
-    let lastPrice = null;
-    const result = segments.map(seg => {
-      const prices = token.priceHistory.filter(item => {
-        const itemTime = new Date(item.time).getTime();
-        return itemTime >= seg.start && itemTime < seg.end;
-      }).map(item => item.newPrice ?? item.price);
-      const highestPrice = prices.length > 0 ? Math.max(...prices) : lastPrice;
-      lastPrice = highestPrice;
-      return {
-        time: new Date(seg.start),
-        highestPrice
-      };
+    const data = [];
+    for (let bucketStart = startTime; bucketStart < endTime; bucketStart += intervalMs) {
+      const bucketEnd = bucketStart + intervalMs;
+
+      let bucketOpen = lastPrice;
+      let bucketHigh = lastPrice;
+      let bucketLow = lastPrice;
+      let bucketClose = lastPrice;
+      let bucketVolume = 0;
+
+      while (pointer < sortedHistory.length && sortedHistory[pointer].time < bucketEnd) {
+        const entry = sortedHistory[pointer];
+        const tradePrice = typeof entry.price === 'number' ? entry.price : lastPrice;
+
+        bucketHigh = Math.max(bucketHigh, lastPrice, tradePrice);
+        bucketLow = Math.min(bucketLow, lastPrice, tradePrice);
+        bucketVolume += Math.abs(entry.amount || 0);
+
+        lastPrice = tradePrice;
+        bucketClose = lastPrice;
+        pointer++;
+      }
+
+      data.push({
+        timestamp: bucketStart,
+        open: Number((bucketOpen ?? lastPrice).toFixed(8)),
+        high: Number((bucketHigh ?? bucketOpen ?? lastPrice).toFixed(8)),
+        low: Number((bucketLow ?? bucketOpen ?? lastPrice).toFixed(8)),
+        close: Number((bucketClose ?? bucketOpen ?? lastPrice).toFixed(8)),
+        volume: Number(bucketVolume.toFixed(6))
+      });
+    }
+
+    return res.status(200).json({
+      code: 0,
+      message: 'ok',
+      data
     });
-
-    res.status(200).json({ priceHistory: result });
   } catch (error) {
     res.status(500).json({
+      code: 1000,
       message: '获取Token价格历史失败',
       error: {
         name: error.name,

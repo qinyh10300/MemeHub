@@ -5,7 +5,7 @@
     <div class="left-side">
         <MemeCard :meme="meme" />
         <div class="trading-section">
-          <KlineChart/>
+          <KlineChart v-if="meme.id" :meme-id="meme.id" />
         </div>
         <!-- <div class="orderbook-section">
           <OrderBook @orderSelected="handleOrderSelected" />
@@ -17,7 +17,7 @@
 
     <!-- 右侧：交易面板 -->
     <div class="right-side">
-      <TradingPanel :selectedOrder="selectedOrder" />
+      <TradingPanel :selectedOrder="selectedOrder" :memeId="meme.id" />
     </div>
     </div>
 </div>

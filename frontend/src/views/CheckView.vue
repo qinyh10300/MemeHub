@@ -1,11 +1,16 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { GAMIFICATION_TASK_EVENT, drainQueuedTaskProgress, setGamificationListenerActive } from '@/utils/gamificationEvents'
 
 const STORAGE_KEY_PREFIX = 'memehub_gamification_state_v1'
 const LEGACY_STORAGE_KEY = STORAGE_KEY_PREFIX
 const authStore = useAuthStore()
+const router = useRouter()
 const storageKey = computed(() => `${STORAGE_KEY_PREFIX}_${authStore.username || 'guest'}`)
+const listenerUser = ref(authStore.username || 'guest')
+const getListenerUser = () => listenerUser.value || 'guest'
 
 const defaultTasks = [
   {
@@ -572,6 +577,42 @@ const pushActivity = (text, type) => {
   }
 }
 
+const applyTaskProgress = (taskId, increment = 1) => {
+  if (!taskId || increment <= 0) return
+  let completedTask = null
+
+  gamificationState.value.tasks = gamificationState.value.tasks.map((task) => {
+    if (task.id !== taskId) return task
+    if (task.progress >= task.target) return task
+
+    const nextProgress = Math.min(task.target, task.progress + increment)
+    const justCompleted = task.progress < task.target && nextProgress >= task.target
+    if (justCompleted) {
+      completedTask = task
+    }
+    return { ...task, progress: nextProgress }
+  })
+
+  if (completedTask) {
+    gamificationState.value.xp += completedTask.rewardXp
+    gamificationState.value.copper += completedTask.rewardCopper
+    pushActivity(
+      `完成「${completedTask.title}」 +${completedTask.rewardXp} XP / +${completedTask.rewardCopper} 铜钱`,
+      'task'
+    )
+  }
+}
+
+const flushQueuedProgress = () => {
+  const queued = drainQueuedTaskProgress(getListenerUser())
+  if (!queued.length) return
+  queued.forEach(({ taskId, increment }) => {
+    if (taskId) {
+      applyTaskProgress(taskId, increment || 1)
+    }
+  })
+}
+
 const hasCheckedInToday = computed(() => gamificationState.value.lastCheckIn === getDayKey())
 
 const previewStreak = computed(() => {
@@ -675,26 +716,50 @@ const handleCheckIn = () => {
   gamificationState.value.xp += xp
   gamificationState.value.copper += coins
   gamificationState.value.energy = Math.min(100, gamificationState.value.energy + 6)
-  gamificationState.value.tasks = gamificationState.value.tasks.map((task) =>
-    task.id === 'milestone-checkin' && task.progress < task.target ? { ...task, progress: task.progress + 1 } : task
-  )
+  applyTaskProgress('milestone-checkin', 1)
   pushActivity(`签到成功：+${xp} XP / +${coins} 铜钱`, 'checkin')
 }
 
-const handleTaskProgress = (taskId) => {
-  gamificationState.value.tasks = gamificationState.value.tasks.map((task) => {
-    if (task.id !== taskId || task.progress >= task.target) {
-      return task
-    }
-    const updatedProgress = task.progress + 1
-    const updatedTask = { ...task, progress: updatedProgress }
-    if (updatedProgress >= task.target) {
-      gamificationState.value.xp += task.rewardXp
-      gamificationState.value.copper += task.rewardCopper
-      pushActivity(`完成「${task.title}」 +${task.rewardXp} XP / +${task.rewardCopper} 铜钱`, 'task')
-    }
-    return updatedTask
-  })
+const taskRoutes = {
+  'daily-share': { path: '/create-meme' },
+  'daily-comment': { path: '/discover', query: { tab: 'leaderboard' } },
+  'daily-like': { path: '/', hash: '#home' },
+  'growth-follow': { path: '/discover', query: { tab: 'leaderboard' } },
+  'growth-trade': { path: '/chat' },
+  'milestone-checkin': { action: 'scroll', selector: '.checkin-card' },
+}
+
+const handleTaskAction = (task) => {
+  if (task.progress >= task.target) return
+  const target = taskRoutes[task.id]
+  if (!target) return
+
+  if (target.action === 'scroll') {
+    activeMainTab.value = 'overview'
+    nextTick(() => {
+      const el = document.querySelector(target.selector)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    })
+    return
+  }
+
+  if (target.path) {
+    router.push({ path: target.path, query: target.query, hash: target.hash })
+    return
+  }
+
+  if (target.external) {
+    window.open(target.external, '_blank')
+  }
+}
+
+const handleExternalTaskEvent = (event) => {
+  const detail = event?.detail || {}
+  if (!detail.taskId) return
+  const increment = typeof detail.increment === 'number' && detail.increment > 0 ? detail.increment : 1
+  applyTaskProgress(detail.taskId, increment)
 }
 
 const drawReward = () => {
@@ -711,12 +776,28 @@ const drawReward = () => {
 
 onMounted(() => {
   loadStateForKey(storageKey.value)
+  flushQueuedProgress()
   fetchAchievements()
+  if (typeof window !== 'undefined') {
+    window.addEventListener(GAMIFICATION_TASK_EVENT, handleExternalTaskEvent)
+  }
+  setGamificationListenerActive(getListenerUser(), true)
+})
+
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener(GAMIFICATION_TASK_EVENT, handleExternalTaskEvent)
+  }
+  setGamificationListenerActive(getListenerUser(), false)
 })
 
 watch(storageKey, (newKey, oldKey) => {
   if (newKey && newKey !== oldKey) {
+    setGamificationListenerActive(getListenerUser(), false)
+    listenerUser.value = authStore.username || 'guest'
     loadStateForKey(newKey)
+    flushQueuedProgress()
+    setGamificationListenerActive(getListenerUser(), true)
   }
 })
 
@@ -998,7 +1079,7 @@ watch(
               <span class="progress-tip">
                 {{ task.progress }}/{{ task.target }}
               </span>
-              <button class="ghost-btn" :disabled="task.progress >= task.target" @click="handleTaskProgress(task.id)">
+              <button class="ghost-btn" :disabled="task.progress >= task.target" @click="handleTaskAction(task)">
                 {{ task.progress >= task.target ? '已完成' : '去完成' }}
               </button>
             </div>
