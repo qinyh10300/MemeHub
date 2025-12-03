@@ -1,7 +1,11 @@
 import { Message } from '../models/message.js';
 import { User } from '../models/user.js';
 import pkg from 'jsonwebtoken';
+import { generateStickerAsset } from '../services/stickerGenerator.js';
 const { verify } = pkg;
+
+const RECALL_WINDOW_MINUTES = parseInt(process.env.MESSAGE_RECALL_WINDOW_MINUTES, 10) || 5;
+const RECALL_WINDOW_MS = RECALL_WINDOW_MINUTES * 60 * 1000;
 
 // 辅助函数：构建头像URL
 function buildAvatarUrl(userDoc = {}, baseUrl = '') {
@@ -27,6 +31,14 @@ function buildAvatarUrl(userDoc = {}, baseUrl = '') {
   return `https://i.pravatar.cc/150?img=${imgNum}`;
 }
 
+function buildStickerUrl(pathValue = '', baseUrl = '') {
+  if (!pathValue) return '';
+  if (/^https?:\/\//i.test(pathValue)) return pathValue;
+  if (pathValue.startsWith('//')) return `${baseUrl ? baseUrl.split('://')[0] : 'http'}:${pathValue}`;
+  const normalized = pathValue.startsWith('/') ? pathValue : `/${pathValue}`;
+  return baseUrl ? `${baseUrl}${normalized}` : normalized;
+}
+
 async function findUserByToken(token) {
   if (!token) return null;
 
@@ -50,14 +62,30 @@ async function findUserByToken(token) {
 // 发送消息
 export const sendMessage = async (req, res) => {
   try {
-    const { receiverId, content } = req.body;
+    const {
+      receiverId,
+      content = '',
+      type = 'text',
+      stickerUrl = '',
+      stickerMeta = null
+    } = req.body;
     const token = req.headers.token;
     
     const sender = await findUserByToken(token);
     if (!sender) return res.status(401).json({ message: '用户未登录' });
 
-    if (!content || !content.trim()) {
-      return res.status(400).json({ message: '消息内容不能为空' });
+    const normalizedType = ['text', 'sticker'].includes(type) ? type : 'text';
+
+    if (normalizedType === 'text') {
+      if (!content || !content.trim()) {
+        return res.status(400).json({ message: '消息内容不能为空' });
+      }
+    }
+
+    if (normalizedType === 'sticker') {
+      if (!stickerUrl || typeof stickerUrl !== 'string') {
+        return res.status(400).json({ message: '表情包地址不能为空' });
+      }
     }
 
     const receiver = await User.findById(receiverId);
@@ -66,7 +94,10 @@ export const sendMessage = async (req, res) => {
     const message = new Message({
       sender: sender._id,
       receiver: receiver._id,
-      content: content
+      type: normalizedType,
+      content: normalizedType === 'text' ? content : '',
+      stickerUrl: normalizedType === 'sticker' ? stickerUrl : '',
+      stickerMeta: normalizedType === 'sticker' ? stickerMeta : undefined
     });
 
     await message.save();
@@ -95,21 +126,48 @@ export const getHistory = async (req, res) => {
     .populate('sender', 'username nickname avatar')
     .populate('receiver', 'username nickname avatar');
 
+    const unreadIds = [];
+    messages.forEach(msg => {
+      if (!msg.isRead && !msg.isDeleted && msg.receiver?._id?.toString() === sender._id.toString()) {
+        unreadIds.push(msg._id);
+      }
+    });
+    let readAt = null;
+    if (unreadIds.length) {
+      readAt = new Date();
+      await Message.updateMany(
+        { _id: { $in: unreadIds } },
+        { isRead: true, readAt }
+      );
+    }
+
     // 处理头像URL
     const host = req.get('host');
     const baseUrl = host ? `${req.protocol}://${host}` : '';
 
-    const formattedMessages = messages.map(msg => ({
-      ...msg.toObject(),
-      sender: {
-        ...msg.sender.toObject(),
-        avatar: buildAvatarUrl(msg.sender, baseUrl)
-      },
-      receiver: {
-        ...msg.receiver.toObject(),
-        avatar: buildAvatarUrl(msg.receiver, baseUrl)
+    const formattedMessages = messages.map(msg => {
+      const plain = msg.toObject();
+      if (readAt && unreadIds.find(id => id.toString() === msg._id.toString())) {
+        plain.isRead = true;
+        plain.readAt = readAt;
       }
-    }));
+      if (plain.isDeleted) {
+        plain.content = '';
+        plain.stickerUrl = '';
+      }
+      plain.stickerUrl = buildStickerUrl(plain.stickerUrl, baseUrl);
+      return {
+        ...plain,
+        sender: {
+          ...msg.sender.toObject(),
+          avatar: buildAvatarUrl(msg.sender, baseUrl)
+        },
+        receiver: {
+          ...msg.receiver.toObject(),
+          avatar: buildAvatarUrl(msg.receiver, baseUrl)
+        }
+      };
+    });
 
     res.status(200).json({ code: 0, data: formattedMessages });
   } catch (error) {
@@ -151,12 +209,21 @@ export const getConversations = async (req, res) => {
             avatar: buildAvatarUrl(otherUser, baseUrl)
           },
           lastMessage: {
-            content: msg.content,
+            type: msg.type,
+            content: msg.type === 'sticker'
+              ? '[表情包]'
+              : (msg.isDeleted ? '' : msg.content),
             createdAt: msg.createdAt,
             isRead: msg.isRead,
             isSelf: isSender
-          }
+          },
+          unreadCount: 0
         });
+      }
+
+      if (!isSender && !msg.isRead && !msg.isDeleted) {
+        const existing = conversationMap.get(otherId);
+        existing.unreadCount += 1;
       }
     });
 
@@ -166,5 +233,117 @@ export const getConversations = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: '获取会话列表失败', error: error.message });
+  }
+};
+
+export const getUnreadCount = async (req, res) => {
+  try {
+    const token = req.headers.token;
+    const currentUser = await findUserByToken(token);
+    if (!currentUser) return res.status(401).json({ message: '用户未登录' });
+
+    const total = await Message.countDocuments({
+      receiver: currentUser._id,
+      isRead: false,
+      isDeleted: false
+    });
+
+    const recent = await Message.find({
+      receiver: currentUser._id,
+      isRead: false,
+      isDeleted: false
+    })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('sender', 'username nickname avatar');
+
+    const summaries = recent.map(msg => ({
+      messageId: msg._id,
+      sender: {
+        _id: msg.sender._id,
+        username: msg.sender.username,
+        nickname: msg.sender.nickname,
+        avatar: msg.sender.avatar
+      },
+      preview: msg.type === 'sticker' ? '[表情包]' : msg.content,
+      createdAt: msg.createdAt
+    }));
+
+    res.status(200).json({
+      code: 0,
+      data: {
+        total,
+        previews: summaries
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: '获取未读消息失败', error: error.message });
+  }
+};
+
+// 撤回消息
+export const deleteMessage = async (req, res) => {
+  try {
+    const token = req.headers.token;
+    const currentUser = await findUserByToken(token);
+    if (!currentUser) return res.status(401).json({ message: '用户未登录' });
+
+    const { messageId } = req.params;
+    const message = await Message.findById(messageId);
+    if (!message) return res.status(404).json({ message: '消息不存在' });
+
+    if (message.sender.toString() !== currentUser._id.toString()) {
+      return res.status(403).json({ message: '只能撤回自己发送的消息' });
+    }
+
+    if (message.isDeleted) {
+      return res.status(400).json({ message: '消息已撤回' });
+    }
+
+    const age = Date.now() - new Date(message.createdAt).getTime();
+    if (age > RECALL_WINDOW_MS) {
+      return res.status(400).json({ message: `只能在${RECALL_WINDOW_MINUTES}分钟内撤回` });
+    }
+
+    message.isDeleted = true;
+    message.deletedAt = new Date();
+    message.deletedBy = currentUser._id;
+    await message.save();
+
+    res.status(200).json({ code: 0, message: '撤回成功' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: '撤回消息失败', error: error.message });
+  }
+};
+
+export const generateSticker = async (req, res) => {
+  try {
+    const token = req.headers.token;
+    const currentUser = await findUserByToken(token);
+    if (!currentUser) return res.status(401).json({ message: '用户未登录' });
+
+    const { prompt } = req.body;
+    if (!prompt || !prompt.trim()) {
+      return res.status(400).json({ message: '请输入想要生成的表情关键词' });
+    }
+
+    const result = await generateStickerAsset(prompt.trim(), currentUser);
+    const host = req.get('host');
+    const baseUrl = host ? `${req.protocol}://${host}` : '';
+    const absoluteUrl = buildStickerUrl(result.url, baseUrl);
+
+    res.status(200).json({
+      code: 0,
+      data: {
+        url: absoluteUrl,
+        path: result.url,
+        meta: result.meta
+      }
+    });
+  } catch (error) {
+    console.error('[Sticker] generate error:', error);
+    res.status(500).json({ message: '生成表情包失败', error: error.message });
   }
 };

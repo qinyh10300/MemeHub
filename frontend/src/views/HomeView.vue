@@ -1,17 +1,20 @@
 <script setup>
 import Search from '../components/Search.vue'
 import FeaturedProjects from '../components/FeaturedProject.vue'
+import SmartRecommend from '../components/home/SmartRecommend.vue'
 </script>
 
 <template>
   <main>
-    <!-- <TheWelcome /> -->
      <header class="content-header">
         <h1>Welcome to our platform</h1>
         <p>Explore and discover amazing projects</p>
       </header>
       <div class="search-wrapper">
         <Search />
+      </div>
+      <div class="recommend-section">
+        <SmartRecommend />
       </div>
       <div class="content-card">
         <FeaturedProjects />
@@ -26,6 +29,14 @@ import FeaturedProjects from '../components/FeaturedProject.vue'
   max-width: 500px;
   display: flex;
   margin: 0 auto;
+}
+
+.recommend-section {
+  width: 1250px;
+  max-width: 100%;
+  margin: 30px auto;
+  padding: 0 20px;
+  box-sizing: border-box;
 }
 
 .content-header {

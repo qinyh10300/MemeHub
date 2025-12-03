@@ -30,7 +30,7 @@ export const searchMeme = async (req, res) => {
     };
 
     // 查询并排序
-    const memes = await Meme.find({ ...query, status: 'active' })  // 筛选active
+    const memes = await Meme.find(query)
       .select('_id title ticker imageUrl description author createdAt likes')
       .populate('author', 'username nickname -_id')
       .sort({ [sortBy]: sortOrder });

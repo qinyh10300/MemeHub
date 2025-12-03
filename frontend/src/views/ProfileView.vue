@@ -115,6 +115,7 @@ const fetchUserProfile = async () => {
         followers: data.followers,
         following: data.following,
         likes: data.likes,
+        coins: data.coins || 0, // 用户金币余额
         collections: normalizedMemesData['我的收藏']?.length || 0,
         isFollowing: Boolean(data.isFollowing),
         memesData: normalizedMemesData

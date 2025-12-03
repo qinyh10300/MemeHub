@@ -1,12 +1,65 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, provide, watch } from 'vue'
 import LoginModal from './components/LoginModal.vue'
 import LoginOutModal from './components/LoginOutModal.vue'
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 
 const authStore = useAuthStore()
 const server_ip = authStore.server_ip // 后端服务器地址
+const route = useRoute()
+
+// ============ 提醒数据 ============
+const messageCount = ref(0)
+const tradeCount = ref(0)
+
+const fetchAlertCounts = async () => {
+  const token = authStore.token || localStorage.getItem('auth_token') || authStore.username || ''
+  if (!token) return
+  
+  try {
+    const [messageRes, tradeRes] = await Promise.all([
+      fetch(`${server_ip}/api/message/unread-count`, { headers: { token } }),
+      fetch(`${server_ip}/api/c2c/incoming/pending-count`, { headers: { token } })
+    ])
+
+    const messageData = await messageRes.json()
+    const tradeData = await tradeRes.json()
+
+    if (messageData.code === 0) {
+      messageCount.value = messageData.data.total || 0
+    }
+    if (tradeData.code === 0) {
+      tradeCount.value = tradeData.data.total || 0
+    }
+  } catch (error) {
+    console.error('获取提醒数量失败', error)
+  }
+}
+
+// 提供全局刷新方法，供子组件调用
+provide('refreshAlerts', fetchAlertCounts)
+
+// 定时刷新提醒（每15秒，更及时）
+let alertInterval = null
+const startAlertPolling = () => {
+  fetchAlertCounts()
+  alertInterval = setInterval(fetchAlertCounts, 15000) // 15秒刷新一次
+}
+const stopAlertPolling = () => {
+  if (alertInterval) {
+    clearInterval(alertInterval)
+    alertInterval = null
+  }
+}
+
+// 监听路由变化，进入/离开聊天页面时立即刷新
+watch(() => route.path, (newPath, oldPath) => {
+  // 进入或离开聊天页面时立即刷新提醒
+  if (newPath === '/chat' || oldPath === '/chat') {
+    fetchAlertCounts()
+  }
+})
 
 // 默认头像URL
 const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
@@ -83,6 +136,13 @@ const checkLoginStatus = async () => {
 // 在应用初始化时调用
 checkLoginStatus();
 
+// 挂载时开始轮询提醒
+onMounted(() => {
+  if (authStore.token) {
+    startAlertPolling()
+  }
+})
+
 const showLogin = ref(false)
 const showLoginOut = ref(false)
 
@@ -93,11 +153,15 @@ const username = computed(() => authStore.username)
 // 登录成功后的回调
 const handleLoginSuccess = (userName) => {
   showLogin.value = false   // ✅ 同时关闭登录弹窗
+  startAlertPolling() // 登录后开始轮询提醒
 }
 
 // 退出登录成功后的回调
 const handleLoginOutOutSuccess = (userName) => {
   showLoginOut.value = false   // ✅ 同时关闭退出登录弹窗
+  stopAlertPolling() // 退出后停止轮询
+  messageCount.value = 0
+  tradeCount.value = 0
 }
 
 import { useRouter } from 'vue-router';
@@ -147,10 +211,17 @@ const goToProfile = (username) => {
         <RouterLink v-if="isLoggedIn" :to="`/chat`" class="nav-item" active-class="active">
           <img class="nav-icon" src="@/assets/pepe.avif" alt="Profile" />
           <span class="nav-text">私信、C2C交易</span>
+          <span v-if="messageCount + tradeCount > 0" class="nav-badge">
+            {{ messageCount + tradeCount > 99 ? '99+' : messageCount + tradeCount }}
+          </span>
         </RouterLink>
         <RouterLink v-if="isLoggedIn" to="/gamification" class="nav-item" active-class="active">
           <img class="nav-icon" src="@/assets/bnb.png" alt="Gamification" />
           <span class="nav-text">游戏化中心</span>
+        </RouterLink>
+        <RouterLink to="/discover" class="nav-item" active-class="active">
+          <span class="nav-icon">🔍</span>
+          <span class="nav-text">发现</span>
         </RouterLink>
         <RouterLink 
           v-if="isLoggedIn && authStore.user_role === 'reviewer'" 
@@ -307,6 +378,29 @@ const goToProfile = (username) => {
 
 .nav-text {
   font-size: 14px;
+}
+
+/* 导航项角标（未读提醒） */
+.nav-badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: linear-gradient(135deg, #ff5d8f, #f56c6c);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(255, 93, 143, 0.4);
+  animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 /* 主内容区域样式 */

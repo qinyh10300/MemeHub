@@ -33,6 +33,10 @@ if (!fs.existsSync(Const.MEME_DIR)) {
 if (!fs.existsSync(Const.AVATAR_DIR)) {
   fs.mkdirSync(Const.AVATAR_DIR);
 }
+// 确保表情包输出文件夹存在
+if (!fs.existsSync(Const.STICKER_DIR)) {
+  fs.mkdirSync(Const.STICKER_DIR);
+}
 
 // 配置 multer 用于保存模因文件
 const memeStorage = multer.diskStorage({
@@ -140,6 +144,7 @@ app.get('/api/user/:username/follow', (req, res) => {
 
 app.use('/memefiles', express.static(Const.MEME_DIR));
 app.use('/avatars', express.static(Const.AVATAR_DIR));
+app.use('/stickers', express.static(Const.STICKER_DIR));
 // 接收前端的文件并创建模因
 app.post('/api/upload-meme', upload.single('file'), Work.createMeme);
 // 返回单个模因的详细信息
@@ -182,6 +187,35 @@ app.post('/api/order/:id/cancel', Work.cancelOrderReservation);
 app.post('/api/meme/:id/check-orders', Work.manualCheckOrderFulfillment);
 // 根据 ticker 查询用户持有的代币数量
 app.get('/api/token/by-ticker/:ticker', Work.getUserTokenByTicker);
+// 获取用户的挂单列表
+app.get('/api/user/:username/orders', Work.getUserOrders);
+
+// 排行榜
+import * as LeaderboardCtrl from './controller/leaderboard.js';
+app.get('/api/leaderboard', LeaderboardCtrl.getLeaderboard);
+app.get('/api/meme/:id/trend', LeaderboardCtrl.getMemeTrend);
+app.get('/api/memes/compare', LeaderboardCtrl.compareMemes);
+app.get('/api/memes/search-for-compare', LeaderboardCtrl.searchMemesForCompare);
+
+// 用户功能 (自选、价格预警、成就、创作者数据、推荐)
+import * as UserFeatures from './controller/userFeatures.js';
+app.get('/api/watchlist', UserFeatures.getWatchlist);
+app.post('/api/watchlist', UserFeatures.addToWatchlist);
+app.delete('/api/watchlist/:memeId', UserFeatures.removeFromWatchlist);
+app.get('/api/price-alerts', UserFeatures.getPriceAlerts);
+app.post('/api/price-alerts', UserFeatures.createPriceAlert);
+app.delete('/api/price-alerts/:alertId', UserFeatures.deletePriceAlert);
+app.get('/api/achievements', UserFeatures.getUserAchievements);
+app.get('/api/creator-stats', UserFeatures.getCreatorStats);
+app.get('/api/recommendations', UserFeatures.getRecommendations);
+
+// 社区投票
+import * as PollCtrl from './controller/pollCtrl.js';
+app.get('/api/polls', PollCtrl.getPolls);
+app.post('/api/polls', PollCtrl.createPoll);
+app.get('/api/polls/stats', PollCtrl.getPollStats);
+app.get('/api/polls/:pollId', PollCtrl.getPollDetail);
+app.post('/api/polls/:pollId/vote', PollCtrl.vote);
 
 // 评论操作
 
@@ -201,6 +235,9 @@ app.delete('/api/comment/:id', CommentCtrl.deleteComment);
 app.post('/api/message/send', MessageController.sendMessage);
 app.get('/api/message/conversations', MessageController.getConversations);
 app.get('/api/message/history/:targetId', MessageController.getHistory);
+app.delete('/api/message/:messageId', MessageController.deleteMessage);
+app.get('/api/message/unread-count', MessageController.getUnreadCount);
+app.post('/api/message/sticker/generate', MessageController.generateSticker);
 
 // 审核操作
 
@@ -215,6 +252,7 @@ app.post('/api/review/meme/:id/ai', Review.aiReviewMeme);
 app.post('/api/c2c/create', C2CController.createC2CTrade);
 app.get('/api/c2c/outgoing', C2CController.getOutgoingTrades);
 app.get('/api/c2c/incoming', C2CController.getIncomingTrades);
+app.get('/api/c2c/incoming/pending-count', C2CController.getIncomingPendingCount);
 app.post('/api/c2c/:id/accept', C2CController.acceptTrade);
 app.post('/api/c2c/:id/reject', C2CController.rejectTrade);
 app.post('/api/c2c/:id/cancel', C2CController.cancelTrade);

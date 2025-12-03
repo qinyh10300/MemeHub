@@ -32,21 +32,30 @@
       </button>
     </div>
 
+    <!-- 当前价格显示 -->
+    <div class="current-price">
+      <span class="price-label">当前价格</span>
+      <span class="price-value">${{ currentPrice.toFixed(6) }}</span>
+    </div>
+
     <!-- 交易表单 -->
     <div class="trade-form">
       <!-- 价格输入 (仅限价单显示) -->
       <div v-if="orderType === 'limit'" class="form-group">
-        <label class="form-label">价格</label>
+        <label class="form-label">期望价格</label>
         <div class="input-group">
           <span class="input-prefix">$</span>
           <input
             v-model.number="price"
             type="number"
             step="0.000001"
-            placeholder="0.000000"
+            :placeholder="currentPrice.toFixed(6)"
             class="form-input"
           />
         </div>
+        <p class="form-hint">
+          {{ tradeType === 'buy' ? '当市价 ≤ 此价格时自动买入' : '当市价 ≥ 此价格时自动卖出' }}
+        </p>
       </div>
 
       <!-- 数量输入 -->
@@ -56,16 +65,21 @@
           <input
             v-model.number="amount"
             type="number"
-            step="0.001"
-            placeholder="0.000"
+            step="1"
+            min="1"
+            placeholder="输入数量"
             class="form-input"
           />
+          <span class="input-suffix">{{ tokenSymbol }}</span>
         </div>
       </div>
 
-      <!-- 总额 (自动计算) -->
+      <!-- 预估总额 -->
       <div class="form-group">
-        <label class="form-label">总额</label>
+        <label class="form-label">
+          {{ orderType === 'market' ? '预估总额' : '总额' }}
+          <span v-if="orderType === 'market'" class="hint">(含手续费)</span>
+        </label>
         <div class="input-group">
           <span class="input-prefix">$</span>
           <input
@@ -93,11 +107,11 @@
       <div class="balance-info">
         <div class="balance-item">
           <span class="balance-label">可用余额</span>
-          <span class="balance-value">${{ availableBalance.toFixed(2) }}</span>
+          <span class="balance-value">${{ availableBalance.toFixed(2) }} USDT</span>
         </div>
         <div class="balance-item">
-          <span class="balance-label">可卖出</span>
-          <span class="balance-value">{{ availableToken.toFixed(2) }} {{ tokenSymbol }}</span>
+          <span class="balance-label">持有代币</span>
+          <span class="balance-value">{{ availableToken.toFixed(0) }} {{ tokenSymbol }}</span>
         </div>
       </div>
 
@@ -105,30 +119,66 @@
       <button
         :class="['trade-btn', tradeType]"
         @click="executeTrade"
-        :disabled="!canTrade"
+        :disabled="!canTrade || isLoading"
       >
-        {{ tradeType === 'buy' ? '买入' : '卖出' }} {{ tokenSymbol }}
+        <span v-if="isLoading" class="loading-spinner"></span>
+        <span v-else>
+          {{ orderType === 'limit' ? '预约' : '' }}{{ tradeType === 'buy' ? '买入' : '卖出' }} {{ tokenSymbol }}
+        </span>
       </button>
 
       <!-- 交易提示 -->
       <div v-if="errorMessage" class="error-message">
         {{ errorMessage }}
       </div>
+      <div v-if="successMessage" class="success-message">
+        {{ successMessage }}
+      </div>
+    </div>
+
+    <!-- 我的挂单 -->
+    <div v-if="myOrders.length > 0" class="my-orders">
+      <h3 class="section-title">我的挂单</h3>
+      <div class="order-list">
+        <div v-for="order in myOrders" :key="order._id" class="order-item">
+          <div class="order-info">
+            <span :class="['order-type', order.side.toLowerCase()]">
+              {{ order.side === 'BUY' ? '买入' : '卖出' }}
+            </span>
+            <span class="order-amount">{{ order.amount }} {{ tokenSymbol }}</span>
+            <span class="order-price">@ ${{ order.expectedPrice.toFixed(6) }}</span>
+          </div>
+          <div class="order-actions">
+            <span class="order-status">{{ orderStatusText(order.status) }}</span>
+            <button 
+              v-if="order.status === 'pending'" 
+              class="cancel-btn"
+              @click="cancelOrder(order._id)"
+              :disabled="cancellingOrder === order._id"
+            >
+              {{ cancellingOrder === order._id ? '取消中...' : '取消' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 最近交易记录 -->
     <div class="recent-trades">
-      <h3 class="section-title">最近交易</h3>
+      <h3 class="section-title">交易历史</h3>
       <div class="trade-history">
-        <div v-for="(trade, index) in recentTrades.slice(0, 5)" :key="index" class="trade-item">
+        <div v-if="priceHistory.length === 0" class="empty-history">
+          暂无交易记录
+        </div>
+        <div v-for="(trade, index) in priceHistory.slice(0, 8)" :key="index" class="trade-item">
           <div class="trade-info">
-            <span :class="['trade-type', trade.type]">
-              {{ trade.type === 'buy' ? '买入' : '卖出' }}
+            <span :class="['trade-type', trade.side?.toLowerCase()]">
+              {{ trade.side === 'BUY' ? '买入' : '卖出' }}
             </span>
             <span class="trade-amount">{{ trade.amount }} {{ tokenSymbol }}</span>
           </div>
           <div class="trade-price">
-            ${{ trade.price.toFixed(6) }}
+            ${{ trade.price?.toFixed(6) || '0.000000' }}
           </div>
           <div class="trade-time">
             {{ formatTime(trade.time) }}
@@ -141,6 +191,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
 const props = defineProps({
@@ -150,41 +201,48 @@ const props = defineProps({
   }
 });
 
+const route = useRoute();
 const authStore = useAuthStore();
 const server_ip = authStore.server_ip;
+const memeId = computed(() => route.params.id);
 
 // 交易表单状态
 const tradeType = ref('buy'); // 'buy' | 'sell'
 const orderType = ref('market'); // 'market' | 'limit'
 const price = ref(0);
 const amount = ref(0);
-const availableBalance = ref(10000); // 模拟余额
-const availableToken = ref(1000); // 模拟代币余额
+const availableBalance = ref(0); // USDT 余额
+const availableToken = ref(0); // 代币余额
 const tokenSymbol = ref('MEME');
+const currentPrice = ref(0.0001);
 const errorMessage = ref('');
+const successMessage = ref('');
+const isLoading = ref(false);
+const cancellingOrder = ref(null);
 
-// 最近交易记录
-const recentTrades = ref([
-  { type: 'buy', amount: 100, price: 0.000123, time: Date.now() - 60000 },
-  { type: 'sell', amount: 50, price: 0.000125, time: Date.now() - 120000 },
-  { type: 'buy', amount: 200, price: 0.000120, time: Date.now() - 180000 },
-  { type: 'sell', amount: 75, price: 0.000126, time: Date.now() - 240000 },
-  { type: 'buy', amount: 150, price: 0.000122, time: Date.now() - 300000 },
-]);
+// 交易历史和挂单
+const priceHistory = ref([]);
+const myOrders = ref([]);
+
+// 获取 token
+function getToken() {
+  return authStore.username || authStore.token;
+}
 
 // 计算总额
 const totalAmount = computed(() => {
+  const qty = amount.value || 0;
   if (orderType.value === 'market') {
-    // 市价单使用估算价格
-    const estimatedPrice = 0.000124; // 模拟当前市价
-    return amount.value * estimatedPrice;
+    // 市价单使用当前价格估算（实际会有滑点）
+    return qty * currentPrice.value * (tradeType.value === 'buy' ? 1.01 : 0.99); // 1% 手续费估算
   }
-  return amount.value * price.value;
+  return qty * (price.value || currentPrice.value);
 });
 
 // 检查是否可以交易
 const canTrade = computed(() => {
-  if (amount.value <= 0) return false;
+  if (!amount.value || amount.value <= 0) return false;
+  if (orderType.value === 'limit' && (!price.value || price.value <= 0)) return false;
 
   if (tradeType.value === 'buy') {
     return totalAmount.value <= availableBalance.value;
@@ -196,102 +254,229 @@ const canTrade = computed(() => {
 // 选择百分比
 const selectPercent = (percent) => {
   if (tradeType.value === 'buy') {
-    const targetAmount = (availableBalance.value * percent / 100) / (price.value || 0.000124);
-    amount.value = Number(targetAmount.toFixed(3));
+    const targetPrice = orderType.value === 'limit' && price.value > 0 ? price.value : currentPrice.value;
+    const maxAmount = Math.floor((availableBalance.value * percent / 100) / (targetPrice * 1.01));
+    amount.value = Math.max(1, maxAmount);
   } else {
-    amount.value = Number((availableToken.value * percent / 100).toFixed(3));
+    amount.value = Math.floor(availableToken.value * percent / 100);
+  }
+};
+
+// 获取用户余额和代币持有量
+const fetchUserBalance = async () => {
+  try {
+    const token = getToken();
+    if (!token) return;
+
+    // 获取用户信息（包含 coins）
+    const userRes = await fetch(`${server_ip}/api/user/${token}`, {
+      headers: { 'token': token }
+    });
+    const userData = await userRes.json();
+    if (userRes.ok && userData.code === 0) {
+      availableBalance.value = userData.data.coins || 0;
+    }
+
+    // 获取用户持有的该代币数量
+    if (memeId.value) {
+      const tokenRes = await fetch(`${server_ip}/api/meme/${memeId.value}`, {
+        headers: { 'token': token }
+      });
+      const tokenData = await tokenRes.json();
+      if (tokenRes.ok) {
+        tokenSymbol.value = tokenData.ticker || 'MEME';
+        // 从用户的 tokenList 中查找
+        const holdingRes = await fetch(`${server_ip}/api/token/by-ticker/${tokenData.ticker}`, {
+          headers: { 'token': token }
+        });
+        const holdingData = await holdingRes.json();
+        if (holdingRes.ok && holdingData.code === 0) {
+          availableToken.value = holdingData.data.amount || 0;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('获取用户余额失败:', error);
+  }
+};
+
+// 获取当前价格和交易历史
+const fetchPriceData = async () => {
+  try {
+    if (!memeId.value) return;
+
+    const res = await fetch(`${server_ip}/api/meme/${memeId.value}/token/price-history`);
+    const data = await res.json();
+    if (res.ok && data.code === 0) {
+      currentPrice.value = data.data.currentPrice || 0.0001;
+      priceHistory.value = data.data.history || [];
+    }
+  } catch (error) {
+    console.error('获取价格数据失败:', error);
+  }
+};
+
+// 获取我的挂单
+const fetchMyOrders = async () => {
+  try {
+    const token = getToken();
+    if (!token || !memeId.value) return;
+
+    const res = await fetch(`${server_ip}/api/user/${token}/orders?memeId=${memeId.value}`, {
+      headers: { 'token': token }
+    });
+    const data = await res.json();
+    if (res.ok && data.code === 0) {
+      myOrders.value = data.data || [];
+    }
+  } catch (error) {
+    console.error('获取挂单失败:', error);
   }
 };
 
 // 执行交易
 const executeTrade = async () => {
   errorMessage.value = '';
+  successMessage.value = '';
+  isLoading.value = true;
 
   try {
-    const orderData = {
-      type: tradeType.value,
-      orderType: orderType.value,
-      amount: amount.value,
-      price: orderType.value === 'market' ? 'market' : price.value,
-      total: totalAmount.value
-    };
-
-    // 模拟API调用
-    console.log('提交订单:', orderData);
-
-    // 实际项目中应该调用后端API
-    // const response = await fetch(`${server_ip}/api/trade`, {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'token': authStore.user_token
-    //   },
-    //   body: JSON.stringify(orderData)
-    // });
-
-    // 更新余额 (模拟)
-    if (tradeType.value === 'buy') {
-      availableBalance.value -= totalAmount.value;
-      availableToken.value += amount.value;
-    } else {
-      availableBalance.value += totalAmount.value;
-      availableToken.value -= amount.value;
+    const token = getToken();
+    if (!token) {
+      errorMessage.value = '请先登录';
+      return;
     }
 
-    // 添加到交易历史
-    recentTrades.value.unshift({
-      type: tradeType.value,
-      amount: amount.value,
-      price: orderType.value === 'market' ? 0.000124 : price.value,
-      time: Date.now()
+    let endpoint = '';
+    let body = {};
+
+    if (orderType.value === 'market') {
+      // 市价单
+      endpoint = tradeType.value === 'buy' 
+        ? `${server_ip}/api/meme/${memeId.value}/token/buy`
+        : `${server_ip}/api/meme/${memeId.value}/token/sell`;
+      body = { amount: Math.floor(amount.value) };
+    } else {
+      // 限价单（预约）
+      endpoint = tradeType.value === 'buy'
+        ? `${server_ip}/api/meme/${memeId.value}/token/buy-reservation`
+        : `${server_ip}/api/meme/${memeId.value}/token/sell-reservation`;
+      body = { 
+        amount: Math.floor(amount.value),
+        expectedPrice: price.value
+      };
+    }
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'token': token
+      },
+      body: JSON.stringify(body)
     });
 
-    // 限制历史记录数量
-    if (recentTrades.value.length > 10) {
-      recentTrades.value = recentTrades.value.slice(0, 10);
-    }
+    const data = await res.json();
 
-    // 重置表单
-    amount.value = 0;
-    if (orderType.value === 'limit') {
-      price.value = 0;
+    if (res.ok) {
+      successMessage.value = data.message || '交易成功！';
+      // 重置表单
+      amount.value = 0;
+      if (orderType.value === 'limit') {
+        price.value = 0;
+      }
+      // 刷新数据
+      await Promise.all([
+        fetchUserBalance(),
+        fetchPriceData(),
+        fetchMyOrders()
+      ]);
+    } else {
+      errorMessage.value = data.message || '交易失败，请重试';
     }
-
-    console.log('交易成功!');
 
   } catch (error) {
-    errorMessage.value = error.message || '交易失败，请重试';
+    errorMessage.value = error.message || '网络错误，请重试';
     console.error('交易错误:', error);
+  } finally {
+    isLoading.value = false;
   }
+};
+
+// 取消挂单
+const cancelOrder = async (orderId) => {
+  cancellingOrder.value = orderId;
+  try {
+    const token = getToken();
+    const res = await fetch(`${server_ip}/api/order/${orderId}/cancel`, {
+      method: 'POST',
+      headers: { 'token': token }
+    });
+    const data = await res.json();
+    if (res.ok) {
+      successMessage.value = '挂单已取消';
+      await fetchMyOrders();
+      await fetchUserBalance();
+    } else {
+      errorMessage.value = data.message || '取消失败';
+    }
+  } catch (error) {
+    errorMessage.value = '取消失败';
+  } finally {
+    cancellingOrder.value = null;
+  }
+};
+
+// 订单状态文本
+const orderStatusText = (status) => {
+  const map = {
+    'pending': '挂单中',
+    'COMPLETED': '已成交',
+    'CANCELLED': '已取消'
+  };
+  return map[status] || status;
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
   const now = Date.now();
-  const diff = now - timestamp;
+  const diff = now - date.getTime();
 
   if (diff < 60000) {
     return '刚刚';
   } else if (diff < 3600000) {
     return `${Math.floor(diff / 60000)}分钟前`;
+  } else if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)}小时前`;
   } else {
-    return new Date(timestamp).toLocaleTimeString();
+    return date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 };
 
-// 监听订单选择
+// 监听订单选择（从订单簿点击）
 watch(() => props.selectedOrder, (newOrder) => {
   if (newOrder) {
     price.value = newOrder.price;
     amount.value = newOrder.amount;
-    orderType.value = 'limit'; // 自动切换到限价单
+    orderType.value = 'limit';
   }
 });
 
+// 监听交易类型切换，清除消息
+watch([tradeType, orderType], () => {
+  errorMessage.value = '';
+  successMessage.value = '';
+});
+
 // 组件挂载时初始化
-onMounted(() => {
-  // 可以在这里获取当前市场价格
-  // price.value = await getCurrentPrice();
+onMounted(async () => {
+  await Promise.all([
+    fetchUserBalance(),
+    fetchPriceData(),
+    fetchMyOrders()
+  ]);
 });
 </script>
 
@@ -321,15 +506,22 @@ onMounted(() => {
       cursor: pointer;
       transition: all 0.2s ease;
 
+      &:hover:not(.active) {
+        color: #fff;
+      }
+
       &.active {
-        &.buy {
-          background: #00d084;
-          color: #000;
-        }
-        &.sell {
-          background: #ff3b69;
-          color: #fff;
-        }
+        color: #fff;
+      }
+
+      &:first-child.active {
+        background: #00d084;
+        color: #000;
+      }
+
+      &:last-child.active {
+        background: #ff3b69;
+        color: #fff;
       }
     }
   }
@@ -337,7 +529,7 @@ onMounted(() => {
   .order-type-selector {
     display: flex;
     gap: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 
     .order-type-btn {
       flex: 1;
@@ -364,15 +556,50 @@ onMounted(() => {
     }
   }
 
+  .current-price {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: linear-gradient(135deg, rgba(101, 194, 129, 0.1), rgba(0, 208, 132, 0.05));
+    border: 1px solid rgba(101, 194, 129, 0.2);
+    border-radius: 8px;
+    margin-bottom: 16px;
+
+    .price-label {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .price-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #65c281;
+    }
+  }
+
   .trade-form {
     .form-group {
       margin-bottom: 16px;
 
       .form-label {
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: 6px;
         font-size: 12px;
         color: #888;
         margin-bottom: 6px;
+
+        .hint {
+          font-size: 10px;
+          color: #666;
+        }
+      }
+
+      .form-hint {
+        font-size: 11px;
+        color: #666;
+        margin-top: 4px;
       }
 
       .input-group {
@@ -386,6 +613,13 @@ onMounted(() => {
           color: #888;
           font-size: 14px;
           z-index: 1;
+        }
+
+        .input-suffix {
+          position: absolute;
+          right: 12px;
+          color: #888;
+          font-size: 12px;
         }
 
         .form-input {
@@ -417,7 +651,7 @@ onMounted(() => {
     .quick-select {
       display: flex;
       gap: 8px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
 
       .quick-btn {
         flex: 1;
@@ -439,7 +673,7 @@ onMounted(() => {
     }
 
     .balance-info {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       padding: 12px;
       background: #0d0d0d;
       border-radius: 8px;
@@ -476,6 +710,19 @@ onMounted(() => {
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+
+      .loading-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
 
       &.buy {
         background: #00d084;
@@ -510,17 +757,122 @@ onMounted(() => {
 
     .error-message {
       margin-top: 12px;
-      padding: 8px;
+      padding: 10px;
       background: rgba(255, 59, 105, 0.1);
       border: 1px solid #ff3b69;
       border-radius: 6px;
       color: #ff3b69;
-      font-size: 12px;
+      font-size: 13px;
+    }
+
+    .success-message {
+      margin-top: 12px;
+      padding: 10px;
+      background: rgba(0, 208, 132, 0.1);
+      border: 1px solid #00d084;
+      border-radius: 6px;
+      color: #00d084;
+      font-size: 13px;
+    }
+  }
+
+  .my-orders {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #333;
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+
+    .order-list {
+      .order-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        background: #0d0d0d;
+        border-radius: 8px;
+        margin-bottom: 8px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .order-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          .order-type {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+
+            &.buy {
+              background: rgba(0, 208, 132, 0.2);
+              color: #00d084;
+            }
+
+            &.sell {
+              background: rgba(255, 59, 105, 0.2);
+              color: #ff3b69;
+            }
+          }
+
+          .order-amount {
+            font-size: 13px;
+            color: #fff;
+          }
+
+          .order-price {
+            font-size: 12px;
+            color: #888;
+          }
+        }
+
+        .order-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+
+          .order-status {
+            font-size: 11px;
+            color: #ffaa00;
+          }
+
+          .cancel-btn {
+            padding: 4px 10px;
+            background: transparent;
+            border: 1px solid #ff3b69;
+            border-radius: 4px;
+            color: #ff3b69;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+
+            &:hover:not(:disabled) {
+              background: rgba(255, 59, 105, 0.1);
+            }
+
+            &:disabled {
+              opacity: 0.5;
+              cursor: not-allowed;
+            }
+          }
+        }
+      }
     }
   }
 
   .recent-trades {
     margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #333;
 
     .section-title {
       font-size: 14px;
@@ -530,6 +882,13 @@ onMounted(() => {
     }
 
     .trade-history {
+      .empty-history {
+        text-align: center;
+        color: #666;
+        font-size: 13px;
+        padding: 20px;
+      }
+
       .trade-item {
         display: flex;
         align-items: center;
@@ -581,6 +940,12 @@ onMounted(() => {
         }
       }
     }
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

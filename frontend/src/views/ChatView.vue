@@ -13,12 +13,28 @@
 </template>
 
 <script setup>
+import { inject, onMounted, onUnmounted } from 'vue'
 import ChatWindow from "@/components/chat/ChatWindow.vue";
 import C2C from "@/components/chat/C2C.vue"; // 你自己创建的组件
 
+// 获取全局刷新提醒方法
+const refreshAlerts = inject('refreshAlerts', () => {})
+
 function onLoaded() {
   console.log("聊天组件加载完成");
+  // 加载完成后刷新提醒
+  refreshAlerts()
 }
+
+// 进入页面时刷新提醒
+onMounted(() => {
+  refreshAlerts()
+})
+
+// 离开页面时也刷新（确保已读状态更新）
+onUnmounted(() => {
+  refreshAlerts()
+})
 </script>
 
 <style scoped>

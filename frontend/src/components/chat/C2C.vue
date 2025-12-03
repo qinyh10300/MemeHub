@@ -76,6 +76,7 @@
           <p>
             <strong>我付出:</strong> {{ trade.myToken }} ×
             {{ trade.myAmount }}
+            <span v-if="trade.status === 'pending'" class="frozen-tip">（已冻结）</span>
           </p>
           <p>
             <strong>对方付出:</strong> {{ trade.theirToken }} ×
@@ -85,6 +86,20 @@
             <strong>状态:</strong>
             <span :class="'status-' + trade.status">{{ statusText(trade.status) }}</span>
           </p>
+          <div class="trade-times">
+            <span class="time-item">
+              <span class="time-label">发起:</span> {{ formatTime(trade.createdAt) }}
+            </span>
+            <span v-if="trade.status === 'accepted'" class="time-item">
+              <span class="time-label">完成:</span> {{ formatTime(trade.completedAt || trade.updatedAt) }}
+            </span>
+            <span v-else-if="trade.status === 'rejected'" class="time-item">
+              <span class="time-label">拒绝:</span> {{ formatTime(trade.updatedAt) }}
+            </span>
+            <span v-else-if="trade.status === 'cancelled'" class="time-item">
+              <span class="time-label">取消:</span> {{ formatTime(trade.updatedAt) }}
+            </span>
+          </div>
         </div>
         <div class="actions" v-if="trade.status === 'pending'">
           <button class="btn cancel" @click="cancelTrade(trade.id)">取消</button>
@@ -119,6 +134,20 @@
             <strong>状态:</strong>
             <span :class="'status-' + trade.status">{{ statusText(trade.status) }}</span>
           </p>
+          <div class="trade-times">
+            <span class="time-item">
+              <span class="time-label">发起:</span> {{ formatTime(trade.createdAt) }}
+            </span>
+            <span v-if="trade.status === 'accepted'" class="time-item">
+              <span class="time-label">完成:</span> {{ formatTime(trade.completedAt || trade.updatedAt) }}
+            </span>
+            <span v-else-if="trade.status === 'rejected'" class="time-item">
+              <span class="time-label">拒绝:</span> {{ formatTime(trade.updatedAt) }}
+            </span>
+            <span v-else-if="trade.status === 'cancelled'" class="time-item">
+              <span class="time-label">取消:</span> {{ formatTime(trade.updatedAt) }}
+            </span>
+          </div>
         </div>
 
         <div class="actions" v-if="trade.status === 'pending'">
@@ -135,8 +164,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, inject } from "vue";
 import { useAuthStore } from "@/stores/auth";
+
+// 获取全局刷新提醒方法
+const refreshAlerts = inject('refreshAlerts', () => {});
 
 const authStore = useAuthStore();
 
@@ -176,6 +208,35 @@ function statusText(status) {
     cancelled: '已取消'
   };
   return map[status] || status;
+}
+
+// 格式化时间
+function formatTime(dateStr) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now - date;
+  
+  // 1分钟内
+  if (diff < 60 * 1000) {
+    return '刚刚';
+  }
+  // 1小时内
+  if (diff < 60 * 60 * 1000) {
+    return `${Math.floor(diff / 60000)} 分钟前`;
+  }
+  // 今天
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  }
+  // 昨天
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    return `昨天 ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  // 更早
+  return date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 // 获取服务器地址
@@ -281,6 +342,7 @@ async function acceptTrade(id) {
       alert('交易已接受');
       fetchIncoming();
       fetchOutgoing();
+      refreshAlerts(); // 刷新侧边栏提醒
     } else {
       alert(data.message || '操作失败');
     }
@@ -303,6 +365,7 @@ async function rejectTrade(id) {
     if (data.code === 0) {
       alert('交易已拒绝');
       fetchIncoming();
+      refreshAlerts(); // 刷新侧边栏提醒
     } else {
       alert(data.message || '操作失败');
     }
@@ -612,5 +675,32 @@ onMounted(() => {
   opacity: 0.5;
   font-size: 14px;
   padding: 40px 20px;
+}
+
+/* 冻结提示 */
+.frozen-tip {
+  color: #ffaa00;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+/* 交易时间 */
+.trade-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.time-item {
+  font-size: 12px;
+  color: #888;
+}
+
+.time-label {
+  color: #666;
+  margin-right: 4px;
 }
 </style>
