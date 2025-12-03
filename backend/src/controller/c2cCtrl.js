@@ -391,3 +391,46 @@ export const cancelTrade = async (req, res) => {
     res.status(500).json({ code: 1000, message: '取消交易失败', error: error.message });
   }
 };
+
+export const getIncomingPendingCount = async (req, res) => {
+  try {
+    const token = req.headers['token'];
+    const user = await getUserFromToken(token);
+
+    if (!user) {
+      return res.status(401).json({ code: 1010, message: '未登录' });
+    }
+
+    const count = await C2CTrade.countDocuments({
+      receiver: user._id,
+      status: 'pending'
+    });
+
+    const latest = await C2CTrade.find({
+      receiver: user._id,
+      status: 'pending'
+    })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('initiator', 'username');
+
+    const summaries = latest.map(trade => ({
+      id: trade._id,
+      from: trade.initiator?.username || '未知用户',
+      token: trade.initiatorToken,
+      amount: trade.initiatorAmount,
+      createdAt: trade.createdAt
+    }));
+
+    res.json({
+      code: 0,
+      data: {
+        total: count,
+        previews: summaries
+      }
+    });
+  } catch (error) {
+    console.error('[C2C] Incoming pending count error:', error);
+    res.status(500).json({ code: 1000, message: '获取交易提醒失败', error: error.message });
+  }
+};

@@ -3,7 +3,16 @@ import mongoose from 'mongoose';
 const messageSchema = new mongoose.Schema({
   sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   receiver: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  content: { type: String, required: true },
+  type: { type: String, enum: ['text', 'sticker'], default: 'text' },
+  content: { type: String, default: '' },
+  stickerUrl: { type: String, default: '' },
+  stickerMeta: {
+    prompt: { type: String },
+    primaryEmoji: { type: String },
+    tagline: { type: String },
+    palette: [{ type: String }],
+    style: { type: String }
+  },
   isRead: { type: Boolean, default: false },
   readAt: { type: Date },
   isDeleted: { type: Boolean, default: false },

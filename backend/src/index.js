@@ -33,6 +33,10 @@ if (!fs.existsSync(Const.MEME_DIR)) {
 if (!fs.existsSync(Const.AVATAR_DIR)) {
   fs.mkdirSync(Const.AVATAR_DIR);
 }
+// 确保表情包输出文件夹存在
+if (!fs.existsSync(Const.STICKER_DIR)) {
+  fs.mkdirSync(Const.STICKER_DIR);
+}
 
 // 配置 multer 用于保存模因文件
 const memeStorage = multer.diskStorage({
@@ -140,6 +144,7 @@ app.get('/api/user/:username/follow', (req, res) => {
 
 app.use('/memefiles', express.static(Const.MEME_DIR));
 app.use('/avatars', express.static(Const.AVATAR_DIR));
+app.use('/stickers', express.static(Const.STICKER_DIR));
 // 接收前端的文件并创建模因
 app.post('/api/upload-meme', upload.single('file'), Work.createMeme);
 // 返回单个模因的详细信息
@@ -202,6 +207,8 @@ app.post('/api/message/send', MessageController.sendMessage);
 app.get('/api/message/conversations', MessageController.getConversations);
 app.get('/api/message/history/:targetId', MessageController.getHistory);
 app.delete('/api/message/:messageId', MessageController.deleteMessage);
+app.get('/api/message/unread-count', MessageController.getUnreadCount);
+app.post('/api/message/sticker/generate', MessageController.generateSticker);
 
 // 审核操作
 
@@ -216,6 +223,7 @@ app.post('/api/review/meme/:id/ai', Review.aiReviewMeme);
 app.post('/api/c2c/create', C2CController.createC2CTrade);
 app.get('/api/c2c/outgoing', C2CController.getOutgoingTrades);
 app.get('/api/c2c/incoming', C2CController.getIncomingTrades);
+app.get('/api/c2c/incoming/pending-count', C2CController.getIncomingPendingCount);
 app.post('/api/c2c/:id/accept', C2CController.acceptTrade);
 app.post('/api/c2c/:id/reject', C2CController.rejectTrade);
 app.post('/api/c2c/:id/cancel', C2CController.cancelTrade);
