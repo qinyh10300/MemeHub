@@ -3,6 +3,9 @@ import { User } from '../models/user.js';
 import pkg from 'jsonwebtoken';
 const { verify } = pkg;
 
+const RECALL_WINDOW_MINUTES = parseInt(process.env.MESSAGE_RECALL_WINDOW_MINUTES, 10) || 5;
+const RECALL_WINDOW_MS = RECALL_WINDOW_MINUTES * 60 * 1000;
+
 // 辅助函数：构建头像URL
 function buildAvatarUrl(userDoc = {}, baseUrl = '') {
   const rawAvatar = userDoc.avatar?.trim();
@@ -99,17 +102,21 @@ export const getHistory = async (req, res) => {
     const host = req.get('host');
     const baseUrl = host ? `${req.protocol}://${host}` : '';
 
-    const formattedMessages = messages.map(msg => ({
-      ...msg.toObject(),
-      sender: {
-        ...msg.sender.toObject(),
-        avatar: buildAvatarUrl(msg.sender, baseUrl)
-      },
-      receiver: {
-        ...msg.receiver.toObject(),
-        avatar: buildAvatarUrl(msg.receiver, baseUrl)
-      }
-    }));
+    const formattedMessages = messages.map(msg => {
+      const plain = msg.toObject();
+      return {
+        ...plain,
+        content: plain.isDeleted ? '' : plain.content,
+        sender: {
+          ...msg.sender.toObject(),
+          avatar: buildAvatarUrl(msg.sender, baseUrl)
+        },
+        receiver: {
+          ...msg.receiver.toObject(),
+          avatar: buildAvatarUrl(msg.receiver, baseUrl)
+        }
+      };
+    });
 
     res.status(200).json({ code: 0, data: formattedMessages });
   } catch (error) {
@@ -166,5 +173,41 @@ export const getConversations = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: '获取会话列表失败', error: error.message });
+  }
+};
+
+// 撤回消息
+export const deleteMessage = async (req, res) => {
+  try {
+    const token = req.headers.token;
+    const currentUser = await findUserByToken(token);
+    if (!currentUser) return res.status(401).json({ message: '用户未登录' });
+
+    const { messageId } = req.params;
+    const message = await Message.findById(messageId);
+    if (!message) return res.status(404).json({ message: '消息不存在' });
+
+    if (message.sender.toString() !== currentUser._id.toString()) {
+      return res.status(403).json({ message: '只能撤回自己发送的消息' });
+    }
+
+    if (message.isDeleted) {
+      return res.status(400).json({ message: '消息已撤回' });
+    }
+
+    const age = Date.now() - new Date(message.createdAt).getTime();
+    if (age > RECALL_WINDOW_MS) {
+      return res.status(400).json({ message: `只能在${RECALL_WINDOW_MINUTES}分钟内撤回` });
+    }
+
+    message.isDeleted = true;
+    message.deletedAt = new Date();
+    message.deletedBy = currentUser._id;
+    await message.save();
+
+    res.status(200).json({ code: 0, message: '撤回成功' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: '撤回消息失败', error: error.message });
   }
 };

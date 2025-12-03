@@ -52,10 +52,35 @@
             >
             <img v-if="msg.sender.username !== authStore.username" :src="msg.sender.avatar" class="msg-avatar" />
             <div class="bubble-container">
-                <div class="message-bubble">
-                {{ msg.content }}
+                <div 
+                  class="message-bubble" 
+                  :class="{ recalled: msg.isDeleted }"
+                >
+                  <template v-if="msg.isDeleted">
+                    {{ msg.sender.username === authStore.username ? '你撤回了一条消息' : '对方撤回了一条消息' }}
+                  </template>
+                  <template v-else>
+                    {{ msg.content }}
+                  </template>
                 </div>
-                <div class="bubble-time">{{ formatTime(msg.createdAt) }}</div>
+                <div class="bubble-footer">
+                  <div class="bubble-time">
+                    <template v-if="msg.isDeleted && msg.deletedAt">
+                      {{ formatTime(msg.deletedAt) }} · 已撤回
+                    </template>
+                    <template v-else>
+                      {{ formatTime(msg.createdAt) }}
+                    </template>
+                  </div>
+                  <button
+                    v-if="msg.sender.username === authStore.username && !msg.isDeleted && canRecall(msg)"
+                    class="recall-btn"
+                    @click.stop="recallMessage(msg)"
+                    :disabled="isRecalling(msg._id)"
+                  >
+                    {{ isRecalling(msg._id) ? '撤回中...' : '撤回' }}
+                  </button>
+                </div>
             </div>
             </div>
         </div>
@@ -87,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue';
+import { ref, onMounted, nextTick, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
@@ -95,12 +120,16 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const server_ip = authStore.server_ip || 'http://localhost:3000';
+const RECALL_WINDOW_MS = 5 * 60 * 1000;
 
 const conversations = ref([]);
 const messages = ref([]);
 const currentTarget = ref(null);
 const inputContent = ref('');
 const messagesContainer = ref(null);
+const recallingMap = ref({});
+const now = ref(Date.now());
+let recallTicker = null;
 
 // 获取 Token 的辅助函数
 const getToken = () => authStore.token || localStorage.getItem('auth_token') || authStore.username || '';
@@ -171,6 +200,44 @@ fetchHistory(user._id);
 router.replace(`/chat?target=${user._id}`);
 };
 
+const setRecalling = (messageId, value) => {
+  recallingMap.value = { ...recallingMap.value, [messageId]: value };
+};
+
+const isRecalling = (messageId) => !!recallingMap.value[messageId];
+
+const canRecall = (msg) => {
+  if (!msg || msg.isDeleted) return false;
+  if (msg.sender.username !== authStore.username) return false;
+  const createdAt = new Date(msg.createdAt).getTime();
+  return now.value - createdAt <= RECALL_WINDOW_MS;
+};
+
+const recallMessage = async (msg) => {
+  if (!msg || !canRecall(msg) || isRecalling(msg._id)) return;
+  setRecalling(msg._id, true);
+  try {
+    const res = await fetch(`${server_ip}/api/message/${msg._id}`, {
+      method: 'DELETE',
+      headers: { 'token': getToken() }
+    });
+    const result = await res.json();
+    if (res.ok && result.code === 0) {
+      if (currentTarget.value?._id) {
+        await fetchHistory(currentTarget.value._id);
+      }
+      await fetchConversations();
+    } else {
+      alert(result.message || '撤回失败');
+    }
+  } catch (e) {
+    console.error('撤回失败', e);
+    alert('撤回失败，请稍后重试');
+  } finally {
+    setRecalling(msg._id, false);
+  }
+};
+
 const scrollToBottom = () => {
 if (messagesContainer.value) {
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
@@ -227,6 +294,14 @@ if (targetId) {
     }
     }
 }
+
+recallTicker = setInterval(() => {
+  now.value = Date.now();
+}, 30 * 1000);
+});
+
+onUnmounted(() => {
+  if (recallTicker) clearInterval(recallTicker);
 });
 </script>
 
@@ -413,6 +488,17 @@ display: flex;
 flex-direction: column;
 }
 
+.bubble-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.message-row.mine .bubble-footer {
+  justify-content: flex-end;
+}
+
 .message-bubble {
 padding: 10px 16px;
 border-radius: 18px;
@@ -435,6 +521,17 @@ color: #000;
 border-bottom-right-radius: 4px;
 }
 
+.message-bubble.recalled {
+  background: rgba(255, 255, 255, 0.08);
+  color: #bbb;
+  font-style: italic;
+}
+
+.message-row.mine .message-bubble.recalled {
+  background: rgba(66, 185, 131, 0.25);
+  color: #e6fff4;
+}
+
 .bubble-time {
 font-size: 11px;
 color: #666;
@@ -444,6 +541,27 @@ align-self: flex-start;
 
 .mine .bubble-time {
 align-self: flex-end;
+}
+
+.recall-btn {
+  border: 1px solid #4a4a4a;
+  background: transparent;
+  color: #bbb;
+  padding: 2px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.recall-btn:hover:not(:disabled) {
+  border-color: #42b983;
+  color: #42b983;
+}
+
+.recall-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Input Area */

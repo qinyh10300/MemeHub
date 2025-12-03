@@ -201,6 +201,7 @@ app.delete('/api/comment/:id', CommentCtrl.deleteComment);
 app.post('/api/message/send', MessageController.sendMessage);
 app.get('/api/message/conversations', MessageController.getConversations);
 app.get('/api/message/history/:targetId', MessageController.getHistory);
+app.delete('/api/message/:messageId', MessageController.deleteMessage);
 
 // 审核操作
 
