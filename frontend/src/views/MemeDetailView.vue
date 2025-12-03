@@ -1,23 +1,23 @@
 <template>
 <div class="meme-detail-page">
     <div class="container">
-    <!-- 左侧：模因信息 + K线图 + 订单簿 -->
+    <!-- 左侧：模因信息 + K线图 + 订单簿 + 评论区 -->
     <div class="left-side">
         <MemeCard :meme="meme" />
         <div class="trading-section">
           <KlineChart/>
         </div>
-        <div class="orderbook-section">
+        <!-- <div class="orderbook-section">
           <OrderBook @orderSelected="handleOrderSelected" />
+        </div> -->
+        <div class="comments-section">
+          <CommentSection v-if="meme.id" :meme_id="meme.id" />
         </div>
     </div>
 
-    <!-- 右侧：交易面板 + 评论区 -->
+    <!-- 右侧：交易面板 -->
     <div class="right-side">
       <TradingPanel :selectedOrder="selectedOrder" />
-      <div class="comments-section">
-        <CommentSection v-if="meme.id" :meme_id="meme.id" />
-      </div>
     </div>
     </div>
 </div>
@@ -132,19 +132,20 @@ overflow-y: auto;
 display: flex;
 gap: 16px;
 height: auto;
-width: 1400px; /* 扩大宽度以适应交易系统 */
+width: 1250px; /* 扩大宽度以适应交易系统 */
 max-width: 100%;
 }
 
-/* 左侧：模因信息 + K线图 + 订单簿 */
+/* 左侧：模因信息 + K线图 + 订单簿 + 评论区 */
 .left-side {
 position: relative;
 top: 0px;
-flex: 7; /* 左侧占 7 份 */
+flex: 8; /* 左侧占 8 份，为评论区留出更多空间 */
 display: flex;
 flex-direction: column;
-gap: 20px;
-overflow-y: auto; /* 左边可滚动 */
+gap: 24px; /* 增加间距，提升视觉层次 */
+max-height: calc(100vh - 40px);
+  overflow-y: auto;
 
   .trading-section {
     order: 2; /* K线图排在第二位 */
@@ -153,21 +154,106 @@ overflow-y: auto; /* 左边可滚动 */
   .orderbook-section {
     order: 3; /* 订单簿排在第三位 */
   }
+
+  .comments-section {
+    order: 4; /* 评论区排在第四位 */
+    /* min-height: 400px; */
+    background: rgba(255, 255, 255, 0.02); /* 现代半透明背景 */
+    border-radius: 12px; /* 圆角设计 */
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1); /* 细微边框 */
+    backdrop-filter: blur(10px); /* 毛玻璃效果 */
+
+    /* 现代化悬停效果 */
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+  }
 }
 
-/* 右侧：交易面板 + 评论区 */
+/* 右侧：交易面板 */
 .right-side {
   position: sticky; /* 设置为 sticky 定位 */
   top: 20px; /* 距离视口顶部 20px */
-  flex: 3; /* 右侧占 3 份 */
+  flex: 4; /* 右侧占 4 份 */
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  overflow-y: auto; /* 右边独立滚动 */
-  height: calc(100vh - 40px); /* 设置高度为视口高度减去顶部偏移 */
+  gap: 24px; /* 与左侧间距保持一致 */
+  overflow-y: auto;
+  height: calc(100vh - 40px);
 
-  .comments-section {
-    order: 2; /* 评论区排在交易面板后面 */
+  /* 现代化右侧面板设计 */
+  background: rgba(255, 255, 255, 0.015);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+
+  /* 添加细微阴影增强层次感 */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* 响应式设计 */
+@media (max-width: 1400px) {
+  .container {
+    width: 1100px;
+  }
+
+  .left-side {
+    flex: 7;
+  }
+
+  .right-side {
+    flex: 3;
+  }
+}
+
+@media (max-width: 1200px) {
+  .container {
+    width: 95%;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .left-side,
+  .right-side {
+    flex: 1;
+    position: static;
+    height: auto;
+    max-height: none;
+  }
+
+  .right-side {
+    order: 2; /* 在移动端将交易面板放在评论下方 */
+  }
+
+  .left-side .comments-section {
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .meme-detail-page {
+    padding: 16px;
+  }
+
+  .container {
+    width: 100%;
+    padding: 0;
+  }
+
+  .left-side,
+  .right-side {
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .left-side .comments-section {
+    padding: 16px;
+    min-height: 250px;
   }
 }
 </style>

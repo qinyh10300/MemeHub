@@ -1,5 +1,10 @@
 import { C2CTrade } from '../models/c2cTrade.js';
 import { User } from '../models/user.js';
+import { Meme } from '../models/meme.js';
+import { Token } from '../models/token.js';
+
+// USDT 是特殊币种，使用 user.coins 而不是 tokenList
+const USDT_TICKER = 'USDT';
 
 // 辅助函数：从 token header 获取用户
 async function getUserFromToken(token) {
@@ -22,6 +27,39 @@ async function getUserFromToken(token) {
   }
   
   return user;
+}
+
+// 辅助函数：根据 ticker 查找 Token（USDT 返回特殊标记）
+async function findTokenByTicker(ticker) {
+  if (ticker.toUpperCase() === USDT_TICKER) {
+    return { _id: 'USDT', isUSDT: true };
+  }
+  const meme = await Meme.findOne({ ticker });
+  if (!meme) return null;
+  const token = await Token.findOne({ meme: meme._id });
+  return token;
+}
+
+// 辅助函数：获取用户持有的某个 Token 数量
+function getUserTokenAmount(user, tokenObj) {
+  if (tokenObj.isUSDT) {
+    return user.coins || 0;
+  }
+  const entry = user.tokenList.find(
+    e => e.token && e.token.toString() === tokenObj._id.toString()
+  );
+  return entry ? entry.amount : 0;
+}
+
+// 辅助函数：修改用户的代币数量
+async function changeUserToken(user, tokenObj, amount) {
+  if (tokenObj.isUSDT) {
+    user.coins = (user.coins || 0) + amount;
+    if (user.coins < 0) user.coins = 0;
+    await user.save();
+    return amount;
+  }
+  return await user.changeToken(tokenObj, amount);
 }
 
 // 创建 C2C 交易
@@ -56,12 +94,33 @@ export const createC2CTrade = async (req, res) => {
       return res.status(400).json({ code: 1005, message: '不能与自己交易' });
     }
     
+    // 验证发起方要付出的币种存在
+    const initiatorTokenObj = await findTokenByTicker(myToken);
+    if (!initiatorTokenObj) {
+      return res.status(400).json({ code: 1006, message: `币种 ${myToken} 不存在` });
+    }
+    
+    // 验证发起方有足够的代币
+    const initiatorBalance = getUserTokenAmount(initiator, initiatorTokenObj);
+    if (initiatorBalance < Number(myAmount)) {
+      return res.status(400).json({ 
+        code: 1007, 
+        message: `您的 ${myToken} 余额不足，当前持有 ${initiatorBalance}，需要 ${myAmount}` 
+      });
+    }
+    
+    // 验证接收方要付出的币种存在
+    const receiverTokenObj = await findTokenByTicker(theirToken);
+    if (!receiverTokenObj) {
+      return res.status(400).json({ code: 1008, message: `币种 ${theirToken} 不存在` });
+    }
+    
     const trade = new C2CTrade({
       initiator: initiator._id,
       receiver: receiver._id,
-      initiatorToken: myToken,
+      initiatorToken: myToken.toUpperCase() === USDT_TICKER ? USDT_TICKER : myToken,
       initiatorAmount: Number(myAmount),
-      receiverToken: theirToken,
+      receiverToken: theirToken.toUpperCase() === USDT_TICKER ? USDT_TICKER : theirToken,
       receiverAmount: Number(theirAmount),
       status: 'pending'
     });
@@ -157,9 +216,9 @@ export const getIncomingTrades = async (req, res) => {
 export const acceptTrade = async (req, res) => {
   try {
     const token = req.headers['token'];
-    const user = await getUserFromToken(token);
+    const receiver = await getUserFromToken(token);
     
-    if (!user) {
+    if (!receiver) {
       return res.status(401).json({ code: 1010, message: '未登录' });
     }
     
@@ -170,7 +229,7 @@ export const acceptTrade = async (req, res) => {
       return res.status(404).json({ code: 1004, message: '交易不存在' });
     }
     
-    if (!trade.receiver.equals(user._id)) {
+    if (!trade.receiver.equals(receiver._id)) {
       return res.status(403).json({ code: 1011, message: '只有接收方可以接受交易' });
     }
     
@@ -178,14 +237,83 @@ export const acceptTrade = async (req, res) => {
       return res.status(400).json({ code: 1006, message: `交易状态为 ${trade.status}，无法接受` });
     }
     
+    // 获取发起方用户
+    const initiator = await User.findById(trade.initiator);
+    if (!initiator) {
+      return res.status(404).json({ code: 1012, message: '发起方用户不存在' });
+    }
+    
+    // 查找双方要交换的 Token
+    const initiatorTokenObj = await findTokenByTicker(trade.initiatorToken);
+    const receiverTokenObj = await findTokenByTicker(trade.receiverToken);
+    
+    if (!initiatorTokenObj) {
+      return res.status(400).json({ code: 1013, message: `币种 ${trade.initiatorToken} 不存在` });
+    }
+    if (!receiverTokenObj) {
+      return res.status(400).json({ code: 1014, message: `币种 ${trade.receiverToken} 不存在` });
+    }
+    
+    // 检查发起方余额是否仍然足够
+    const initiatorBalance = getUserTokenAmount(initiator, initiatorTokenObj);
+    if (initiatorBalance < trade.initiatorAmount) {
+      trade.status = 'cancelled';
+      trade.updatedAt = new Date();
+      await trade.save();
+      return res.status(400).json({ 
+        code: 1015, 
+        message: `发起方 ${trade.initiatorToken} 余额不足，交易已自动取消` 
+      });
+    }
+    
+    // 检查接收方余额是否足够
+    const receiverBalance = getUserTokenAmount(receiver, receiverTokenObj);
+    if (receiverBalance < trade.receiverAmount) {
+      return res.status(400).json({ 
+        code: 1016, 
+        message: `您的 ${trade.receiverToken} 余额不足，当前持有 ${receiverBalance}，需要 ${trade.receiverAmount}` 
+      });
+    }
+    
+    // 执行代币转移
+    // 1. 发起方: 减少 initiatorToken，增加 receiverToken
+    await changeUserToken(initiator, initiatorTokenObj, -trade.initiatorAmount);
+    await changeUserToken(initiator, receiverTokenObj, trade.receiverAmount);
+    
+    // 2. 接收方: 减少 receiverToken，增加 initiatorToken
+    await changeUserToken(receiver, receiverTokenObj, -trade.receiverAmount);
+    await changeUserToken(receiver, initiatorTokenObj, trade.initiatorAmount);
+    
+    // 更新交易状态
     trade.status = 'accepted';
     trade.updatedAt = new Date();
     trade.completedAt = new Date();
     await trade.save();
     
-    // TODO: 实际转账逻辑（扣除/增加双方代币余额）
+    console.log(`[C2C] Trade ${tradeId} completed:`);
+    console.log(`  - ${initiator.username}: -${trade.initiatorAmount} ${trade.initiatorToken}, +${trade.receiverAmount} ${trade.receiverToken}`);
+    console.log(`  - ${receiver.username}: -${trade.receiverAmount} ${trade.receiverToken}, +${trade.initiatorAmount} ${trade.initiatorToken}`);
     
-    res.json({ code: 0, message: '交易已接受', data: { id: trade._id, status: trade.status } });
+    res.json({ 
+      code: 0, 
+      message: '交易已完成', 
+      data: { 
+        id: trade._id, 
+        status: trade.status,
+        summary: {
+          initiator: {
+            username: initiator.username,
+            gave: { token: trade.initiatorToken, amount: trade.initiatorAmount },
+            received: { token: trade.receiverToken, amount: trade.receiverAmount }
+          },
+          receiver: {
+            username: receiver.username,
+            gave: { token: trade.receiverToken, amount: trade.receiverAmount },
+            received: { token: trade.initiatorToken, amount: trade.initiatorAmount }
+          }
+        }
+      } 
+    });
   } catch (error) {
     console.error('[C2C] Accept trade error:', error);
     res.status(500).json({ code: 1000, message: '接受交易失败', error: error.message });
@@ -263,4 +391,3 @@ export const cancelTrade = async (req, res) => {
     res.status(500).json({ code: 1000, message: '取消交易失败', error: error.message });
   }
 };
-

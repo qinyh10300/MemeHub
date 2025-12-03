@@ -42,6 +42,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/gamification',
+      name: 'GamificationCenter',
+      component: () => import('../views/CheckView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/profile/:id', // 动态路由，:id 表示用户的唯一标识
       name: 'Profile',
       component: () => import('../views/ProfileView.vue'), // 懒加载 ProfileView

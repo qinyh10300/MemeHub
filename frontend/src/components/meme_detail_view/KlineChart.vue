@@ -39,37 +39,72 @@
       </button>
     </div>
 
-    <!-- K线图容器 -->
+    <!-- K线图容器 (固定大小) -->
     <div class="chart-container">
       <div id="chart_box" class="chart"></div>
     </div>
 
-    <!-- 技术指标选择器 -->
-    <div class="indicator-selector">
-      <button
-        :class="['indicator-btn', { active: selectedIndicators.includes('MA') }]"
-        @click="toggleIndicator('MA')"
-      >
-        MA
-      </button>
-      <button
-        :class="['indicator-btn', { active: selectedIndicators.includes('VOL') }]"
-        @click="toggleIndicator('VOL')"
-      >
-        VOL
-      </button>
-      <button
-        :class="['indicator-btn', { active: selectedIndicators.includes('MACD') }]"
-        @click="toggleIndicator('MACD')"
-      >
-        MACD
-      </button>
-      <button
-        :class="['indicator-btn', { active: selectedIndicators.includes('RSI') }]"
-        @click="toggleIndicator('RSI')"
-      >
-        RSI
-      </button>
+    <!-- 技术指标区域 -->
+    <div class="indicators-section">
+      <!-- 技术指标选择器 -->
+      <div class="indicator-selector">
+        <button
+          :class="['indicator-btn', { active: selectedIndicators.includes('MA') }]"
+          @click="toggleIndicator('MA')"
+        >
+          MA
+        </button>
+        <button
+          :class="['indicator-btn', { active: selectedIndicators.includes('VOL') }]"
+          @click="toggleIndicator('VOL')"
+        >
+          VOL
+        </button>
+        <button
+          :class="['indicator-btn', { active: selectedIndicators.includes('MACD') }]"
+          @click="toggleIndicator('MACD')"
+        >
+          MACD
+        </button>
+        <button
+          :class="['indicator-btn', { active: selectedIndicators.includes('RSI') }]"
+          @click="toggleIndicator('RSI')"
+        >
+          RSI
+        </button>
+      </div>
+
+      <!-- 技术指标显示区域 -->
+      <div class="indicators-display">
+        <div v-if="selectedIndicators.includes('VOL')" class="indicator-panel">
+          <div class="indicator-title">成交量 (VOL)</div>
+          <div class="indicator-chart volume-display">
+            <div class="volume-bar" v-for="i in 20" :key="i" :style="{ height: Math.random() * 100 + '%' }"></div>
+          </div>
+        </div>
+        <div v-if="selectedIndicators.includes('MACD')" class="indicator-panel">
+          <div class="indicator-title">MACD</div>
+          <div class="indicator-chart macd-display">
+            <div class="macd-line macd"></div>
+            <div class="macd-line signal"></div>
+            <div class="macd-histogram">
+              <div v-for="i in 20" :key="i" class="histogram-bar"
+                   :class="{ positive: Math.random() > 0.5, negative: Math.random() <= 0.5 }"
+                   :style="{ height: Math.random() * 60 + '%' }"></div>
+            </div>
+          </div>
+        </div>
+        <div v-if="selectedIndicators.includes('RSI')" class="indicator-panel">
+          <div class="indicator-title">RSI (14)</div>
+          <div class="indicator-chart rsi-display">
+            <div class="rsi-line"></div>
+            <div class="rsi-zones">
+              <div class="rsi-zone overbought">超买区 (70)</div>
+              <div class="rsi-zone oversold">超卖区 (30)</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -86,6 +121,7 @@ const high24h = ref(0);
 const low24h = ref(0);
 const volume24h = ref(0);
 const selectedIndicators = ref(['VOL']);
+const chartHeight = ref(400);
 
 let chart;
 
@@ -205,16 +241,35 @@ const changeTimeframe = (timeframe) => {
   chart.applyNewData(newData);
 };
 
+// 计算图表高度
+const calculateChartHeight = () => {
+  const baseHeight = 200; // K线图基础高度
+  const indicatorHeight = 80; // 每个技术指标的高度
+  const minHeight = 300; // 最小高度
+  const maxHeight = 600; // 最大高度
+
+  const indicatorCount = selectedIndicators.value.length;
+  const newHeight = Math.min(Math.max(baseHeight + indicatorCount * indicatorHeight, minHeight), maxHeight);
+  chartHeight.value = newHeight;
+
+  // 如果图表已初始化，需要重新调整大小
+  if (chart) {
+    setTimeout(() => {
+      chart.resize();
+    }, 50);
+  }
+};
+
 // 切换技术指标
 const toggleIndicator = (indicator) => {
   const index = selectedIndicators.value.indexOf(indicator);
   if (index > -1) {
     selectedIndicators.value.splice(index, 1);
-    chart.removeIndicator(indicator);
   } else {
     selectedIndicators.value.push(indicator);
-    chart.createIndicator(indicator);
   }
+
+  // 不再动态改变K线图，保持K线图大小固定
 };
 
 onMounted(() => {
@@ -237,6 +292,10 @@ onMounted(() => {
         color: 'rgba(255, 255, 255, 0.1)',
         style: 'dashed'
       }
+    },
+    // 确保图表充满整个容器
+    pane: {
+      display: true
     },
     candle: {
       type: 'candle_solid',
@@ -277,8 +336,11 @@ onMounted(() => {
 
   chart.setStyles(styles);
 
-  // 创建默认指标
-  chart.createIndicator('VOL', true);
+  // 不在K线图内部创建指标，保持K线图纯净
+  // chart.createIndicator('VOL', true);
+
+  // 设置固定图表高度，不再动态调整
+  chartHeight.value = 400;
 
   // 加载初始数据
   const initialData = generateDataByTimeframe(active.value);
@@ -375,39 +437,166 @@ onMounted(() => {
 
   .chart-container {
     margin-bottom: 16px;
+    height: 400px; /* 固定高度，不再变化 */
+    width: 100%; /* 确保容器占满宽度 */
 
     .chart {
-      height: 400px;
+      width: 100%;
+      height: 100%;
       background: #0d0d0d;
       border-radius: 8px;
+      display: block; /* 确保块级显示 */
+      overflow: hidden; /* 防止溢出 */
     }
   }
 
-  .indicator-selector {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
+  .indicators-section {
+    margin-top: 16px;
 
-    .indicator-btn {
-      padding: 6px 12px;
-      background: #0d0d0d;
-      border: 1px solid #333;
-      color: #888;
-      font-size: 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s ease;
+    .indicator-selector {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 16px;
 
-      &:hover {
-        color: #fff;
-        border-color: #555;
+      .indicator-btn {
+        padding: 6px 12px;
+        background: #0d0d0d;
+        border: 1px solid #333;
+        color: #888;
+        font-size: 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          color: #fff;
+          border-color: #555;
+        }
+
+        &.active {
+          background: #65c281;
+          color: #000;
+          border-color: #65c281;
+          font-weight: 600;
+        }
       }
+    }
 
-      &.active {
-        background: #65c281;
-        color: #000;
-        border-color: #65c281;
-        font-weight: 600;
+    .indicators-display {
+      display: grid;
+      gap: 12px;
+
+      .indicator-panel {
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 12px;
+
+        .indicator-title {
+          font-size: 12px;
+          color: #888;
+          margin-bottom: 8px;
+          font-weight: 600;
+        }
+
+        .indicator-chart {
+          height: 80px;
+          background: #0d0d0d;
+          border-radius: 6px;
+          overflow: hidden;
+          position: relative;
+
+          // 成交量显示
+          &.volume-display {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            padding: 4px;
+
+            .volume-bar {
+              flex: 1;
+              background: #65c281;
+              min-height: 2px;
+              border-radius: 1px;
+            }
+          }
+
+          // MACD显示
+          &.macd-display {
+            position: relative;
+            padding: 8px;
+
+            .macd-line {
+              height: 2px;
+              margin: 4px 0;
+              border-radius: 1px;
+
+              &.macd {
+                background: #4a9eff;
+              }
+
+              &.signal {
+                background: #ff6b6b;
+              }
+            }
+
+            .macd-histogram {
+              display: flex;
+              align-items: center;
+              gap: 2px;
+              height: 40px;
+
+              .histogram-bar {
+                flex: 1;
+                width: 2px;
+                border-radius: 1px;
+
+                &.positive {
+                  background: #65c281;
+                }
+
+                &.negative {
+                  background: #ff3b69;
+                }
+              }
+            }
+          }
+
+          // RSI显示
+          &.rsi-display {
+            padding: 8px;
+
+            .rsi-line {
+              height: 2px;
+              background: linear-gradient(90deg, #ff3b69 0%, #ffaa00 50%, #65c281 100%);
+              margin: 20px 0;
+              border-radius: 1px;
+            }
+
+            .rsi-zones {
+              display: flex;
+              justify-content: space-between;
+              font-size: 10px;
+              color: #666;
+
+              .rsi-zone {
+                padding: 2px 6px;
+                border-radius: 3px;
+
+                &.overbought {
+                  background: rgba(255, 59, 105, 0.2);
+                  color: #ff3b69;
+                }
+
+                &.oversold {
+                  background: rgba(101, 194, 129, 0.2);
+                  color: #65c281;
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
