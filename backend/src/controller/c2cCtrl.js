@@ -115,6 +115,10 @@ export const createC2CTrade = async (req, res) => {
       return res.status(400).json({ code: 1008, message: `币种 ${theirToken} 不存在` });
     }
     
+    // 冻结发起方的代币（从余额中扣除，交易完成后转给对方，取消时返还）
+    await changeUserToken(initiator, initiatorTokenObj, -Number(myAmount));
+    console.log(`[C2C] 冻结 ${initiator.username} 的 ${myAmount} ${myToken}`);
+    
     const trade = new C2CTrade({
       initiator: initiator._id,
       receiver: receiver._id,
@@ -129,7 +133,7 @@ export const createC2CTrade = async (req, res) => {
     
     res.status(201).json({
       code: 0,
-      message: '交易已发起，等待对方确认',
+      message: '交易已发起，等待对方确认（代币已冻结）',
       data: {
         id: trade._id,
         to: targetUsername,
@@ -169,7 +173,9 @@ export const getOutgoingTrades = async (req, res) => {
       theirToken: t.receiverToken,
       theirAmount: t.receiverAmount,
       status: t.status,
-      createdAt: t.createdAt
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+      completedAt: t.completedAt
     }));
     
     res.json({ code: 0, data: result });
@@ -202,7 +208,9 @@ export const getIncomingTrades = async (req, res) => {
       myToken: t.receiverToken,        // 我（接收方）需要付出的
       myAmount: t.receiverAmount,
       status: t.status,
-      createdAt: t.createdAt
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+      completedAt: t.completedAt
     }));
     
     res.json({ code: 0, data: result });
@@ -254,17 +262,7 @@ export const acceptTrade = async (req, res) => {
       return res.status(400).json({ code: 1014, message: `币种 ${trade.receiverToken} 不存在` });
     }
     
-    // 检查发起方余额是否仍然足够
-    const initiatorBalance = getUserTokenAmount(initiator, initiatorTokenObj);
-    if (initiatorBalance < trade.initiatorAmount) {
-      trade.status = 'cancelled';
-      trade.updatedAt = new Date();
-      await trade.save();
-      return res.status(400).json({ 
-        code: 1015, 
-        message: `发起方 ${trade.initiatorToken} 余额不足，交易已自动取消` 
-      });
-    }
+    // 发起方的代币已在创建交易时冻结，无需再次检查
     
     // 检查接收方余额是否足够
     const receiverBalance = getUserTokenAmount(receiver, receiverTokenObj);
@@ -276,11 +274,11 @@ export const acceptTrade = async (req, res) => {
     }
     
     // 执行代币转移
-    // 1. 发起方: 减少 initiatorToken，增加 receiverToken
-    await changeUserToken(initiator, initiatorTokenObj, -trade.initiatorAmount);
+    // 发起方的代币已冻结，直接转给接收方
+    // 1. 发起方: 增加 receiverToken（接收方付出的）
     await changeUserToken(initiator, receiverTokenObj, trade.receiverAmount);
     
-    // 2. 接收方: 减少 receiverToken，增加 initiatorToken
+    // 2. 接收方: 减少 receiverToken，增加 initiatorToken（发起方冻结的）
     await changeUserToken(receiver, receiverTokenObj, -trade.receiverAmount);
     await changeUserToken(receiver, initiatorTokenObj, trade.initiatorAmount);
     
@@ -291,7 +289,7 @@ export const acceptTrade = async (req, res) => {
     await trade.save();
     
     console.log(`[C2C] Trade ${tradeId} completed:`);
-    console.log(`  - ${initiator.username}: -${trade.initiatorAmount} ${trade.initiatorToken}, +${trade.receiverAmount} ${trade.receiverToken}`);
+    console.log(`  - ${initiator.username}: -${trade.initiatorAmount} ${trade.initiatorToken}(已冻结), +${trade.receiverAmount} ${trade.receiverToken}`);
     console.log(`  - ${receiver.username}: -${trade.receiverAmount} ${trade.receiverToken}, +${trade.initiatorAmount} ${trade.initiatorToken}`);
     
     res.json({ 
@@ -345,6 +343,16 @@ export const rejectTrade = async (req, res) => {
       return res.status(400).json({ code: 1006, message: `交易状态为 ${trade.status}，无法拒绝` });
     }
     
+    // 解冻代币：返还给发起方
+    const initiator = await User.findById(trade.initiator);
+    if (initiator) {
+      const initiatorTokenObj = await findTokenByTicker(trade.initiatorToken);
+      if (initiatorTokenObj) {
+        await changeUserToken(initiator, initiatorTokenObj, trade.initiatorAmount);
+        console.log(`[C2C] 拒绝交易，返还 ${initiator.username} 的 ${trade.initiatorAmount} ${trade.initiatorToken}`);
+      }
+    }
+    
     trade.status = 'rejected';
     trade.updatedAt = new Date();
     await trade.save();
@@ -381,11 +389,18 @@ export const cancelTrade = async (req, res) => {
       return res.status(400).json({ code: 1006, message: `交易状态为 ${trade.status}，无法取消` });
     }
     
+    // 解冻代币：返还给发起方
+    const initiatorTokenObj = await findTokenByTicker(trade.initiatorToken);
+    if (initiatorTokenObj) {
+      await changeUserToken(user, initiatorTokenObj, trade.initiatorAmount);
+      console.log(`[C2C] 解冻返还 ${user.username} 的 ${trade.initiatorAmount} ${trade.initiatorToken}`);
+    }
+    
     trade.status = 'cancelled';
     trade.updatedAt = new Date();
     await trade.save();
     
-    res.json({ code: 0, message: '交易已取消', data: { id: trade._id, status: trade.status } });
+    res.json({ code: 0, message: '交易已取消，代币已返还', data: { id: trade._id, status: trade.status } });
   } catch (error) {
     console.error('[C2C] Cancel trade error:', error);
     res.status(500).json({ code: 1000, message: '取消交易失败', error: error.message });

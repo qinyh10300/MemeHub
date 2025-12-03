@@ -187,6 +187,35 @@ app.post('/api/order/:id/cancel', Work.cancelOrderReservation);
 app.post('/api/meme/:id/check-orders', Work.manualCheckOrderFulfillment);
 // 根据 ticker 查询用户持有的代币数量
 app.get('/api/token/by-ticker/:ticker', Work.getUserTokenByTicker);
+// 获取用户的挂单列表
+app.get('/api/user/:username/orders', Work.getUserOrders);
+
+// 排行榜
+import * as LeaderboardCtrl from './controller/leaderboard.js';
+app.get('/api/leaderboard', LeaderboardCtrl.getLeaderboard);
+app.get('/api/meme/:id/trend', LeaderboardCtrl.getMemeTrend);
+app.get('/api/memes/compare', LeaderboardCtrl.compareMemes);
+app.get('/api/memes/search-for-compare', LeaderboardCtrl.searchMemesForCompare);
+
+// 用户功能 (自选、价格预警、成就、创作者数据、推荐)
+import * as UserFeatures from './controller/userFeatures.js';
+app.get('/api/watchlist', UserFeatures.getWatchlist);
+app.post('/api/watchlist', UserFeatures.addToWatchlist);
+app.delete('/api/watchlist/:memeId', UserFeatures.removeFromWatchlist);
+app.get('/api/price-alerts', UserFeatures.getPriceAlerts);
+app.post('/api/price-alerts', UserFeatures.createPriceAlert);
+app.delete('/api/price-alerts/:alertId', UserFeatures.deletePriceAlert);
+app.get('/api/achievements', UserFeatures.getUserAchievements);
+app.get('/api/creator-stats', UserFeatures.getCreatorStats);
+app.get('/api/recommendations', UserFeatures.getRecommendations);
+
+// 社区投票
+import * as PollCtrl from './controller/pollCtrl.js';
+app.get('/api/polls', PollCtrl.getPolls);
+app.post('/api/polls', PollCtrl.createPoll);
+app.get('/api/polls/stats', PollCtrl.getPollStats);
+app.get('/api/polls/:pollId', PollCtrl.getPollDetail);
+app.post('/api/polls/:pollId/vote', PollCtrl.vote);
 
 // 评论操作
 

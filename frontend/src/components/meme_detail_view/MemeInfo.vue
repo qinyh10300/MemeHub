@@ -7,25 +7,25 @@
     
             <span class="code"> 模因币代号：{{ meme.code }}</span>
     
-            <div class="meme-meta">
-                <span class="author">
-                    <img
-                        class="author-avatar"
-                        :src="meme.author.avatar"
-                        alt="作者头像"
-                        @click="goToProfile(meme.author.username)"
-                    />
-                    <span class="author-nickname" @click="goToProfile(meme.author.username)">
-                        {{ meme.author.nickname }}
-                    </span>
-                    <span class="author-username" @click="goToProfile(meme.author.username)">
-                        @{{ meme.author.username }}
-                    </span>
-                </span>
-    
-                <span class="dot"></span>
-                <span class="time">{{ meme.time }}</span>
-            </div>
+    <div class="meme-meta">
+        <span class="author">
+            <img
+                class="author-avatar"
+                :src="getAvatarUrl(meme.author?.avatar)"
+                alt="作者头像"
+                @click="goToProfile(meme.author?.username)"
+            />
+            <span class="author-nickname" @click="goToProfile(meme.author?.username)">
+                {{ meme.author?.nickname }}
+            </span>
+            <span class="author-username" @click="goToProfile(meme.author?.username)">
+                @{{ meme.author?.username }}
+            </span>
+        </span>
+
+        <span class="dot"></span>
+        <span class="time">{{ meme.time }}</span>
+    </div>
     
             <p class="meme-desc">{{ meme.desc }}</p>
     
@@ -92,6 +92,12 @@ const router = useRouter();
 // 跳转到用户主页
 const goToProfile = (authorId) => {
     router.push(`/profile/${authorId}`);
+};
+
+const getAvatarUrl = (url) => {
+    if (!url) return 'https://i.pravatar.cc/150?img=1'; // Default avatar
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    return `${server_ip}/${url.replace(/^\/+/, '')}`;
 };
 
 /* ----------------- 点赞 / 取消点赞 ----------------- */

@@ -14,8 +14,85 @@
 
     <!-- Tab 内容 -->
     <div class="tab-content">
+      <!-- 我的自选 -->
+      <template v-if="activeTab === '我的自选'">
+        <div class="watchlist-section">
+          <div class="watchlist-header">
+            <h3>📌 我的自选列表</h3>
+            <router-link to="/watchlist" class="view-all-btn">查看全部 →</router-link>
+          </div>
+          <div v-if="watchlist.length === 0" class="empty-state">
+            <p>📭 暂无自选模因</p>
+            <p class="empty-hint">去发现页面添加你感兴趣的模因吧！</p>
+          </div>
+          <div v-else class="watchlist-grid">
+            <div
+              v-for="item in watchlist.slice(0, 6)"
+              :key="item.id"
+              class="watchlist-card"
+              @click="goToMemeDetail(item.id)"
+            >
+              <img :src="item.imageUrl" :alt="item.title" class="watchlist-image" />
+              <div class="watchlist-info">
+                <h4>{{ item.title }}</h4>
+                <span class="ticker">${{ item.ticker }}</span>
+              </div>
+              <div class="watchlist-price">
+                <span class="price">${{ formatPrice(item.price) }}</span>
+                <span :class="['change', item.change >= 0 ? 'positive' : 'negative']">
+                  {{ item.change >= 0 ? '+' : '' }}{{ item.change?.toFixed(2) }}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 创作者数据 -->
+      <template v-else-if="activeTab === '创作者数据'">
+        <div class="creator-dashboard-section">
+          <div class="dashboard-header">
+            <h3>📊 创作者数据概览</h3>
+            <router-link to="/creator-dashboard" class="view-all-btn">查看详情 →</router-link>
+          </div>
+          <div class="dashboard-stats">
+            <div class="stat-card">
+              <span class="stat-icon">💰</span>
+              <div class="stat-content">
+                <span class="stat-value">${{ creatorStats.totalEarnings?.toFixed(2) || '0.00' }}</span>
+                <span class="stat-label">总收益</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-icon">📈</span>
+              <div class="stat-content">
+                <span class="stat-value">{{ creatorStats.totalMemes || 0 }}</span>
+                <span class="stat-label">创建模因</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-icon">👥</span>
+              <div class="stat-content">
+                <span class="stat-value">{{ creatorStats.totalHolders || 0 }}</span>
+                <span class="stat-label">持有人数</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-icon">💎</span>
+              <div class="stat-content">
+                <span class="stat-value">${{ formatVolume(creatorStats.totalVolume) }}</span>
+                <span class="stat-label">交易量</span>
+              </div>
+            </div>
+          </div>
+          <div class="quick-link-hint">
+            <p>点击"查看详情"获取完整的收益分析、粉丝统计和交易明细</p>
+          </div>
+        </div>
+      </template>
+
       <!-- 粉丝 / 关注列表：仅自己可见 -->
-      <template v-if="isUserListTab">
+      <template v-else-if="isUserListTab">
         <button
           v-for="user in pagedMemes"
           :key="user.id"
@@ -34,6 +111,42 @@
             <p class="meme-desc">{{ activeTab }}</p>
           </div>
         </button>
+      </template>
+
+      <!-- 模因币列表：显示持仓信息 -->
+      <template v-else-if="isTokenTab">
+        <div class="token-list">
+          <div
+            v-for="token in pagedMemes"
+            :key="token.id || token.code"
+            class="token-card"
+            @click="goToMemeDetail(token.memeId || token.id)"
+          >
+            <div class="token-left">
+              <img :src="token.imageUrl || token.image" alt="token" class="token-image" />
+              <div class="token-basic">
+                <h3 class="token-name">{{ token.name }}</h3>
+                <p class="token-ticker">${{ token.code }}</p>
+              </div>
+            </div>
+            <div class="token-right">
+              <div class="token-amount">
+                <span class="amount-label">持有数量</span>
+                <span class="amount-value">{{ formatNumber(token.amount) }}</span>
+              </div>
+              <div class="token-value">
+                <span class="value-label">估值</span>
+                <span class="value-number">{{ formatCurrency(token.value) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-if="pagedMemes.length === 0" class="empty-state">
+          <p>🪙 暂无持有的模因币</p>
+          <p class="empty-hint">去交易页面购买你看好的模因币吧！</p>
+        </div>
       </template>
 
       <!-- 模因列表：显示模因信息 -->
@@ -89,7 +202,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -112,7 +225,69 @@ const props = defineProps({
 // 在模板中使用 isOwnProfile
 const isOwnProfile = computed(() => props.isOwnProfile)
 
-const userOnlyTabs = ['关注', '粉丝']
+const userOnlyTabs = ['关注', '粉丝', '我的自选', '创作者数据']
+
+// 自选列表数据
+const watchlist = ref([])
+
+// 创作者数据
+const creatorStats = ref({
+  totalEarnings: 0,
+  totalMemes: 0,
+  totalHolders: 0,
+  totalVolume: 0
+})
+
+// 从API获取自选列表
+const fetchWatchlist = async () => {
+  if (!props.isOwnProfile) return
+  try {
+    const response = await fetch(`${server_ip}/api/watchlist`, {
+      headers: { 'token': authStore.username }
+    })
+    const data = await response.json()
+    if (data.code === 0) {
+      watchlist.value = data.data?.slice(0, 6) || []
+    }
+  } catch (error) {
+    console.error('获取自选列表失败:', error)
+  }
+}
+
+// 从API获取创作者数据
+const fetchCreatorStats = async () => {
+  if (!props.isOwnProfile) return
+  try {
+    const response = await fetch(`${server_ip}/api/creator-stats`, {
+      headers: { 'token': authStore.username }
+    })
+    const data = await response.json()
+    if (data.code === 0 && data.data?.overview) {
+      creatorStats.value = {
+        totalEarnings: data.data.overview.totalEarnings || 0,
+        totalMemes: data.data.overview.totalMemes || 0,
+        totalHolders: data.data.overview.totalHolders || 0,
+        totalVolume: data.data.overview.totalVolume || 0
+      }
+    }
+  } catch (error) {
+    console.error('获取创作者数据失败:', error)
+  }
+}
+
+const formatPrice = (price) => {
+  if (!price) return '0.000000'
+  if (price < 0.000001) return price.toExponential(2)
+  if (price < 1) return price.toFixed(6)
+  return price.toFixed(2)
+}
+
+const formatVolume = (volume) => {
+  if (!volume) return '0'
+  if (volume >= 1000000) return (volume / 1000000).toFixed(2) + 'M'
+  if (volume >= 1000) return (volume / 1000).toFixed(2) + 'K'
+  return volume.toFixed(2)
+}
 
 // 根据性别获取代词
 const getPronoun = (user) => {
@@ -196,7 +371,38 @@ watch(() => [props.isOwnProfile, props.userData], () => {
   }
 }, { immediate: true })
 
-const isUserListTab = computed(() => isOwnProfile.value && userOnlyTabs.includes(activeTab.value))
+// 初始化数据
+onMounted(() => {
+  if (props.isOwnProfile) {
+    fetchWatchlist()
+    fetchCreatorStats()
+  }
+})
+
+// 监听是否是自己的主页，变化时重新加载
+watch(() => props.isOwnProfile, (newVal) => {
+  if (newVal) {
+    fetchWatchlist()
+    fetchCreatorStats()
+  }
+})
+
+const isUserListTab = computed(() => isOwnProfile.value && ['关注', '粉丝'].includes(activeTab.value))
+
+// 判断是否是模因币标签页
+const isTokenTab = computed(() => activeTab.value.includes('模因币'))
+
+// 格式化数字（千分位）
+const formatNumber = (num) => {
+  if (num === undefined || num === null) return '0'
+  return Number(num).toLocaleString('zh-CN', { maximumFractionDigits: 2 })
+}
+
+// 格式化货币
+const formatCurrency = (num) => {
+  if (num === undefined || num === null) return '¥0.00'
+  return '¥' + Number(num).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
 
 // 当前页
 const currentPage = ref(1)
@@ -446,5 +652,273 @@ const totalPages = computed(() => {
 }
 .delete-btn:hover {
   background: #ff7875;
+}
+
+/* ===================== 模因币列表样式 ===================== */
+.token-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.token-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(127, 90, 240, 0.08), rgba(94, 243, 140, 0.05));
+  border: 1px solid rgba(127, 90, 240, 0.2);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.token-card:hover {
+  background: linear-gradient(135deg, rgba(127, 90, 240, 0.15), rgba(94, 243, 140, 0.1));
+  border-color: rgba(127, 90, 240, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(127, 90, 240, 0.2);
+}
+
+.token-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.token-image {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 2px solid rgba(127, 90, 240, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.token-basic {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.token-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f7f9ff;
+}
+
+.token-ticker {
+  margin: 0;
+  font-size: 13px;
+  color: #7f5af0;
+  font-weight: 500;
+}
+
+.token-right {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.token-amount,
+.token-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.amount-label,
+.value-label {
+  font-size: 11px;
+  color: #8ea0c2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.amount-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #5ef38c;
+}
+
+.value-number {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffd166;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #8ea0c2;
+}
+
+.empty-state p {
+  margin: 8px 0;
+}
+
+.empty-state .empty-hint {
+  font-size: 13px;
+  color: #6b7a99;
+}
+
+/* ===================== 自选列表样式 ===================== */
+.watchlist-section,
+.creator-dashboard-section {
+  padding: 20px;
+}
+
+.watchlist-header,
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.watchlist-header h3,
+.dashboard-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f7f9ff;
+  margin: 0;
+}
+
+.view-all-btn {
+  color: #7f5af0;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.view-all-btn:hover {
+  color: #5ef38c;
+}
+
+.watchlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.watchlist-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.watchlist-card:hover {
+  background: rgba(127, 90, 240, 0.1);
+  border-color: rgba(127, 90, 240, 0.3);
+}
+
+.watchlist-image {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.watchlist-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.watchlist-info h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.watchlist-info .ticker {
+  font-size: 12px;
+  color: #7f5af0;
+}
+
+.watchlist-price {
+  text-align: right;
+}
+
+.watchlist-price .price {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.watchlist-price .change {
+  font-size: 12px;
+}
+
+.watchlist-price .change.positive {
+  color: #5ef38c;
+}
+
+.watchlist-price .change.negative {
+  color: #ff5d8f;
+}
+
+/* ===================== 创作者数据样式 ===================== */
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  background: linear-gradient(135deg, rgba(127, 90, 240, 0.1), rgba(94, 243, 140, 0.05));
+  border: 1px solid rgba(127, 90, 240, 0.2);
+  border-radius: 14px;
+}
+
+.stat-icon {
+  font-size: 28px;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f7f9ff;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #8ea0c2;
+}
+
+.quick-link-hint {
+  text-align: center;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+
+.quick-link-hint p {
+  margin: 0;
+  font-size: 13px;
+  color: #8ea0c2;
 }
 </style>

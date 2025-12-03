@@ -896,3 +896,58 @@ export const getUserTokenByTicker = async (req, res) => {
     });
   }
 };
+
+// 获取用户的挂单列表
+export const getUserOrders = async (req, res) => {
+  try {
+    const userToken = req.headers.token;
+    const username = userToken;
+    
+    if (!username) {
+      return res.status(401).json({ code: 1001, message: '未登录' });
+    }
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ code: 1002, message: '用户不存在' });
+    }
+
+    const { memeId } = req.query;
+    
+    // 构建查询条件
+    const query = { user: user._id };
+    if (memeId) {
+      query.meme = memeId;
+    }
+
+    const orders = await Order.find(query)
+      .populate('meme', 'title ticker')
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.json({
+      code: 0,
+      message: '查询成功',
+      data: orders.map(order => ({
+        _id: order._id,
+        memeId: order.meme?._id,
+        memeTitle: order.meme?.title,
+        memeTicker: order.meme?.ticker,
+        side: order.side,
+        expectedPrice: order.expectedPrice,
+        amount: order.amount,
+        status: order.status,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+        completedAt: order.completedAt
+      }))
+    });
+  } catch (error) {
+    console.error('[getUserOrders] Error:', error);
+    res.status(500).json({
+      code: 1000,
+      message: '获取挂单列表失败',
+      error: error.message
+    });
+  }
+};

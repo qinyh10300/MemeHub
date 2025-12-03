@@ -59,6 +59,54 @@ const router = createRouter({
       component: () => import('../views/MemeDetailView.vue'),   // 动态导入（懒加载）
       meta: { requiresAuth: true },
     },
+    {
+      path: '/discover',
+      name: 'Discover',
+      component: () => import('../views/DiscoverView.vue'),
+      meta: { title: '发现' },
+    },
+    {
+      path: '/leaderboard',
+      name: 'Leaderboard',
+      component: () => import('../views/LeaderboardView.vue'),
+      meta: { title: '排行榜' },
+    },
+    {
+      path: '/achievements',
+      name: 'Achievements',
+      component: () => import('../views/AchievementsView.vue'),
+      meta: { requiresAuth: true, title: '成就中心' },
+    },
+    {
+      path: '/price-alert',
+      name: 'PriceAlert',
+      component: () => import('../views/PriceAlertView.vue'),
+      meta: { requiresAuth: true, title: '价格预警' },
+    },
+    {
+      path: '/compare',
+      name: 'Compare',
+      component: () => import('../views/CompareView.vue'),
+      meta: { title: '对比分析' },
+    },
+    {
+      path: '/voting',
+      name: 'Voting',
+      component: () => import('../views/VotingView.vue'),
+      meta: { title: '社区投票' },
+    },
+    {
+      path: '/creator-dashboard',
+      name: 'CreatorDashboard',
+      component: () => import('../views/CreatorDashboard.vue'),
+      meta: { requiresAuth: true, title: '创作者面板' },
+    },
+    {
+      path: '/watchlist',
+      name: 'Watchlist',
+      component: () => import('../views/WatchlistView.vue'),
+      meta: { requiresAuth: true, title: '我的自选' },
+    },
   ],
 })
 

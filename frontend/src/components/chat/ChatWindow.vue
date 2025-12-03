@@ -229,9 +229,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted, computed } from 'vue';
+import { ref, onMounted, nextTick, onUnmounted, computed, inject } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+
+// 获取全局刷新提醒方法
+const refreshAlerts = inject('refreshAlerts', () => {});
 
 const route = useRoute();
 const router = useRouter();
@@ -348,6 +351,8 @@ try {
     clearConversationUnread(targetId);
     await nextTick();
     scrollToBottom();
+    // 读取消息后刷新侧边栏提醒
+    refreshAlerts();
     }
 } catch (e) {
     console.error('获取历史记录失败', e);

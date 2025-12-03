@@ -22,6 +22,42 @@ const userSchema = new Schema({
   status: { type: String, enum: ['active', 'banned'], default: 'active' },
   role: { type: String, enum: ['user', 'reviewer'], default: 'user' },
 
+  // 自选列表（关注的模因）
+  watchlist: [{ 
+    meme: { type: Schema.Types.ObjectId, ref: 'Meme' },
+    addedAt: { type: Date, default: Date.now }
+  }],
+
+  // 价格预警
+  priceAlerts: [{
+    meme: { type: Schema.Types.ObjectId, ref: 'Meme' },
+    type: { type: String, enum: ['above', 'below'], required: true },
+    targetPrice: { type: Number, required: true },
+    status: { type: String, enum: ['active', 'triggered', 'cancelled'], default: 'active' },
+    notifyInApp: { type: Boolean, default: true },
+    notifyEmail: { type: Boolean, default: false },
+    note: { type: String, default: '' },
+    createdAt: { type: Date, default: Date.now },
+    triggeredAt: { type: Date }
+  }],
+
+  // 成就系统
+  achievements: [{
+    achievementId: { type: String, required: true },
+    unlockedAt: { type: Date, default: Date.now },
+    progress: { type: Number, default: 0 }
+  }],
+  
+  // 游戏化数据
+  xp: { type: Number, default: 0 },
+  level: { type: Number, default: 1 },
+  streak: { type: Number, default: 0 },
+  lastCheckIn: { type: Date },
+  totalCheckIns: { type: Number, default: 0 },
+
+  // 创作者收益
+  totalEarnings: { type: Number, default: 0 },
+
   verificationCode: String,
   verificationCodeExpiresAt: Date,
 }, { timestamps: true });
