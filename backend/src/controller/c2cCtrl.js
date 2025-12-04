@@ -3,8 +3,17 @@ import { User } from '../models/user.js';
 import { Meme } from '../models/meme.js';
 import { Token } from '../models/token.js';
 
-// USDT 是特殊币种，使用 user.coins 而不是 tokenList
-const USDT_TICKER = 'USDT';
+// USDT（Coins）是虚拟币种，对应 user.coins
+const VIRTUAL_COIN_TICKERS = ['USDT', 'COINS'];
+
+const isVirtualCoinTicker = (ticker = '') => {
+  return VIRTUAL_COIN_TICKERS.includes(String(ticker).toUpperCase());
+};
+
+const normalizeTickerForStorage = (ticker = '') => {
+  const upper = String(ticker).toUpperCase();
+  return isVirtualCoinTicker(upper) ? 'COINS' : upper;
+};
 
 // 辅助函数：从 token header 获取用户
 async function getUserFromToken(token) {
@@ -30,11 +39,15 @@ async function getUserFromToken(token) {
 }
 
 // 辅助函数：根据 ticker 查找 Token（USDT 返回特殊标记）
-async function findTokenByTicker(ticker) {
-  if (ticker.toUpperCase() === USDT_TICKER) {
-    return { _id: 'USDT', isUSDT: true };
+async function findTokenByTicker(ticker = '') {
+  if (!ticker) return null;
+  const upper = ticker.toUpperCase();
+  if (isVirtualCoinTicker(upper)) {
+    return { _id: 'COINS', isUSDT: true };
   }
-  const meme = await Meme.findOne({ ticker });
+  const meme =
+    (await Meme.findOne({ ticker })) ||
+    (await Meme.findOne({ ticker: upper }));
   if (!meme) return null;
   const token = await Token.findOne({ meme: meme._id });
   return token;
@@ -73,14 +86,16 @@ export const createC2CTrade = async (req, res) => {
     }
     
     const { targetUsername, myToken, myAmount, theirToken, theirAmount } = req.body;
+    const sanitizedMyToken = (myToken || '').trim();
+    const sanitizedTheirToken = (theirToken || '').trim();
     
     if (!targetUsername) {
       return res.status(400).json({ code: 1001, message: '请输入对方用户名' });
     }
-    if (!myToken || !myAmount) {
+    if (!sanitizedMyToken || !myAmount) {
       return res.status(400).json({ code: 1002, message: '请输入您付出的币种和数量' });
     }
-    if (!theirToken || !theirAmount) {
+    if (!sanitizedTheirToken || !theirAmount) {
       return res.status(400).json({ code: 1003, message: '请输入对方付出的币种和数量' });
     }
     
@@ -95,9 +110,9 @@ export const createC2CTrade = async (req, res) => {
     }
     
     // 验证发起方要付出的币种存在
-    const initiatorTokenObj = await findTokenByTicker(myToken);
+    const initiatorTokenObj = await findTokenByTicker(sanitizedMyToken);
     if (!initiatorTokenObj) {
-      return res.status(400).json({ code: 1006, message: `币种 ${myToken} 不存在` });
+      return res.status(400).json({ code: 1006, message: `币种 ${sanitizedMyToken} 不存在` });
     }
     
     // 验证发起方有足够的代币
@@ -110,21 +125,24 @@ export const createC2CTrade = async (req, res) => {
     }
     
     // 验证接收方要付出的币种存在
-    const receiverTokenObj = await findTokenByTicker(theirToken);
+    const receiverTokenObj = await findTokenByTicker(sanitizedTheirToken);
     if (!receiverTokenObj) {
-      return res.status(400).json({ code: 1008, message: `币种 ${theirToken} 不存在` });
+      return res.status(400).json({ code: 1008, message: `币种 ${sanitizedTheirToken} 不存在` });
     }
     
     // 冻结发起方的代币（从余额中扣除，交易完成后转给对方，取消时返还）
     await changeUserToken(initiator, initiatorTokenObj, -Number(myAmount));
     console.log(`[C2C] 冻结 ${initiator.username} 的 ${myAmount} ${myToken}`);
     
+    const normalizedInitiatorTicker = normalizeTickerForStorage(sanitizedMyToken);
+    const normalizedReceiverTicker = normalizeTickerForStorage(sanitizedTheirToken);
+
     const trade = new C2CTrade({
       initiator: initiator._id,
       receiver: receiver._id,
-      initiatorToken: myToken.toUpperCase() === USDT_TICKER ? USDT_TICKER : myToken,
+      initiatorToken: normalizedInitiatorTicker,
       initiatorAmount: Number(myAmount),
-      receiverToken: theirToken.toUpperCase() === USDT_TICKER ? USDT_TICKER : theirToken,
+      receiverToken: normalizedReceiverTicker,
       receiverAmount: Number(theirAmount),
       status: 'pending'
     });

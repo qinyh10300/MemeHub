@@ -239,7 +239,7 @@ export const getUserProfile = async (req, res) => {
       followers: followersCount, // 使用查询到的粉丝总数
       following: followingCount,
       likes: totalLikes,
-      coins: user.coins || 0, // 用户金币余额
+      coins: user.coins || 0, // 用户 USDT 余额
       isFollowing: viewerIsFollowing,
       memesData: {
         '我创作的模因': myMemes,
