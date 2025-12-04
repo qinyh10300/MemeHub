@@ -65,8 +65,8 @@
           <input
             v-model.number="amount"
             type="number"
-            step="1"
-            min="1"
+            step="0.0001"
+            min="0.0001"
             placeholder="输入数量"
             class="form-input"
           />
@@ -289,10 +289,11 @@ const selectPercent = (percent) => {
   if (tradeType.value === 'buy') {
     const targetPrice = getEffectivePrice() || 0.0001;
     const balancePortion = (availableBalance.value * percent) / 100;
-    const maxAmount = Math.floor(balancePortion / (targetPrice * (1 + FEE_RATE)));
-    amount.value = Math.max(1, maxAmount);
+    const maxAmount = balancePortion / (targetPrice * (1 + FEE_RATE));
+    amount.value = Math.max(0.0001, Number(maxAmount.toFixed(4)));
   } else {
-    amount.value = Math.floor(availableToken.value * percent / 100);
+    const portion = (availableToken.value * percent) / 100;
+    amount.value = Math.max(0.0001, Number(portion.toFixed(4)));
   }
   scheduleQuoteUpdate();
 };
@@ -304,7 +305,12 @@ const scheduleQuoteUpdate = () => {
 
 const fetchQuoteAmount = async () => {
   quoteError.value = '';
-  const qty = Math.floor(amount.value || 0);
+  const qty = Math.max(0, Number(amount.value) || 0);
+  if (!memeId.value || qty <= 0) {
+    quoteAmount.value = 0;
+    quoteLoading.value = false;
+    return;
+  }
   if (!memeId.value || qty <= 0) {
     quoteAmount.value = 0;
     quoteLoading.value = false;
@@ -467,14 +473,14 @@ const executeTrade = async () => {
       endpoint = tradeType.value === 'buy' 
         ? `${server_ip}/api/meme/${memeId.value}/token/buy`
         : `${server_ip}/api/meme/${memeId.value}/token/sell`;
-      body = { amount: Math.floor(amount.value) };
+      body = { amount: Number(amount.value) };
     } else {
       // 限价单（预约）
       endpoint = tradeType.value === 'buy'
         ? `${server_ip}/api/meme/${memeId.value}/token/buy-reservation`
         : `${server_ip}/api/meme/${memeId.value}/token/sell-reservation`;
       body = { 
-        amount: Math.floor(amount.value),
+        amount: Number(amount.value),
         expectedPrice: price.value
       };
     }
