@@ -115,7 +115,7 @@ export const getUserProfile = async (req, res) => {
       };
     }).filter(item => !!item);
 
-    // TODO: 我的订单
+    // 我的订单
     const orders = await Order.find({ user: user._id })
       .sort({ createdAt: -1 });
     const myOrders = orders.map(order => ({
@@ -123,7 +123,8 @@ export const getUserProfile = async (req, res) => {
       status: order.status,
       side: order.side,
       amount: order.amount,
-      pricePerToken: order.pricePerToken,
+      expectedPrice: order.expectedPrice,
+      coins: order.coins,
       createdAt: order.createdAt,
     }));
 

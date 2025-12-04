@@ -13,8 +13,10 @@ export const TOKEN_COIN_COST = 10; // 发行Token所需金币数
 export const TOKEN_INIT_PRICE = 0.1; // 初始价格
 export const TOKEN_USDT_LIQUIDITY = 1000; // 初始流动性
 
+export const MIN_RTOKEN =0.001; // Token池中最少剩余Token数量，防止被买空
+
 export const FEE = 0.003; // 交易手续费
 
 export const PRICE_HISTORY_LIMIT = 20; // 价格历史记录条数限制
 
-export const CHECK_ORDER_INTERVAL_MS = 60 * 1000; // 定时检查订单成交的时间间隔，单位毫秒
+export const CHECK_ORDER_INTERVAL_MS = 10 * 1000; // 定时检查订单成交的时间间隔，单位毫秒

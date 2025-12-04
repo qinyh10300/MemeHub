@@ -27,6 +27,17 @@ const userSchema = new Schema({
 }, { timestamps: true });
 
 userSchema.methods = {
+  /** 
+   * 修改用户金币数量
+   */
+  async changeCoins(amount) {
+    console.log(`Changing coins by amount ${amount} for user ${this._id}`);
+    this.coins += amount;
+    if (this.coins < 0) {
+      this.coins = 0;
+    }
+    await this.save();
+  },
   /**
    * 修改用户持有的Token数量
    * @param {ObjectId} token 

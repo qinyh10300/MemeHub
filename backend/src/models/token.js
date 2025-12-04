@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import * as Const from '../configs/const.js';
 import { Order } from './order.js';
 import { User } from './user.js';
+import { Notification } from './notification.js';
 
 
 const tokenSchema = new mongoose.Schema({
@@ -38,11 +39,23 @@ tokenSchema.statics.unlockCheck = function (tokenId) {
 
 
 tokenSchema.methods = {
+  /**
+   * 修改Token的RToken数量 
+   * @param {Number} amount - 正数表示增加，负数表示减少
+  */
+  async changeRToken(amount) {
+    // 保证RToken必须大于0
+    if (this.RToken + amount <= 0) {
+      throw new Error('Token池中Token数量不足');
+    }
+    this.RToken += amount;
+  },
+
   /** 
    * 根据购买的Token数量计算USDT数量，包含手续费
    * @param {number} tokenAmount - 购买的Token数量，正数表示买入，负数表示卖出
    * @param {number} expectedPrice - 用户期望的单价，若合法（>0.1）则按照该价格计算，否则按照当前价格计算
-   * @returns {number} 需要支付的USDT数量
+   * @returns {number} 需要支付的USDT数量(正数)
   */
   getPriceByAmount(tokenAmount, expectedPrice=0) {
     const isBuy = tokenAmount > 0;
@@ -94,15 +107,14 @@ tokenSchema.methods = {
       price: Math.abs(price),
       newPrice: newPrice
     });
-    await this.save();
   },
 
-  /**
-   * 每次价格变动后，检查是否有未完成的订单可以成交，只要第一个货币满足期望价格即成交整个订单
+  /** 
+   * 检查是否有未完成的订单可以成交，只要第一个货币满足期望价格即成交整个订单
    * 买单：期望价格 >= 当前价格则成交，优先成交价高者、较早者，检查用户余额决定可成交数量
    * 卖单：期望价格 <= 当前价格则成交，优先成交价低者、较早者
    */
-  async checkOrderFulfillment() {//TODO:存在并发调用导致重复购买的问题
+  async checkOrderFulfillment() {
     const tokenId = this._id;
     const TokenModel = this.constructor;
 
@@ -110,6 +122,7 @@ tokenSchema.methods = {
     if (!TokenModel.tryLockCheck(tokenId)) {
       return;
     }
+    const session = await mongoose.startSession();
     try{
       // 查找所有未完成的订单
       const memeId = this.meme;
@@ -118,8 +131,8 @@ tokenSchema.methods = {
       const buyOrders = pendingOrders.filter(order => order.side === 'BUY');
       const sellOrders = pendingOrders.filter(order => order.side === 'SELL');
       // 排序：买单按期望价格从高到低，卖单按期望价格从低到高，价格相同者日期小优先
-      buyOrders.sort((a, b) => b.expectedPrice - a.expectedPrice || a.updatedAt - b.updatedAt);
-      sellOrders.sort((a, b) => a.expectedPrice - b.expectedPrice || a.updatedAt - b.updatedAt);
+      buyOrders.sort((a, b) => b.expectedPrice - a.expectedPrice || a.createdAt - b.createdAt);
+      sellOrders.sort((a, b) => a.expectedPrice - b.expectedPrice || a.createdAt - b.createdAt);
       // console.log(`Buy Orders: ${buyOrders.length}, Sell Orders: ${sellOrders.length}`);
 
       const currentPrice = this.price;
@@ -131,45 +144,30 @@ tokenSchema.methods = {
         const user = await User.findById(firstBuyOrder.user);
         // console.log(`Expected Price: ${expectedPrice}, Current Price: ${currentPrice}`);
         if (expectedPrice >= currentPrice) {
-          // 变化amount在[0,expectedAmount]内迭代计算开销，检查用户余额，确定可成交数量
-          let low = 0;
-          let high = expectedAmount;
-          let feasibleAmount = 0;
-          let usdtCost = 0;
-          while (low <= high) {
-            const mid = Math.floor((low + high) / 2);
-            usdtCost = this.getPriceByAmount(mid);
-            // console.log(`Low: ${low}, High: ${high}, Mid: ${mid}, USDT Cost: ${usdtCost}, User Coins: ${user.coins}`);
-            if (usdtCost <= user.coins) {
-              feasibleAmount = mid;
-              low = mid + 1;
-            } else {
-              high = mid - 1;
-            }
+          // 直接成交
+          // 不返还额外预支的coin
+          // 检查是否买入数量超过池中数量
+          const maxAmount = this.RToken - Const.MIN_RTOKEN;
+          const actualAmount = Math.min(expectedAmount, maxAmount);
+          const usdtReturn = firstBuyOrder.coins - this.getPriceByAmount(actualAmount, expectedPrice);
+          if (usdtReturn > 0) {
+            await user.changeCoins(usdtReturn, session);
           }
-          // fix: 有时会将用户余额减小到负数
-          if (usdtCost > user.coins) {
-            feasibleAmount -= 1;
-            usdtCost = this.getPriceByAmount(feasibleAmount);
-          }
-          // console.log(`Feasible Amount: ${feasibleAmount}, USDT Cost: ${usdtCost}`);
-          if (feasibleAmount > 0) {
-            // 执行交易逻辑，更新订单状态
-            user.coins -= usdtCost;
-            await user.changeToken(this, feasibleAmount);
-            this.RToken -= feasibleAmount;
-            await this.updatePrice(user._id, feasibleAmount, usdtCost);
-            if (feasibleAmount < expectedAmount) {
-              // 部分成交，更新订单剩余数量
-              firstBuyOrder.amount -= feasibleAmount;
-              firstBuyOrder.updatedAt = new Date();
-            } else {
-              firstBuyOrder.status = 'COMPLETED';
-              firstBuyOrder.updatedAt = new Date();
-              firstBuyOrder.completedAt = new Date();
-            }
-            await firstBuyOrder.save();
-          }
+          // 更新token
+          await this.changeRToken(-actualAmount, session);
+          const usdtCost = this.getPriceByAmount(actualAmount);
+          await this.updatePrice(user._id, actualAmount, usdtCost, session);
+          firstBuyOrder.status = 'COMPLETED';
+          firstBuyOrder.completedAt = new Date();
+          
+          await firstBuyOrder.save({session});
+          // 消息推送
+          const notification = new Notification({
+            user: user._id,
+            type: 'coin',
+            message: `您预约购买的${actualAmount}个${this.meme}已成功成交，花费${firstBuyOrder.coins} USDT。`
+          });
+          await notification.save({session});
         }
       }
       // 检查首个卖单期望价格（首个不满足其余必然不满足）
@@ -180,20 +178,28 @@ tokenSchema.methods = {
         const user = await User.findById(firstSellOrder.user);
         if (expectedPrice <= currentPrice) {
           // 直接成交
+          await user.changeCoins(firstSellOrder.coins, session);
+          await this.changeRToken(expectedAmount, session);
           const usdtGain = this.getPriceByAmount(-expectedAmount);
-          user.coins += usdtGain;
-          await user.save();
-          this.RToken += expectedAmount;
-          await this.updatePrice(user._id, -expectedAmount, usdtGain);
+          await this.updatePrice(user._id, -expectedAmount, usdtGain, session);
           firstSellOrder.status = 'COMPLETED';
           firstSellOrder.completedAt = new Date();
-          await firstSellOrder.save();
+          await firstSellOrder.save({session});
+          
+          // 消息推送
+          const notification = new Notification({
+            user: user._id,
+            type: 'coin',
+            message: `您预约出售的${expectedAmount}个${this.meme}已成功成交，获得${firstSellOrder.coins} USDT。`
+          });
+          await notification.save({session});
         }
       }
-      this.hasPendingOrder = await Order.exists({ meme: memeId, status: 'PENDING' });
-      await this.save();
+      this.hasPendingOrder = !!(await Order.exists({ meme: memeId, status: 'PENDING' }));
+      await this.save({session});
     }
     finally { // 释放锁
+      await session.endSession();
       TokenModel.unlockCheck(tokenId);
     }
   }

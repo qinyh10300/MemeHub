@@ -57,8 +57,7 @@ export const createMeme = async (req, res) => {
         return res.status(400).json({ code: 1010, message: '金币余额不足，无法发行虚拟货币' });
       }
       // 扣除用户金币
-      user.coins -= Const.TOKEN_COIN_COST;
-      await user.save();
+      await user.changeCoins(-Const.TOKEN_COIN_COST);
     }
 
     // 先用原文件名创建meme，后续再重命名
@@ -551,6 +550,7 @@ export const getTokenPriceHistoryByTime = async (req, res) => {
 };
 
 export const buyTokenByAmount = async (req, res) => {
+  const session = await Token.startSession();
   try {
     const userToken = req.headers.token;
     const username = userToken; // TODO:暂时用username作为token内容
@@ -570,7 +570,7 @@ export const buyTokenByAmount = async (req, res) => {
     if (!token) {
       return res.status(404).json({ message: `模因${memeId}的Token不存在` });
     }
-    const amount = Math.floor(Number(req.body.amount));
+    const amount = Number(req.body.amount);
     if (isNaN(amount) || amount <= 0) {
       return res.status(400).json({ message: '无效的购买数量参数' });
     }
@@ -579,11 +579,12 @@ export const buyTokenByAmount = async (req, res) => {
     if (user.coins < price) {
       return res.status(400).json({ message: '余额不足，无法购买Token' });
     }
-    user.coins -= price;
+    await user.changeCoins(-price, session);
     // 更新User的Token余额
-    await user.changeToken(token, amount);
+    await user.changeToken(token, amount, session);
     token.RToken -= amount;
-    await token.updatePrice(user._id, amount, price);
+    await token.updatePrice(user._id, amount, price, session);
+    await token.save({session});
     res.status(200).json({ 
       message: `成功购买${amount}个Token，支付USDT：${price.toFixed(6)}`,
       price: price 
@@ -599,9 +600,13 @@ export const buyTokenByAmount = async (req, res) => {
       }
     });
   }
+  finally {
+    await session.endSession();
+  }
 };
 
 export const sellTokenByAmount = async (req, res) => {
+  const session = await Token.startSession();
   try {
     const userToken = req.headers.token;
     const username = userToken; // TODO:暂时用username作为token内容
@@ -622,7 +627,7 @@ export const sellTokenByAmount = async (req, res) => {
     if (!token) {
       return res.status(404).json({ message: `模因${memeId}的Token不存在` });
     }
-    const amount = Math.floor(Number(req.body.amount));
+    const amount = Number(req.body.amount);
     if (isNaN(amount) || amount <= 0) {
       return res.status(400).json({ message: '无效的出售数量参数' });
     }
@@ -631,13 +636,13 @@ export const sellTokenByAmount = async (req, res) => {
     if (!userTokenEntry || userTokenEntry.amount < amount) {
       return res.status(400).json({ message: 'Token余额不足，无法出售' });
     }
-    amount = await user.changeToken(token, -amount);
-    const price = token.getPriceByAmount(amount);
-    user.coins += price;
-    await user.save();
+    await user.changeToken(token, -amount, session);
+    const price = token.getPriceByAmount(-amount);
+    await user.changeCoins(price, session);
     // 更新Token的RUsdt和RToken
-    token.RToken += amount;
-    await token.updatePrice(user._id, -amount, price);
+    await token.changeRToken(amount, session);
+    await token.updatePrice(user._id, -amount, price, session);
+    await token.save({session});
     res.status(200).json({ 
       message: `成功出售${amount}个Token，获得USDT：${price.toFixed(6)}`,
       price: price 
@@ -652,10 +657,13 @@ export const sellTokenByAmount = async (req, res) => {
         ...error
       }
     });
+  } finally {
+    await session.endSession();
   }
 };
 
 export const buyTokenReservation = async (req, res) => {
+  const session = await Token.startSession();
   try {
     const userToken = req.headers.token;
     const username = userToken; // TODO:暂时用username作为token内容
@@ -677,7 +685,7 @@ export const buyTokenReservation = async (req, res) => {
     }
     // 获取预约参数
     const { expectedPrice, amount } = req.body;
-    const buyAmount = Math.floor(Number(amount));
+    const buyAmount = Number(amount);
     const buyExpectedPrice = Number(expectedPrice);
     if (isNaN(buyAmount) || buyAmount <= 0) {
       return res.status(400).json({ message: '无效的预约购买数量参数' });
@@ -685,6 +693,7 @@ export const buyTokenReservation = async (req, res) => {
     if (isNaN(buyExpectedPrice) || buyExpectedPrice <= 0) {
       return res.status(400).json({ message: '无效的预约购买期望价格参数' });
     }
+    const coinCost = token.getPriceByAmount(buyAmount, buyExpectedPrice);
     // 创建预约订单
     const newOrder = new Order({
       user: user._id,
@@ -692,11 +701,13 @@ export const buyTokenReservation = async (req, res) => {
       // token: token._id,
       side: 'BUY',
       expectedPrice: buyExpectedPrice,
-      amount: buyAmount
+      amount: buyAmount,
+      coins: coinCost
     });
-    await newOrder.save();
+    await newOrder.save({session});
     token.hasPendingOrder = true;
-    await token.save();
+    await token.save({session});
+    await user.changeCoins(-coinCost, session);
     res.status(200).json({ message: '预约购买Token成功' });
   } catch (error) {
     res.status(500).json({
@@ -708,10 +719,13 @@ export const buyTokenReservation = async (req, res) => {
         ...error
       }
     });
+  } finally {
+    await session.endSession();
   }
 };
 
 export const sellTokenReservation = async (req, res) => {
+  const session = await Token.startSession();
   try {
     const userToken = req.headers.token;
     const username = userToken; // TODO:暂时用username作为token内容
@@ -733,7 +747,7 @@ export const sellTokenReservation = async (req, res) => {
     }
     // 获取预约参数
     const { expectedPrice, amount } = req.body;
-    let sellAmount = Math.floor(Number(amount));
+    let sellAmount = Number(amount);
     const sellExpectedPrice = Number(expectedPrice);
     if (isNaN(sellAmount) || sellAmount <= 0) {
       return res.status(400).json({ message: '无效的预约出售数量参数' });
@@ -746,7 +760,7 @@ export const sellTokenReservation = async (req, res) => {
     if (!userTokenEntry || userTokenEntry.amount < amount) {
       return res.status(400).json({ message: 'Token余额不足，无法出售' });
     }
-    sellAmount = await user.changeToken(token, -sellAmount);
+    sellAmount = await user.changeToken(token, -sellAmount, session);
     // 创建预约订单
     const newOrder = new Order({
       user: user._id,
@@ -754,11 +768,12 @@ export const sellTokenReservation = async (req, res) => {
       // token: token._id,
       side: 'SELL',
       expectedPrice: sellExpectedPrice,
-      amount: -sellAmount
+      amount: -sellAmount,
+      coins: token.getPriceByAmount(-sellAmount, sellExpectedPrice)
     });
-    await newOrder.save();
+    await newOrder.save({session});
     token.hasPendingOrder = true;
-    await token.save();
+    await token.save({session});
     res.status(200).json({ message: '预约出售Token成功' });
   } catch (error) {
     res.status(500).json({
@@ -771,9 +786,13 @@ export const sellTokenReservation = async (req, res) => {
       }
     });
   }
+  finally {
+    await session.endSession();
+  }
 };
 
 export const cancelOrderReservation = async (req, res) => {
+  const session = await Token.startSession();
   try {
     const userToken = req.headers.token;
     const username = userToken; // TODO:暂时用username作为token内容
@@ -790,11 +809,15 @@ export const cancelOrderReservation = async (req, res) => {
     if (order.user.toString() !== user._id.toString()) {
       return res.status(403).json({ message: `没有权限取消订单${orderId}` });
     }
+    // 买单返还Coin
+    if (order.side === 'BUY') {
+      await user.changeCoins(order.coins, session);
+    }
     // 卖单返还Token
     if (order.side === 'SELL') {
-      await user.changeToken(await Token.findById(order.token), order.amount);
+      await user.changeToken(await Token.findById(order.token), order.amount, session);
     }
-    await Order.findByIdAndUpdate(orderId, { status: 'CANCELLED' });
+    await Order.findByIdAndUpdate(orderId, { status: 'CANCELLED' }, { session });
     res.status(200).json({ message: `成功取消订单${orderId}` });
   } catch (error) {
     res.status(500).json({
@@ -806,6 +829,9 @@ export const cancelOrderReservation = async (req, res) => {
         ...error
       }
     });
+  }
+  finally {
+    await session.endSession();
   }
 };
 

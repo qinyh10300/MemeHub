@@ -151,7 +151,6 @@
       - amount：交易数量
       - price：交易USDT金额
       - newPrice：交易后的单价
-
   - userinfo：用户关于该作品的信息
     - is_author：是作者
     - is_liked：已经点赞

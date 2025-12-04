@@ -9,6 +9,7 @@ const orderSchema = new mongoose.Schema({
 
   expectedPrice: { type: Number, required: true }, // 期望单价USDT
   amount: { type: Number, required: true }, // 预约买/卖的 Token 数量
+  coins: { type: Number }, // 预约买入所需金币数量（买入时有效）
 
   status: {
     type: String,
@@ -17,7 +18,7 @@ const orderSchema = new mongoose.Schema({
   },
 
   createdAt:  { type: Date, default: Date.now },
-  updatedAt:  { type: Date, default: Date.now },
+  // updatedAt:  { type: Date, default: Date.now },
   completedAt:{ type: Date }
 });
 
