@@ -5,7 +5,7 @@
     <div class="left-side">
         <MemeCard :meme="meme" />
         <div class="trading-section">
-          <KlineChart/>
+          <KlineChart :meme-id="meme.id"/>
         </div>
         <!-- <div class="orderbook-section">
           <OrderBook @orderSelected="handleOrderSelected" />
@@ -146,6 +146,12 @@ flex-direction: column;
 gap: 24px; /* 增加间距，提升视觉层次 */
 max-height: calc(100vh - 40px);
   overflow-y: auto;
+  /* 隐藏滚动条但保留滚动功能 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
 
   .trading-section {
     order: 2; /* K线图排在第二位 */
@@ -183,6 +189,12 @@ max-height: calc(100vh - 40px);
   flex-direction: column;
   gap: 24px; /* 与左侧间距保持一致 */
   overflow-y: auto;
+  /* 隐藏滚动条但保留滚动功能 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
   height: calc(100vh - 40px);
 
   /* 现代化右侧面板设计 */

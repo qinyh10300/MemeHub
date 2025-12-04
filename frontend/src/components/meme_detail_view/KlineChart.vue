@@ -41,13 +41,6 @@
 
     <!-- K线图容器 (固定大小) -->
     <div class="chart-container">
-      <div v-if="loading" class="loading-overlay">
-        <div class="loading-spinner">加载中...</div>
-      </div>
-      <div v-if="error" class="error-overlay">
-        <div class="error-message">{{ error }}</div>
-        <button @click="changeTimeframe(active)" class="retry-btn">重试</button>
-      </div>
       <div id="chart_box" class="chart"></div>
     </div>
 
@@ -119,14 +112,6 @@
 <script setup>
 import { onMounted, ref, watch } from "vue";
 import { init } from "klinecharts";
-import axios from "axios";
-
-const props = defineProps({
-  memeId: {
-    type: String,
-    required: true
-  }
-});
 
 const active = ref("1D");
 const currentPrice = ref(0);
@@ -137,13 +122,8 @@ const low24h = ref(0);
 const volume24h = ref(0);
 const selectedIndicators = ref(['VOL']);
 const chartHeight = ref(400);
-const loading = ref(false);
-const error = ref(null);
 
 let chart;
-
-// API基础URL
-const API_BASE = 'http://localhost:3000/api';
 
 // 时间周期选项
 const timeframes = [
@@ -167,126 +147,16 @@ const formatVolume = (volume) => {
   return volume.toString();
 };
 
-// 获取价格历史数据
-const fetchPriceHistory = async (timeframe) => {
-  if (!props.memeId) return;
-
-  loading.value = true;
-  error.value = null;
-
-  try {
-    // 根据时间周期计算需要获取的数据范围
-    const now = Date.now();
-    let startTime = now;
-    let interval = '1h'; // 默认1小时间隔
-
-    switch (timeframe) {
-      case "1M":
-        startTime = now - (60 * 60 * 1000); // 1小时前
-        interval = '1m';
-        break;
-      case "5M":
-        startTime = now - (4 * 60 * 60 * 1000); // 4小时前
-        interval = '5m';
-        break;
-      case "15M":
-        startTime = now - (8 * 60 * 60 * 1000); // 8小时前
-        interval = '15m';
-        break;
-      case "30M":
-        startTime = now - (24 * 60 * 60 * 1000); // 24小时前
-        interval = '30m';
-        break;
-      case "1H":
-        startTime = now - (2 * 24 * 60 * 60 * 1000); // 2天前
-        interval = '1h';
-        break;
-      case "4H":
-        startTime = now - (7 * 24 * 60 * 60 * 1000); // 7天前
-        interval = '4h';
-        break;
-      case "1D":
-        startTime = now - (30 * 24 * 60 * 60 * 1000); // 30天前
-        interval = '1d';
-        break;
-      case "1W":
-        startTime = now - (365 * 24 * 60 * 60 * 1000); // 1年前
-        interval = '1w';
-        break;
-    }
-
-    const response = await axios.get(`${API_BASE}/meme/${props.memeId}/token/price-history`, {
-      params: {
-        startTime,
-        endTime: now,
-        interval
-      }
-    });
-
-    if (response.data && response.data.code === 0) {
-      const priceHistory = response.data.data;
-      return processPriceData(priceHistory);
-    } else {
-      throw new Error(response.data?.message || '获取价格历史失败');
-    }
-  } catch (err) {
-    console.error('获取价格历史失败:', err);
-    error.value = err.message || '获取价格历史失败';
-    // 返回模拟数据作为后备
-    return generateFallbackData();
-  } finally {
-    loading.value = false;
-  }
-};
-
-// 处理价格数据，转换为K线图格式
-const processPriceData = (priceHistory) => {
-  if (!Array.isArray(priceHistory) || priceHistory.length === 0) {
-    return generateFallbackData();
-  }
-
-  const klineData = priceHistory.map(item => ({
-    timestamp: new Date(item.timestamp).getTime(),
-    open: Number(item.open || item.price || 0),
-    high: Number(item.high || item.price || 0),
-    low: Number(item.low || item.price || 0),
-    close: Number(item.close || item.price || 0),
-    volume: Number(item.volume || 0)
-  }));
-
-  // 更新价格统计
-  if (klineData.length > 0) {
-    const latest = klineData[klineData.length - 1];
-    const previous = klineData[klineData.length - 2] || latest;
-
-    currentPrice.value = latest.close;
-    priceChange.value = latest.close - previous.close;
-    priceChangePercent.value = previous.close !== 0 ? (priceChange.value / previous.close) * 100 : 0;
-
-    // 计算24小时高低点
-    const highs = klineData.map(d => d.high);
-    const lows = klineData.map(d => d.low);
-    const volumes = klineData.map(d => d.volume);
-
-    high24h.value = Math.max(...highs);
-    low24h.value = Math.min(...lows);
-    volume24h.value = volumes.reduce((sum, vol) => sum + vol, 0);
-  }
-
-  return klineData;
-};
-
-// 生成模拟数据作为后备
-const generateFallbackData = (basePrice = 1) => {
+// 生成模拟K线数据
+const generateKlineData = (basePrice = 1, count = 100) => {
   const data = [];
   let current = basePrice;
   const now = Date.now();
-  const count = 100;
 
   for (let i = count; i > 0; i--) {
-    const timestamp = now - (i * 60 * 1000);
+    const timestamp = now - (i * 60 * 1000); // 每分钟一根K线
     const open = current;
-    const volatility = current * 0.005;
+    const volatility = current * 0.005; // 0.5% 波动率
     const change = (Math.random() - 0.5) * 2 * volatility;
     const close = current + change;
     const high = Math.max(open, close) + Math.random() * volatility;
@@ -313,6 +183,7 @@ const generateFallbackData = (basePrice = 1) => {
     priceChange.value = latest.close - previous.close;
     priceChangePercent.value = previous.close !== 0 ? (priceChange.value / previous.close) * 100 : 0;
 
+    // 计算24小时高低点
     const highs = data.map(d => d.high);
     const lows = data.map(d => d.low);
     const volumes = data.map(d => d.volume);
@@ -325,13 +196,49 @@ const generateFallbackData = (basePrice = 1) => {
   return data;
 };
 
-// 切换时间周期
-const changeTimeframe = async (timeframe) => {
-  active.value = timeframe;
-  const newData = await fetchPriceHistory(timeframe);
-  if (chart && newData) {
-    chart.applyNewData(newData);
+// 生成不同周期的数据
+const generateDataByTimeframe = (timeframe) => {
+  const now = Date.now();
+  let data = [];
+  let basePrice = 1 + Math.random() * 0.5; // 基础价格 0.0001-0.00015
+
+  switch (timeframe) {
+    case "1M":
+      data = generateKlineData(basePrice, 60); // 60根1分钟K线
+      break;
+    case "5M":
+      data = generateKlineData(basePrice, 48); // 48根5分钟K线 (4小时)
+      break;
+    case "15M":
+      data = generateKlineData(basePrice, 32); // 32根15分钟K线 (8小时)
+      break;
+    case "30M":
+      data = generateKlineData(basePrice, 48); // 48根30分钟K线 (24小时)
+      break;
+    case "1H":
+      data = generateKlineData(basePrice, 48); // 48根1小时K线 (2天)
+      break;
+    case "4H":
+      data = generateKlineData(basePrice, 42); // 42根4小时K线 (7天)
+      break;
+    case "1D":
+      data = generateKlineData(basePrice, 30); // 30根日线 (1个月)
+      break;
+    case "1W":
+      data = generateKlineData(basePrice, 52); // 52根周线 (1年)
+      break;
+    default:
+      data = generateKlineData(basePrice, 48);
   }
+
+  return data;
+};
+
+// 切换时间周期
+const changeTimeframe = (timeframe) => {
+  active.value = timeframe;
+  const newData = generateDataByTimeframe(timeframe);
+  chart.applyNewData(newData);
 };
 
 // 计算图表高度
@@ -365,17 +272,7 @@ const toggleIndicator = (indicator) => {
   // 不再动态改变K线图，保持K线图大小固定
 };
 
-// 监听memeId变化，重新加载数据
-watch(() => props.memeId, async (newMemeId) => {
-  if (newMemeId && chart) {
-    const initialData = await fetchPriceHistory(active.value);
-    if (initialData) {
-      chart.applyNewData(initialData);
-    }
-  }
-});
-
-onMounted(async () => {
+onMounted(() => {
   // 初始化图表
   chart = init("chart_box");
 
@@ -445,13 +342,9 @@ onMounted(async () => {
   // 设置固定图表高度，不再动态调整
   chartHeight.value = 400;
 
-  // 如果有memeId则加载数据
-  if (props.memeId) {
-    const initialData = await fetchPriceHistory(active.value);
-    if (chart && initialData) {
-      chart.applyNewData(initialData);
-    }
-  }
+  // 加载初始数据
+  const initialData = generateDataByTimeframe(active.value);
+  chart.applyNewData(initialData);
 });
 </script>
 
@@ -546,7 +439,6 @@ onMounted(async () => {
     margin-bottom: 16px;
     height: 400px; /* 固定高度，不再变化 */
     width: 100%; /* 确保容器占满宽度 */
-    position: relative;
 
     .chart {
       width: 100%;
@@ -555,51 +447,6 @@ onMounted(async () => {
       border-radius: 8px;
       display: block; /* 确保块级显示 */
       overflow: hidden; /* 防止溢出 */
-    }
-
-    .loading-overlay,
-    .error-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(13, 13, 13, 0.9);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      z-index: 10;
-    }
-
-    .loading-spinner {
-      color: #65c281;
-      font-size: 16px;
-      font-weight: 500;
-    }
-
-    .error-message {
-      color: #ff3b69;
-      font-size: 14px;
-      margin-bottom: 12px;
-      text-align: center;
-    }
-
-    .retry-btn {
-      padding: 8px 16px;
-      background: #65c281;
-      color: #000;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-
-      &:hover {
-        background: #4fa865;
-      }
     }
   }
 
