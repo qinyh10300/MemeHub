@@ -12,7 +12,7 @@
       <p class="stat-value">{{ userData.likes }}</p>
       <p class="stat-label">获赞</p>
     </div>
-    <div class="stat-item coins-item">
+    <div v-if="isOwnProfile" class="stat-item coins-item">
       <p class="stat-value coins-value">
         <span class="coin-icon">🪙</span>
         {{ formatCoins(userData.coins) }}
@@ -23,9 +23,17 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   userData: Object,
+  isOwnProfile: {
+    type: Boolean,
+    default: true
+  }
 })
+
+const isOwnProfile = computed(() => props.isOwnProfile)
 
 // 格式化金币数量
 const formatCoins = (coins) => {

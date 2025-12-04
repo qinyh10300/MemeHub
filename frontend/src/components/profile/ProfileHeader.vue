@@ -65,6 +65,7 @@ import { useRouter } from 'vue-router'
 import EditModal from './EditModal.vue'
 import AvatarModal from './AvatarModal.vue'
 import { useAuthStore } from '@/stores/auth'
+import { emitTaskProgress } from '@/utils/gamificationEvents'
 
 const props = defineProps({
   userData: Object,
@@ -187,6 +188,7 @@ const handleFollowToggle = async () => {
 
   followLoading.value = true
   followError.value = ''
+  const wasFollowing = !!props.userData?.isFollowing
   try {
     const response = await fetch(`${serverIp}/api/user/${targetUsername}/follow`, {
       method: 'POST',
@@ -207,6 +209,9 @@ const handleFollowToggle = async () => {
       isFollowing,
       followers: nextFollowers
     })
+    if (isFollowing && !wasFollowing) {
+      emitTaskProgress('growth-follow', 1, { username: authStore.username || 'guest' })
+    }
   } catch (error) {
     console.error('关注/取消关注失败:', error)
     followError.value = error.message || '操作失败，请稍后重试'

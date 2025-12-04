@@ -55,6 +55,7 @@
 import { ref, watchEffect } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { emitTaskProgress } from '@/utils/gamificationEvents';
 
 const props = defineProps({
     meme: Object,
@@ -126,6 +127,8 @@ const toggleLike = async () => {
             isLiked.value = oldLiked;
             likes.value = oldLikes;
             alert(data.message || "点赞失败");
+        } else if (!oldLiked && isLiked.value) {
+            emitTaskProgress('daily-like', 1, { username: authStore.username || 'guest' });
         }
     } catch (err) {
         console.error("点赞失败:", err);

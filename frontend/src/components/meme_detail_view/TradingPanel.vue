@@ -198,13 +198,17 @@ const props = defineProps({
   selectedOrder: {
     type: Object,
     default: null
+  },
+  memeId: {
+    type: String,
+    default: ''
   }
 });
 
 const route = useRoute();
 const authStore = useAuthStore();
 const server_ip = authStore.server_ip;
-const memeId = computed(() => route.params.id);
+const memeId = computed(() => props.memeId || route.params.id);
 
 // 交易表单状态
 const tradeType = ref('buy'); // 'buy' | 'sell'
@@ -275,6 +279,9 @@ const fetchUserBalance = async () => {
     const userData = await userRes.json();
     if (userRes.ok && userData.code === 0) {
       availableBalance.value = userData.data.coins || 0;
+    } else {
+      console.warn('获取用户余额失败:', userData.message);
+      availableBalance.value = 0;
     }
 
     // 获取用户持有的该代币数量
@@ -286,12 +293,15 @@ const fetchUserBalance = async () => {
       if (tokenRes.ok) {
         tokenSymbol.value = tokenData.ticker || 'MEME';
         // 从用户的 tokenList 中查找
-        const holdingRes = await fetch(`${server_ip}/api/token/by-ticker/${tokenData.ticker}`, {
+        const holdingRes = await fetch(`${server_ip}/api/token/by-ticker/${encodeURIComponent(tokenData.ticker)}`, {
           headers: { 'token': token }
         });
         const holdingData = await holdingRes.json();
         if (holdingRes.ok && holdingData.code === 0) {
           availableToken.value = holdingData.data.amount || 0;
+        } else {
+          console.warn('获取代币持有量失败:', holdingData.message);
+          availableToken.value = 0;
         }
       }
     }
@@ -300,16 +310,41 @@ const fetchUserBalance = async () => {
   }
 };
 
+const PRICE_HISTORY_INTERVAL = '1h';
+const PRICE_HISTORY_DURATION = 24 * 60 * 60 * 1000; // 24小时
+
 // 获取当前价格和交易历史
 const fetchPriceData = async () => {
   try {
     if (!memeId.value) return;
 
-    const res = await fetch(`${server_ip}/api/meme/${memeId.value}/token/price-history`);
+    const now = Date.now();
+    const startTime = now - PRICE_HISTORY_DURATION;
+    const params = new URLSearchParams({
+      startTime: startTime.toString(),
+      endTime: now.toString(),
+      interval: PRICE_HISTORY_INTERVAL
+    });
+
+    const res = await fetch(`${server_ip}/api/meme/${memeId.value}/token/price-history?${params.toString()}`);
     const data = await res.json();
-    if (res.ok && data.code === 0) {
-      currentPrice.value = data.data.currentPrice || 0.0001;
-      priceHistory.value = data.data.history || [];
+    if (res.ok && data.code === 0 && Array.isArray(data.data)) {
+      const history = data.data;
+      if (history.length > 0) {
+        const latest = history[history.length - 1];
+        const derivedPrice = Number(latest.close ?? latest.price ?? latest.open);
+        currentPrice.value = Number.isFinite(derivedPrice) ? derivedPrice : currentPrice.value;
+      }
+
+      priceHistory.value = history
+        .slice()
+        .reverse()
+        .map(item => ({
+          side: (item.close ?? 0) >= (item.open ?? 0) ? 'BUY' : 'SELL',
+          amount: item.volume ?? 0,
+          price: item.close ?? item.price ?? 0,
+          time: item.timestamp ?? item.time ?? Date.now()
+        }));
     }
   } catch (error) {
     console.error('获取价格数据失败:', error);
@@ -322,12 +357,14 @@ const fetchMyOrders = async () => {
     const token = getToken();
     if (!token || !memeId.value) return;
 
-    const res = await fetch(`${server_ip}/api/user/${token}/orders?memeId=${memeId.value}`, {
+    const res = await fetch(`${server_ip}/api/user/${token}/orders`, {
       headers: { 'token': token }
     });
     const data = await res.json();
     if (res.ok && data.code === 0) {
-      myOrders.value = data.data || [];
+      // 过滤出当前模因的挂单
+      const allOrders = data.data || [];
+      myOrders.value = allOrders.filter(order => order.memeId === memeId.value);
     }
   } catch (error) {
     console.error('获取挂单失败:', error);
@@ -366,7 +403,7 @@ const executeTrade = async () => {
         expectedPrice: price.value
       };
     }
-
+    console.log('交易请求体:', endpoint, body);
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -458,11 +495,23 @@ const formatTime = (timestamp) => {
 // 监听订单选择（从订单簿点击）
 watch(() => props.selectedOrder, (newOrder) => {
   if (newOrder) {
+    orderType.value = 'limit';
+    tradeType.value = newOrder.side === 'SELL' ? 'sell' : 'buy';
     price.value = newOrder.price;
     amount.value = newOrder.amount;
-    orderType.value = 'limit';
   }
 });
+
+// 监听模因 ID 变化，刷新数据
+watch(
+  () => memeId.value,
+  (newId, oldId) => {
+    if (!newId || newId === oldId) return;
+    fetchUserBalance();
+    fetchPriceData();
+    fetchMyOrders();
+  }
+);
 
 // 监听交易类型切换，清除消息
 watch([tradeType, orderType], () => {
