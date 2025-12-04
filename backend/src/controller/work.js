@@ -50,14 +50,14 @@ export const createMeme = async (req, res) => {
     // 检查是否发行虚拟货币
     if (withToken === 'true') {
       // 检查用户余额是否足够
-      if (user.coins < Const.TOKEN_COIN_COST) {
+      if (user.coins < Const.TOKEN_USDT_COST) {
         if (file) {
           fs.unlink(path.join(file.destination, file.filename), () => {});
         }
-        return res.status(400).json({ code: 1010, message: '金币余额不足，无法发行虚拟货币' });
+        return res.status(400).json({ code: 1010, message: 'USDT 余额不足，无法发行虚拟货币' });
       }
-      // 扣除用户金币
-      user.coins -= Const.TOKEN_COIN_COST;
+      // 扣除用户 USDT
+      user.coins -= Const.TOKEN_USDT_COST;
       await user.save();
     }
 

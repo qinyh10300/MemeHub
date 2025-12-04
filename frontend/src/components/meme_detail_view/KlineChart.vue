@@ -447,7 +447,7 @@ const fetchPriceHistory = async (timeframe) => {
   } catch (err) {
     console.error('获取价格历史失败:', err);
     error.value = err.message || '获取价格历史失败';
-    return generateFallbackData(currentPrice.value || 1);
+    return null;
   } finally {
     loading.value = false;
   }
@@ -455,7 +455,8 @@ const fetchPriceHistory = async (timeframe) => {
 
 const processPriceData = (priceHistory = []) => {
   if (!Array.isArray(priceHistory) || priceHistory.length === 0) {
-    return generateFallbackData(currentPrice.value || 1);
+    error.value = '暂无可用的 K 线数据';
+    return null;
   }
 
   const klineData = priceHistory.map(item => {
@@ -572,60 +573,11 @@ const updateIndicatorSnapshots = (klineData) => {
   };
 };
 
-// 生成模拟数据作为后备
-const generateFallbackData = (basePrice = 1) => {
-  const data = [];
-  let current = basePrice;
-  const now = Date.now();
-  const count = 100;
-
-  for (let i = count; i > 0; i--) {
-    const timestamp = now - (i * 60 * 1000);
-    const open = current;
-    const volatility = current * 0.005;
-    const change = (Math.random() - 0.5) * 2 * volatility;
-    const close = current + change;
-    const high = Math.max(open, close) + Math.random() * volatility;
-    const low = Math.min(open, close) - Math.random() * volatility;
-    const volume = Math.floor(Math.random() * 1000000) + 500000;
-
-    data.push({
-      timestamp,
-      open: Number(open.toFixed(6)),
-      high: Number(high.toFixed(6)),
-      low: Number(low.toFixed(6)),
-      close: Number(close.toFixed(6)),
-      volume
-    });
-
-    current = close;
-  }
-
-  // 更新当前价格统计
-  if (data.length > 0) {
-    const latest = data[data.length - 1];
-    const previous = data[data.length - 2] || latest;
-    currentPrice.value = latest.close;
-    priceChange.value = latest.close - previous.close;
-    priceChangePercent.value = previous.close !== 0 ? (priceChange.value / previous.close) * 100 : 0;
-
-    const highs = data.map(d => d.high);
-    const lows = data.map(d => d.low);
-    const volumes = data.map(d => d.volume);
-
-    high24h.value = Math.max(...highs);
-    low24h.value = Math.min(...lows);
-    volume24h.value = volumes.reduce((sum, vol) => sum + vol, 0);
-  }
-
-  return data;
-};
-
 // 切换时间周期
 const changeTimeframe = async (timeframe) => {
   active.value = timeframe;
   const newData = await fetchPriceHistory(timeframe);
-  if (chart && newData) {
+  if (chart && Array.isArray(newData) && newData.length) {
     chart.applyNewData(newData);
   }
 };
@@ -723,7 +675,7 @@ onMounted(async () => {
   // 如果有memeId则加载数据
   if (props.memeId) {
     const initialData = await fetchPriceHistory(active.value);
-    if (chart && initialData) {
+    if (chart && Array.isArray(initialData) && initialData.length) {
       chart.applyNewData(initialData);
     }
   }
