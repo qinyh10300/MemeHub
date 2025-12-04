@@ -166,11 +166,13 @@
 <script setup>
 import { ref, computed, onMounted, inject } from "vue";
 import { useAuthStore } from "@/stores/auth";
+import { emitTaskProgress } from '@/utils/gamificationEvents';
 
 // 获取全局刷新提醒方法
 const refreshAlerts = inject('refreshAlerts', () => {});
 
 const authStore = useAuthStore();
+const completedTradeIds = new Set();
 
 // 当前 Tab
 const activeTab = ref('outgoing');
@@ -209,6 +211,20 @@ function statusText(status) {
   };
   return map[status] || status;
 }
+
+const markTradeCompleted = (tradeId) => {
+  if (!tradeId || completedTradeIds.has(tradeId)) return;
+  completedTradeIds.add(tradeId);
+  emitTaskProgress('growth-trade', 1, { username: authStore.username || 'guest' });
+};
+
+const trackCompletedTrades = (trades = []) => {
+  trades.forEach((trade) => {
+    if (trade?.status === 'accepted') {
+      markTradeCompleted(trade.id);
+    }
+  });
+};
 
 // 格式化时间
 function formatTime(dateStr) {
@@ -307,6 +323,7 @@ async function fetchOutgoing() {
     const data = await res.json();
     if (data.code === 0) {
       outgoingTrades.value = data.data || [];
+      trackCompletedTrades(outgoingTrades.value);
     }
   } catch (error) {
     console.error('Fetch outgoing trades error:', error);
@@ -322,6 +339,7 @@ async function fetchIncoming() {
     const data = await res.json();
     if (data.code === 0) {
       incomingTrades.value = data.data || [];
+      trackCompletedTrades(incomingTrades.value);
     }
   } catch (error) {
     console.error('Fetch incoming trades error:', error);
@@ -340,6 +358,7 @@ async function acceptTrade(id) {
     const data = await res.json();
     if (data.code === 0) {
       alert('交易已接受');
+      markTradeCompleted(id);
       fetchIncoming();
       fetchOutgoing();
       refreshAlerts(); // 刷新侧边栏提醒

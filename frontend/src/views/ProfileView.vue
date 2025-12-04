@@ -9,7 +9,7 @@
     <div v-else>
       <ProfileHeader :userData="userData" @update:userData="handleUserDataUpdate" />
 
-      <ProfileStats :userData="userData" />
+      <ProfileStats :userData="userData" :isOwnProfile="isOwnProfile" />
 
       <Tabs 
         :userData="userData" 

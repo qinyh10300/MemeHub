@@ -101,6 +101,7 @@
 <script setup>
 import { reactive, ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
+import { emitTaskProgress } from '@/utils/gamificationEvents';
 
 // 接收父组件传入的 meme_id
 const props = defineProps({
@@ -272,6 +273,7 @@ const handleSubmit = async () => {
     if (response.ok) {
       newComment.value = ''; // 清空输入框
       await fetchComments(); // 提交成功后重新获取评论数据
+      emitTaskProgress('daily-comment', 1, { username: authStore.username || 'guest' });
 
       // 滚动到评论窗口底部
       nextTick(() => {

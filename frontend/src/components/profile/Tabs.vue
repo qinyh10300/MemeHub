@@ -32,7 +32,7 @@
               class="watchlist-card"
               @click="goToMemeDetail(item.id)"
             >
-              <img :src="item.imageUrl" :alt="item.title" class="watchlist-image" />
+              <img :src="getImageUrl(item.imageUrl || item.image)" :alt="item.title" class="watchlist-image" />
               <div class="watchlist-info">
                 <h4>{{ item.title }}</h4>
                 <span class="ticker">${{ item.ticker }}</span>
@@ -123,7 +123,7 @@
             @click="goToMemeDetail(token.memeId || token.id)"
           >
             <div class="token-left">
-              <img :src="token.imageUrl || token.image" alt="token" class="token-image" />
+              <img :src="getImageUrl(token.imageUrl || token.image)" alt="token" class="token-image" />
               <div class="token-basic">
                 <h3 class="token-name">{{ token.name }}</h3>
                 <p class="token-ticker">${{ token.code }}</p>
@@ -247,7 +247,10 @@ const fetchWatchlist = async () => {
     })
     const data = await response.json()
     if (data.code === 0) {
-      watchlist.value = data.data?.slice(0, 6) || []
+      watchlist.value = (data.data || []).map((item) => ({
+        ...item,
+        imageUrl: getImageUrl(item.imageUrl || item.image),
+      }))
     }
   } catch (error) {
     console.error('获取自选列表失败:', error)
@@ -273,6 +276,14 @@ const fetchCreatorStats = async () => {
   } catch (error) {
     console.error('获取创作者数据失败:', error)
   }
+}
+
+const defaultMemeCover = 'https://placehold.co/160x160?text=Meme'
+
+const getImageUrl = (url) => {
+  if (!url) return defaultMemeCover
+  if (url.startsWith('http') || url.startsWith('data:')) return url
+  return `${server_ip}${url.startsWith('/') ? '' : '/'}${url}`
 }
 
 const formatPrice = (price) => {

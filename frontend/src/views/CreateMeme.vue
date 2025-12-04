@@ -61,6 +61,7 @@ import PrimaryButton from '../components/creatememe/PrimaryButton.vue'
 import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
+import { emitTaskProgress } from '@/utils/gamificationEvents'
 
 const createCoinRef = ref(null)
 const formData = ref(null)
@@ -217,13 +218,14 @@ async function handleCreateMeme() {
         
         // 如果是创建，清空表单；更新则不用
         if (!isEditMode.value) {
-           createCoinRef.value?.resetForm()
-           formData.value = null
-           selectedFile.value = null
-           if (filePreviewUrl.value) {
-             URL.revokeObjectURL(filePreviewUrl.value)
-             filePreviewUrl.value = ''
-           }
+          emitTaskProgress('daily-share', 1, { username: authStore.username || 'guest' })
+          createCoinRef.value?.resetForm()
+          formData.value = null
+          selectedFile.value = null
+          if (filePreviewUrl.value) {
+            URL.revokeObjectURL(filePreviewUrl.value)
+            filePreviewUrl.value = ''
+          }
         }
         
         // 跳转到创建的模因详情页 (或者列表页)
@@ -323,13 +325,14 @@ async function handleCreateMemeCoin() {
         
         // 如果是创建，清空表单；更新则不用
         if (!isEditMode.value) {
-           createCoinRef.value?.resetForm()
-           formData.value = null
-           selectedFile.value = null
-           if (filePreviewUrl.value) {
-             URL.revokeObjectURL(filePreviewUrl.value)
-             filePreviewUrl.value = ''
-           }
+          emitTaskProgress('daily-share', 1, { username: authStore.username || 'guest' })
+          createCoinRef.value?.resetForm()
+          formData.value = null
+          selectedFile.value = null
+          if (filePreviewUrl.value) {
+            URL.revokeObjectURL(filePreviewUrl.value)
+            filePreviewUrl.value = ''
+          }
         }
         
         // 跳转到创建的模因详情页 (或者列表页)

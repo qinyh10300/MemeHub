@@ -291,9 +291,15 @@ export const getUserAchievements = async (req, res) => {
       return res.status(401).json({ code: 1001, message: '未登录' });
     }
 
-    const user = await User.findOne({ username });
+    let user = await User.findOne({ username });
     if (!user) {
       return res.status(404).json({ code: 1002, message: '用户不存在' });
+    }
+
+    // 先检查是否有新的成就达成
+    const newlyUnlocked = await checkAndUnlockAchievements(user._id);
+    if (newlyUnlocked.length > 0) {
+      user = await User.findById(user._id);
     }
 
     // 获取关注者数量
@@ -374,7 +380,7 @@ export const checkAndUnlockAchievements = async (userId) => {
     const followersCount = await User.countDocuments({ following: user._id });
     const approvedMemeCount = await Meme.countDocuments({ 
       _id: { $in: user.workList }, 
-      status: 'approved' 
+      status: 'active' 
     });
 
     const userData = {
