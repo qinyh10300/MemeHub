@@ -7,8 +7,8 @@ import SmartRecommend from '../components/home/SmartRecommend.vue'
 <template>
   <main>
      <header class="content-header">
-        <h1>Welcome to our platform</h1>
-        <p>Explore and discover amazing projects</p>
+        <h1>欢迎来到MemeHub</h1>
+        <p>进行愉快的模因创作和模因币交易吧！</p>
       </header>
       <div class="search-wrapper">
         <Search />

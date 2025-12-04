@@ -306,10 +306,16 @@ function refreshCurrentTab() {
 
 // 发起交易
 async function createTrade() {
-  if (!targetUser.value) return alert("请输入对方用户名");
-  if (!myToken.value || !myAmount.value) return alert("请输入您付出的币种和数量");
-  if (!theirToken.value || !theirAmount.value) return alert("请输入对方付出的币种和数量");
-
+  if (!targetUser.value) {
+    return alert("请输入对方用户名");
+  }
+  if (!myToken.value || myAmount.value === null || myAmount.value < 0) {
+    return alert("请输入您付出的币种和数量，且数量必须大于等于 0");
+  }
+  if (!theirToken.value || theirAmount.value === null || theirAmount.value < 0) {
+    return alert("请输入对方付出的币种和数量，且数量必须大于等于 0");
+  }
+  
   loading.value = true;
   try {
     const res = await fetch(`${getServerUrl()}/api/c2c/create`, {
