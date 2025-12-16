@@ -14,42 +14,10 @@
 
     <!-- Tab 内容 -->
     <div class="tab-content">
-      <!-- 我的自选 -->
-      <template v-if="activeTab === '我的自选'">
-        <div class="watchlist-section">
-          <div class="watchlist-header">
-            <h3>📌 我的自选列表</h3>
-            <router-link to="/watchlist" class="view-all-btn">查看全部 →</router-link>
-          </div>
-          <div v-if="watchlist.length === 0" class="empty-state">
-            <p>📭 暂无自选模因</p>
-            <p class="empty-hint">去发现页面添加你感兴趣的模因吧！</p>
-          </div>
-          <div v-else class="watchlist-grid">
-            <div
-              v-for="item in watchlist.slice(0, 6)"
-              :key="item.id"
-              class="watchlist-card"
-              @click="goToMemeDetail(item.id)"
-            >
-              <img :src="getImageUrl(item.imageUrl || item.image)" :alt="item.title" class="watchlist-image" />
-              <div class="watchlist-info">
-                <h4>{{ item.title }}</h4>
-                <span class="ticker">${{ item.ticker }}</span>
-              </div>
-              <div class="watchlist-price">
-                <span class="price">${{ formatPrice(item.price) }}</span>
-                <span :class="['change', item.change >= 0 ? 'positive' : 'negative']">
-                  {{ item.change >= 0 ? '+' : '' }}{{ item.change?.toFixed(2) }}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </template>
+      
 
       <!-- 创作者数据 -->
-      <template v-else-if="activeTab === '创作者数据'">
+      <template v-if="activeTab === '创作者数据'">
         <div class="creator-dashboard-section">
           <div class="dashboard-header">
             <h3>📊 创作者数据概览</h3>
@@ -225,7 +193,7 @@ const props = defineProps({
 // 在模板中使用 isOwnProfile
 const isOwnProfile = computed(() => props.isOwnProfile)
 
-const userOnlyTabs = ['关注', '粉丝', '我的自选', '创作者数据']
+const userOnlyTabs = ['关注', '粉丝', '创作者数据']
 
 // 自选列表数据
 const watchlist = ref([])
