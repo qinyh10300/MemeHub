@@ -4,8 +4,13 @@
     <!-- 左侧：模因信息 + K线图 + 订单簿 + 评论区 -->
     <div class="left-side">
         <MemeCard :meme="meme" />
-        <div class="trading-section">
+        <div v-if="meme.withToken" class="trading-section">
           <KlineChart v-if="meme.id" :meme-id="meme.id" />
+        </div>
+        <div v-else class="no-token-card">
+          <p class="title">尚未开启行情</p>
+          <p>该模因目前仅发布图文内容，还没有发行代币，因此无法展示 K 线图、MA、VOL、MACD、RSI 等指标。</p>
+          <p class="hint">当作者发布代币后，此处会自动显示完整行情面板。</p>
         </div>
         <!-- <div class="orderbook-section">
           <OrderBook @orderSelected="handleOrderSelected" />
@@ -17,7 +22,11 @@
 
     <!-- 右侧：交易面板 -->
     <div class="right-side">
-      <TradingPanel :selectedOrder="selectedOrder" :memeId="meme.id" />
+      <TradingPanel v-if="meme.withToken" :selectedOrder="selectedOrder" :memeId="meme.id" />
+      <div v-else class="no-token-panel">
+        <h3>交易功能未开启</h3>
+        <p>作者尚未为该模因创建代币，暂无法下单交易或查看订单簿。</p>
+      </div>
     </div>
     </div>
 </div>
@@ -50,6 +59,7 @@ const meme = reactive({
   time: '',
   likes: 0,
   id: '',
+  withToken: false,
 })
 
 const route = useRoute() // 获取路由实例
@@ -96,6 +106,7 @@ const fetchMemeData = async () => {
       meme.id = result._id
       meme.is_liked = result.userinfo.is_liked
       meme.is_favorited = result.userinfo.is_favorited
+      meme.withToken = Boolean(result.withToken)
     } else if (response.status == 404){
       console.error('该模因不存在', response.status)
     } else {
@@ -177,6 +188,47 @@ max-height: calc(100vh - 40px);
       background: rgba(255, 255, 255, 0.03);
       border-color: rgba(255, 255, 255, 0.15);
     }
+  }
+}
+
+.no-token-card {
+  order: 2;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 20px;
+  color: #d1d5db;
+  line-height: 1.6;
+
+  .title {
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 6px;
+  }
+}
+
+.no-token-panel {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 24px;
+  color: #d1d5db;
+  line-height: 1.6;
+
+  h3 {
+    margin: 0 0 10px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+    color: #9ca3af;
   }
 }
 

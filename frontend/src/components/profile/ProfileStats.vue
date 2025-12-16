@@ -12,12 +12,12 @@
       <p class="stat-value">{{ userData.likes }}</p>
       <p class="stat-label">获赞</p>
     </div>
-    <div v-if="isOwnProfile" class="stat-item coins-item">
-      <p class="stat-value coins-value">
-        <span class="coin-icon">🪙</span>
-        {{ formatCoins(userData.coins) }}
+    <div v-if="isOwnProfile" class="stat-item usdt-item">
+      <p class="stat-value usdt-value">
+        <span class="usdt-icon">💵</span>
+        {{ formatUsdt(userData.coins) }}
       </p>
-      <p class="stat-label">金币</p>
+      <p class="stat-label">USDT 余额</p>
     </div>
   </div>
 </template>
@@ -35,16 +35,24 @@ const props = defineProps({
 
 const isOwnProfile = computed(() => props.isOwnProfile)
 
-// 格式化金币数量
-const formatCoins = (coins) => {
-  if (coins === undefined || coins === null) return '0'
-  if (coins >= 10000) {
-    return (coins / 10000).toFixed(1) + 'w'
-  }
-  if (coins >= 1000) {
-    return (coins / 1000).toFixed(1) + 'k'
-  }
-  return Math.floor(coins).toLocaleString()
+// 格式化 USDT 数量，保留最多 4 位小数
+const stripTrailingZeros = (value = '') => value.replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1')
+
+const formatWithSuffix = (value, divisor, suffix) => {
+  const scaled = Number(value) / divisor
+  if (!Number.isFinite(scaled)) return `0${suffix}`
+  return `${stripTrailingZeros(scaled.toFixed(2))}${suffix}`
+}
+
+const formatUsdt = (amount) => {
+  if (amount === undefined || amount === null) return '0'
+  // if (amount >= 10000) {
+  //   return (amount / 10000).toFixed(1) + 'w'
+  // }
+  // if (amount >= 1000) {
+  //   return (amount / 1000).toFixed(1) + 'k'
+  // }
+  return amount.toFixed(4);
 }
 </script>
 
@@ -84,21 +92,21 @@ const formatCoins = (coins) => {
   margin-top: -2px;
 }
 
-/* 金币特殊样式 */
-.coins-item {
-  background: linear-gradient(135deg, rgba(255, 209, 102, 0.06), rgba(249, 200, 14, 0.03));
-  border: 1px solid rgba(255, 209, 102, 0.12);
+/* USDT 特殊样式 */
+.usdt-item {
+  background: linear-gradient(135deg, rgba(102, 212, 255, 0.08), rgba(14, 142, 249, 0.04));
+  border: 1px solid rgba(102, 212, 255, 0.15);
   border-radius: 8px;
 }
 
-.coins-value {
+.usdt-value {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #ffd166 !important;
+  color: #6ec1ff !important;
 }
 
-.coin-icon {
+.usdt-icon {
   font-size: 1rem;
 }
 </style>

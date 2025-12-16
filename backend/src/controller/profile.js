@@ -104,12 +104,15 @@ export const getUserProfile = async (req, res) => {
       if (imageUrl && !imageUrl.startsWith('http')) {
         imageUrl = imageUrl.startsWith('/') ? `${baseUrl}${imageUrl}` : `${baseUrl}/${imageUrl}`;
       }
+      const memeId = token.meme._id.toString();
       return {
         imageUrl,
         name: token.meme.title || '未命名模因币',
         code: token.meme.ticker || '',
         description: token.meme.description || '暂无简介',
-        id: token._id.toString(),
+        memeId,
+        tokenId: token._id.toString(),
+        id: memeId,
         amount: entry.amount || 0,
         value: (token.price || 0) * (entry.amount || 0)
       };
@@ -239,7 +242,7 @@ export const getUserProfile = async (req, res) => {
       followers: followersCount, // 使用查询到的粉丝总数
       following: followingCount,
       likes: totalLikes,
-      coins: user.coins || 0, // 用户金币余额
+      coins: user.coins || 0, // 用户 USDT 余额
       isFollowing: viewerIsFollowing,
       memesData: {
         '我创作的模因': myMemes,

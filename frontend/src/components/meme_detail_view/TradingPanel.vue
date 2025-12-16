@@ -65,8 +65,8 @@
           <input
             v-model.number="amount"
             type="number"
-            step="1"
-            min="1"
+            step="0.0001"
+            min="0.0001"
             placeholder="输入数量"
             class="form-input"
           />
@@ -89,10 +89,15 @@
             class="form-input readonly"
           />
         </div>
+        <p class="quote-hint">
+          <span v-if="quoteLoading">根据池子实时计算中...</span>
+          <!-- <span v-else-if="quoteError" class="error-text">{{ quoteError }}</span> -->
+          <span v-else>以恒定乘积分布估算，实际下单时可能有滑点</span>
+        </p>
       </div>
 
       <!-- 快速选择按钮 -->
-      <div class="quick-select">
+      <!-- <div class="quick-select">
         <button
           v-for="percent in [25, 50, 75, 100]"
           :key="percent"
@@ -101,7 +106,7 @@
         >
           {{ percent }}%
         </button>
-      </div>
+      </div> -->
 
       <!-- 可用余额显示 -->
       <div class="balance-info">
@@ -164,7 +169,7 @@
     </div>
 
     <!-- 最近交易记录 -->
-    <div class="recent-trades">
+    <!-- <div class="recent-trades">
       <h3 class="section-title">交易历史</h3>
       <div class="trade-history">
         <div v-if="priceHistory.length === 0" class="empty-history">
@@ -185,7 +190,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -223,6 +228,11 @@ const errorMessage = ref('');
 const successMessage = ref('');
 const isLoading = ref(false);
 const cancellingOrder = ref(null);
+const quoteAmount = ref(0);
+const quoteLoading = ref(false);
+const quoteError = ref('');
+let quoteTimer = null;
+let quoteRequestId = 0;
 
 // 交易历史和挂单
 const priceHistory = ref([]);
@@ -233,14 +243,33 @@ function getToken() {
   return authStore.username || authStore.token;
 }
 
-// 计算总额
-const totalAmount = computed(() => {
-  const qty = amount.value || 0;
+const FEE_RATE = 0.003; // 与后端 token 模型保持一致的手续费估算
+
+const getEffectivePrice = () => {
+  const referencePrice = currentPrice.value || 0;
   if (orderType.value === 'market') {
-    // 市价单使用当前价格估算（实际会有滑点）
-    return qty * currentPrice.value * (tradeType.value === 'buy' ? 1.01 : 0.99); // 1% 手续费估算
+    return referencePrice;
   }
-  return qty * (price.value || currentPrice.value);
+  if (price.value && price.value > 0) {
+    return price.value;
+  }
+  return referencePrice;
+};
+
+// 计算总额
+const fallbackTotal = computed(() => {
+  const qty = Math.max(0, amount.value || 0);
+  const unitPrice = getEffectivePrice();
+  if (!qty || !unitPrice) return 0;
+  const gross = qty * unitPrice;
+  return tradeType.value === 'buy' ? gross * (1 + FEE_RATE) : gross * (1 - FEE_RATE);
+});
+
+const totalAmount = computed(() => {
+  if (quoteAmount.value > 0) {
+    return quoteAmount.value;
+  }
+  return fallbackTotal.value;
 });
 
 // 检查是否可以交易
@@ -258,11 +287,62 @@ const canTrade = computed(() => {
 // 选择百分比
 const selectPercent = (percent) => {
   if (tradeType.value === 'buy') {
-    const targetPrice = orderType.value === 'limit' && price.value > 0 ? price.value : currentPrice.value;
-    const maxAmount = Math.floor((availableBalance.value * percent / 100) / (targetPrice * 1.01));
-    amount.value = Math.max(1, maxAmount);
+    const targetPrice = getEffectivePrice() || 0.0001;
+    const balancePortion = (availableBalance.value * percent) / 100;
+    const maxAmount = balancePortion / (targetPrice * (1 + FEE_RATE));
+    amount.value = Math.max(0.0001, Number(maxAmount.toFixed(4)));
   } else {
-    amount.value = Math.floor(availableToken.value * percent / 100);
+    const portion = (availableToken.value * percent) / 100;
+    amount.value = Math.max(0.0001, Number(portion.toFixed(4)));
+  }
+  scheduleQuoteUpdate();
+};
+
+const scheduleQuoteUpdate = () => {
+  if (quoteTimer) clearTimeout(quoteTimer);
+  quoteTimer = setTimeout(fetchQuoteAmount, 250);
+};
+
+const fetchQuoteAmount = async () => {
+  quoteError.value = '';
+  const qty = Math.max(0, Number(amount.value) || 0);
+  if (!memeId.value || qty <= 0) {
+    quoteAmount.value = 0;
+    quoteLoading.value = false;
+    return;
+  }
+  if (!memeId.value || qty <= 0) {
+    quoteAmount.value = 0;
+    quoteLoading.value = false;
+    return;
+  }
+
+  const params = new URLSearchParams();
+  const signedAmount = tradeType.value === 'buy' ? qty : -qty;
+  params.append('amount', signedAmount.toString());
+  if (orderType.value === 'limit' && price.value > 0) {
+    params.append('expectedPrice', price.value.toString());
+  }
+
+  const requestId = ++quoteRequestId;
+  quoteLoading.value = true;
+  try {
+    const res = await fetch(`${server_ip}/api/meme/${memeId.value}/token/price?${params.toString()}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.message) {
+      throw new Error(data?.message || '获取预估总额失败');
+    }
+    if (requestId !== quoteRequestId) return;
+    const priceValue = Number(data.price);
+    quoteAmount.value = Number.isFinite(priceValue) ? Math.abs(priceValue) : 0;
+  } catch (error) {
+    if (requestId !== quoteRequestId) return;
+    quoteError.value = error.message || '无法获取预估总额';
+    quoteAmount.value = 0;
+  } finally {
+    if (requestId === quoteRequestId) {
+      quoteLoading.value = false;
+    }
   }
 };
 
@@ -392,14 +472,14 @@ const executeTrade = async () => {
       endpoint = tradeType.value === 'buy' 
         ? `${server_ip}/api/meme/${memeId.value}/token/buy`
         : `${server_ip}/api/meme/${memeId.value}/token/sell`;
-      body = { amount: Math.floor(amount.value) };
+      body = { amount: Number(amount.value) };
     } else {
       // 限价单（预约）
       endpoint = tradeType.value === 'buy'
         ? `${server_ip}/api/meme/${memeId.value}/token/buy-reservation`
         : `${server_ip}/api/meme/${memeId.value}/token/sell-reservation`;
       body = { 
-        amount: Math.floor(amount.value),
+        amount: Number(amount.value),
         expectedPrice: price.value
       };
     }
@@ -499,6 +579,7 @@ watch(() => props.selectedOrder, (newOrder) => {
     tradeType.value = newOrder.side === 'SELL' ? 'sell' : 'buy';
     price.value = newOrder.price;
     amount.value = newOrder.amount;
+    scheduleQuoteUpdate();
   }
 });
 
@@ -510,8 +591,14 @@ watch(
     fetchUserBalance();
     fetchPriceData();
     fetchMyOrders();
+    quoteAmount.value = 0;
+    scheduleQuoteUpdate();
   }
 );
+
+watch([amount, price, orderType, tradeType], () => {
+  scheduleQuoteUpdate();
+});
 
 // 监听交易类型切换，清除消息
 watch([tradeType, orderType], () => {
@@ -526,6 +613,7 @@ onMounted(async () => {
     fetchPriceData(),
     fetchMyOrders()
   ]);
+  scheduleQuoteUpdate();
 });
 </script>
 
@@ -649,6 +737,16 @@ onMounted(async () => {
         font-size: 11px;
         color: #666;
         margin-top: 4px;
+      }
+
+      .quote-hint {
+        margin-top: 6px;
+        font-size: 12px;
+        color: #7d8597;
+
+        .error-text {
+          color: #ff6b6b;
+        }
       }
 
       .input-group {

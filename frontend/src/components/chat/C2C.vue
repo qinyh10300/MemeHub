@@ -7,21 +7,45 @@
       <input v-model="targetUser" placeholder="对方用户名" />
 
       <div class="row">
-        <input v-model="myToken" placeholder="我付出的币种，如 DOGE" />
+        <input v-model="myToken" placeholder="我付出的币种，如 USDT 或 DOGE" />
         <input
           v-model.number="myAmount"
           type="number"
           placeholder="数量"
         />
       </div>
+      <div class="token-suggestions">
+        <span class="hint">常用币种：</span>
+        <button
+          v-for="token in commonTokens"
+          :key="token.value"
+          class="token-chip"
+          type="button"
+          @click="applyCommonToken('mine', token.value)"
+        >
+          {{ token.label }}
+        </button>
+      </div>
 
       <div class="row">
-        <input v-model="theirToken" placeholder="对方付出的币种，如 CAT" />
+        <input v-model="theirToken" placeholder="对方付出的币种，如 USDT 或 CAT" />
         <input
           v-model.number="theirAmount"
           type="number"
           placeholder="数量"
         />
+      </div>
+      <div class="token-suggestions">
+        <span class="hint">常用币种：</span>
+        <button
+          v-for="token in commonTokens"
+          :key="`${token.value}-their`"
+          class="token-chip"
+          type="button"
+          @click="applyCommonToken('theirs', token.value)"
+        >
+          {{ token.label }}
+        </button>
       </div>
 
       <button class="submit-btn" @click="createTrade" :disabled="loading">
@@ -173,6 +197,9 @@ const refreshAlerts = inject('refreshAlerts', () => {});
 
 const authStore = useAuthStore();
 const completedTradeIds = new Set();
+const commonTokens = [
+  { label: 'USDT', value: 'USDT' }
+];
 
 // 当前 Tab
 const activeTab = ref('outgoing');
@@ -260,6 +287,14 @@ function getServerUrl() {
   return authStore.serverIp || 'http://localhost:3000';
 }
 
+const applyCommonToken = (target, tokenValue) => {
+  if (target === 'mine') {
+    myToken.value = tokenValue;
+  } else if (target === 'theirs') {
+    theirToken.value = tokenValue;
+  }
+};
+
 // 刷新当前 Tab
 function refreshCurrentTab() {
   if (activeTab.value === 'outgoing') {
@@ -271,10 +306,16 @@ function refreshCurrentTab() {
 
 // 发起交易
 async function createTrade() {
-  if (!targetUser.value) return alert("请输入对方用户名");
-  if (!myToken.value || !myAmount.value) return alert("请输入您付出的币种和数量");
-  if (!theirToken.value || !theirAmount.value) return alert("请输入对方付出的币种和数量");
-
+  if (!targetUser.value) {
+    return alert("请输入对方用户名");
+  }
+  if (!myToken.value || myAmount.value === null || myAmount.value < 0) {
+    return alert("请输入您付出的币种和数量，且数量必须大于等于 0");
+  }
+  if (!theirToken.value || theirAmount.value === null || theirAmount.value < 0) {
+    return alert("请输入对方付出的币种和数量，且数量必须大于等于 0");
+  }
+  
   loading.value = true;
   try {
     const res = await fetch(`${getServerUrl()}/api/c2c/create`, {
@@ -456,6 +497,36 @@ onMounted(() => {
 .row {
   display: flex;
   gap: 10px;
+}
+
+.token-suggestions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 12px;
+
+  .hint {
+    font-size: 12px;
+    color: #9aa0a6;
+  }
+
+  .token-chip {
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    background: transparent;
+    color: #ddd;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #2a2a2a;
+      border-color: #444;
+      color: #fff;
+    }
+  }
 }
 
 .submit-btn {

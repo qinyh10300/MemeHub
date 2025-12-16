@@ -9,7 +9,7 @@ export const MEME_TICKER_MAX_LENGTH = 20;
 
 // Token常量
 
-export const TOKEN_COIN_COST = 10; // 发行Token所需金币数
+export const TOKEN_USDT_COST = 10; // 发行Token所需 USDT 数
 
 export const TOKEN_INIT_PRICE = 0.1; // 初始价格
 export const TOKEN_USDT_LIQUIDITY = 1000; // 初始流动性

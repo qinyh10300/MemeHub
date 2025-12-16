@@ -50,14 +50,14 @@ export const createMeme = async (req, res) => {
     // 检查是否发行虚拟货币
     if (withToken === 'true') {
       // 检查用户余额是否足够
-      if (user.coins < Const.TOKEN_COIN_COST) {
+      if (user.coins < Const.TOKEN_USDT_COST) {
         if (file) {
           fs.unlink(path.join(file.destination, file.filename), () => {});
         }
-        return res.status(400).json({ code: 1010, message: '金币余额不足，无法发行虚拟货币' });
+        return res.status(400).json({ code: 1010, message: 'USDT 余额不足，无法发行虚拟货币' });
       }
-      // 扣除用户金币
-      user.coins -= Const.TOKEN_COIN_COST;
+      // 扣除用户 USDT
+      user.coins -= Const.TOKEN_USDT_COST;
       await user.save();
     }
 
@@ -470,27 +470,17 @@ export const getTokenPriceByAmount = async (req, res) => {
     }
     let amount = Number(req.query.amount);
     let expectedPrice = Number(req.query.expectedPrice) || 0;
-    if (isNaN(amount)) {
+    if (isNaN(amount) || amount === 0) {
       return res.status(400).json({ message: '无效的Token数量参数' });
     }
-
-    if (amount > 0){
-      amount = Math.floor(amount);
-    } else if (amount < 0) {
-      amount = -1 * Math.floor(-1 * amount);
-    }
+    amount = Math.round(amount * 10000) / 10000;
 
     const price = token.getPriceByAmount(amount, expectedPrice);
     res.status(200).json({ price });
   } catch (error) {
-    res.status(500).json({
-      message: '获取Token价格失败',
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-        ...error
-      }
+    const statusCode = error.message?.includes('无法买入池中所有Token') ? 400 : 500;
+    res.status(statusCode).json({
+      message: error.message || '获取Token价格失败',
     });
   }
 };
@@ -625,7 +615,7 @@ export const buyTokenByAmount = async (req, res) => {
     if (!token) {
       return res.status(404).json({ message: `模因${memeId}的Token不存在` });
     }
-    const amount = Math.floor(Number(req.body.amount));
+    const amount = Math.round(Number(req.body.amount) * 10000) / 10000;
     if (isNaN(amount) || amount <= 0) {
       return res.status(400).json({ message: '无效的购买数量参数' });
     }
@@ -677,7 +667,7 @@ export const sellTokenByAmount = async (req, res) => {
     if (!token) {
       return res.status(404).json({ message: `模因${memeId}的Token不存在` });
     }
-    const amount = Math.floor(Number(req.body.amount));
+    const amount = Math.round(Number(req.body.amount) * 10000) / 10000;
     if (isNaN(amount) || amount <= 0) {
       return res.status(400).json({ message: '无效的出售数量参数' });
     }
@@ -732,7 +722,7 @@ export const buyTokenReservation = async (req, res) => {
     }
     // 获取预约参数
     const { expectedPrice, amount } = req.body;
-    const buyAmount = Math.floor(Number(amount));
+    const buyAmount = Math.round(Number(amount) * 10000) / 10000;
     const buyExpectedPrice = Number(expectedPrice);
     if (isNaN(buyAmount) || buyAmount <= 0) {
       return res.status(400).json({ message: '无效的预约购买数量参数' });
@@ -788,7 +778,7 @@ export const sellTokenReservation = async (req, res) => {
     }
     // 获取预约参数
     const { expectedPrice, amount } = req.body;
-    let sellAmount = Math.floor(Number(amount));
+    let sellAmount = Math.round(Number(amount) * 10000) / 10000;
     const sellExpectedPrice = Number(expectedPrice);
     if (isNaN(sellAmount) || sellAmount <= 0) {
       return res.status(400).json({ message: '无效的预约出售数量参数' });
