@@ -41,6 +41,13 @@
 
     <!-- K线图容器 (固定大小) -->
     <div class="chart-container">
+      <div v-if="loading" class="loading-overlay">
+        <div class="loading-spinner">加载中...</div>
+      </div>
+      <div v-if="error" class="error-overlay">
+        <div class="error-message">{{ error }}</div>
+        <button @click="changeTimeframe(active)" class="retry-btn">重试</button>
+      </div>
       <div id="chart_box" class="chart"></div>
     </div>
 
@@ -567,10 +574,8 @@ const updateIndicatorSnapshots = (klineData) => {
 };
 
 // 切换时间周期
-const changeTimeframe = (timeframe) => {
+const changeTimeframe = async (timeframe) => {
   active.value = timeframe;
-  const newData = generateDataByTimeframe(timeframe);
-  chart.applyNewData(newData);
   const newData = await fetchPriceHistory(timeframe);
   if (chart && Array.isArray(newData) && newData.length) {
     chart.applyNewData(newData);
@@ -590,7 +595,17 @@ const toggleIndicator = (indicator) => {
   // 不再动态改变K线图，保持K线图大小固定
 };
 
-onMounted(() => {
+// 监听memeId变化，重新加载数据
+watch(() => props.memeId, async (newMemeId) => {
+  if (newMemeId && chart) {
+    const initialData = await fetchPriceHistory(active.value);
+    if (initialData) {
+      chart.applyNewData(initialData);
+    }
+  }
+});
+
+onMounted(async () => {
   // 初始化图表
   chart = init("chart_box");
 
@@ -758,6 +773,7 @@ onMounted(() => {
     margin-bottom: 16px;
     height: 400px; /* 固定高度，不再变化 */
     width: 100%; /* 确保容器占满宽度 */
+    position: relative;
 
     .chart {
       width: 100%;
@@ -766,6 +782,51 @@ onMounted(() => {
       border-radius: 8px;
       display: block; /* 确保块级显示 */
       overflow: hidden; /* 防止溢出 */
+    }
+
+    .loading-overlay,
+    .error-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(13, 13, 13, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      z-index: 10;
+    }
+
+    .loading-spinner {
+      color: #65c281;
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .error-message {
+      color: #ff3b69;
+      font-size: 14px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .retry-btn {
+      padding: 8px 16px;
+      background: #65c281;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background: #4fa865;
+      }
     }
   }
 
