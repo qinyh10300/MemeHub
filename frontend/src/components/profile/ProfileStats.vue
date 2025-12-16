@@ -38,13 +38,13 @@ const isOwnProfile = computed(() => props.isOwnProfile)
 // 格式化 USDT 数量
 const formatUsdt = (amount) => {
   if (amount === undefined || amount === null) return '0'
-  if (amount >= 10000) {
-    return (amount / 10000).toFixed(1) + 'w'
-  }
-  if (amount >= 1000) {
-    return (amount / 1000).toFixed(1) + 'k'
-  }
-  return Math.floor(amount).toLocaleString()
+  // if (amount >= 10000) {
+  //   return (amount / 10000).toFixed(1) + 'w'
+  // }
+  // if (amount >= 1000) {
+  //   return (amount / 1000).toFixed(1) + 'k'
+  // }
+  return amount.toFixed(4);
 }
 </script>
 
