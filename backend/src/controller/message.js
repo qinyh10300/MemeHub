@@ -1,11 +1,12 @@
 import { Message } from '../models/message.js';
 import { User } from '../models/user.js';
 import pkg from 'jsonwebtoken';
-import { generateStickerAsset } from '../services/stickerGenerator.js';
+// import { generateStickerAsset } from '../services/stickerGenerator.js';
 const { verify } = pkg;
 
 const RECALL_WINDOW_MINUTES = parseInt(process.env.MESSAGE_RECALL_WINDOW_MINUTES, 10) || 5;
 const RECALL_WINDOW_MS = RECALL_WINDOW_MINUTES * 60 * 1000;
+const STICKER_GENERATION_DISABLED_MESSAGE = 'AI生成表情包功能已暂时关闭';
 
 // 辅助函数：构建头像URL
 function buildAvatarUrl(userDoc = {}, baseUrl = '') {
@@ -324,6 +325,12 @@ export const generateSticker = async (req, res) => {
     const currentUser = await findUserByToken(token);
     if (!currentUser) return res.status(401).json({ message: '用户未登录' });
 
+    return res.status(503).json({
+      code: 2001,
+      message: STICKER_GENERATION_DISABLED_MESSAGE
+    });
+
+    /*
     const { prompt } = req.body;
     if (!prompt || !prompt.trim()) {
       return res.status(400).json({ message: '请输入想要生成的表情关键词' });
@@ -342,6 +349,7 @@ export const generateSticker = async (req, res) => {
         meta: result.meta
       }
     });
+    */
   } catch (error) {
     console.error('[Sticker] generate error:', error);
     res.status(500).json({ message: '生成表情包失败', error: error.message });

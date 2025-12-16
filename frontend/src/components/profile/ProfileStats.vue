@@ -35,16 +35,31 @@ const props = defineProps({
 
 const isOwnProfile = computed(() => props.isOwnProfile)
 
-// 格式化 USDT 数量
+// 格式化 USDT 数量，保留最多 4 位小数
+const stripTrailingZeros = (value = '') => value.replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1')
+
+const formatWithSuffix = (value, divisor, suffix) => {
+  const scaled = Number(value) / divisor
+  if (!Number.isFinite(scaled)) return `0${suffix}`
+  return `${stripTrailingZeros(scaled.toFixed(2))}${suffix}`
+}
+
 const formatUsdt = (amount) => {
   if (amount === undefined || amount === null) return '0'
-  if (amount >= 10000) {
-    return (amount / 10000).toFixed(1) + 'w'
+  const numeric = Number(amount)
+  if (!Number.isFinite(numeric)) return '0'
+
+  if (numeric >= 10000) {
+    return formatWithSuffix(numeric, 10000, 'w')
   }
-  if (amount >= 1000) {
-    return (amount / 1000).toFixed(1) + 'k'
+  if (numeric >= 1000) {
+    return formatWithSuffix(numeric, 1000, 'k')
   }
-  return Math.floor(amount).toLocaleString()
+
+  return numeric.toLocaleString('zh-CN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4
+  })
 }
 </script>
 
