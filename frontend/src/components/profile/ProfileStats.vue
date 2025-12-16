@@ -46,20 +46,13 @@ const formatWithSuffix = (value, divisor, suffix) => {
 
 const formatUsdt = (amount) => {
   if (amount === undefined || amount === null) return '0'
-  const numeric = Number(amount)
-  if (!Number.isFinite(numeric)) return '0'
-
-  if (numeric >= 10000) {
-    return formatWithSuffix(numeric, 10000, 'w')
-  }
-  if (numeric >= 1000) {
-    return formatWithSuffix(numeric, 1000, 'k')
-  }
-
-  return numeric.toLocaleString('zh-CN', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 4
-  })
+  // if (amount >= 10000) {
+  //   return (amount / 10000).toFixed(1) + 'w'
+  // }
+  // if (amount >= 1000) {
+  //   return (amount / 1000).toFixed(1) + 'k'
+  // }
+  return amount.toFixed(4);
 }
 </script>
 

@@ -205,7 +205,7 @@ const resolveApiBase = () => {
 
 const API_BASE = `${resolveApiBase()}/api`;
 
-const active = ref("1D");
+const active = ref("5M");
 const currentPrice = ref(0);
 const priceChange = ref(0);
 const priceChangePercent = ref(0);
@@ -438,6 +438,8 @@ const fetchPriceHistory = async (timeframe) => {
         interval
       }
     });
+
+    console.log("response.data: ", response.data)
 
     if (response.data && response.data.code === 0) {
       const priceHistory = response.data.data;
