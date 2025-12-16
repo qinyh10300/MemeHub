@@ -83,9 +83,11 @@ const defaultTasks = [
 
 const cloneTasks = (tasks) => tasks.map((task) => ({ ...task }))
 
+const GOLD_TO_USDT_RATE = 50
+
 const createDefaultState = () => ({
   xp: 1860,
-  copper: 520, // 铜钱
+  copper: 520, // 金币
   badges: 6,
   energy: 78,
   streak: 0,
@@ -99,6 +101,28 @@ const createDefaultState = () => ({
 })
 
 const gamificationState = ref(createDefaultState())
+
+const adjustCopper = (delta = 0) => {
+  const current = Number(gamificationState.value.copper) || 0
+  const next = Math.max(0, current + Number(delta || 0))
+  gamificationState.value.copper = Math.round(next)
+  return gamificationState.value.copper
+}
+
+const goldExchangeMessage = ref('')
+const maxUsdtExchange = computed(() => Math.floor((Number(gamificationState.value.copper) || 0) / GOLD_TO_USDT_RATE))
+
+const exchangeGoldToUsdt = () => {
+  const available = maxUsdtExchange.value
+  if (!available) {
+    goldExchangeMessage.value = '金币不足，兑换比例 50:1'
+    return
+  }
+  const goldUsed = available * GOLD_TO_USDT_RATE
+  adjustCopper(-goldUsed)
+  goldExchangeMessage.value = `已兑换 ${available} USDT，消耗 ${goldUsed} 金币`
+  pushActivity(`兑换 ${available} USDT（耗费 ${goldUsed} 金币）`, 'exchange')
+}
 const activeTaskFilter = ref('daily')
 const isDrawing = ref(false)
 const xpPerLevel = 600
@@ -190,7 +214,7 @@ const flipMemoryCard = (card) => {
         memoryGameActive.value = false
         const bonus = Math.max(10, 50 - memoryMoves.value * 2)
         gamificationState.value.xp += bonus
-        gamificationState.value.copper += Math.round(bonus / 2)
+        adjustCopper(Math.round(bonus / 2))
         pushActivity(`翻牌配对完成！+${bonus} XP`, 'game')
       }
     } else {
@@ -213,10 +237,10 @@ const coinFlipMessage = ref('')
 const flipCoin = () => {
   if (coinFlipSpinning.value) return
   if (gamificationState.value.copper < coinFlipBet.value) {
-    coinFlipMessage.value = '铜钱不足！'
+    coinFlipMessage.value = '金币不足！'
     return
   }
-  gamificationState.value.copper -= coinFlipBet.value
+  adjustCopper(-coinFlipBet.value)
   coinFlipSpinning.value = true
   coinFlipResult.value = null
   coinFlipMessage.value = ''
@@ -227,13 +251,13 @@ const flipCoin = () => {
     coinFlipSpinning.value = false
     if (result === coinFlipChoice.value) {
       const winnings = coinFlipBet.value * 2
-      gamificationState.value.copper += winnings
+      adjustCopper(winnings)
       gamificationState.value.xp += 15
-      coinFlipMessage.value = `🎉 赢了！+${winnings} 铜钱`
-      pushActivity(`硬币翻转赢得 ${winnings} 铜钱`, 'game')
+      coinFlipMessage.value = `🎉 赢了！+${winnings} 金币`
+      pushActivity(`硬币翻转赢得 ${winnings} 金币`, 'game')
     } else {
       coinFlipMessage.value = '😢 输了，再试一次！'
-      pushActivity(`硬币翻转输掉 ${coinFlipBet.value} 铜钱`, 'game')
+      pushActivity(`硬币翻转输掉 ${coinFlipBet.value} 金币`, 'game')
     }
   }, 1500)
 }
@@ -248,10 +272,10 @@ const slotCost = 20
 const spinSlots = () => {
   if (slotSpinning.value) return
   if (gamificationState.value.copper < slotCost) {
-    slotMessage.value = '铜钱不足！'
+    slotMessage.value = '金币不足！'
     return
   }
-  gamificationState.value.copper -= slotCost
+  adjustCopper(-slotCost)
   slotSpinning.value = true
   slotMessage.value = ''
 
@@ -276,14 +300,14 @@ const checkSlotWin = () => {
     else if (a === '💎') multiplier = 15
     else if (a === '⭐') multiplier = 10
     const winnings = slotCost * multiplier
-    gamificationState.value.copper += winnings
+    adjustCopper(winnings)
     gamificationState.value.xp += multiplier * 5
-    slotMessage.value = `🎰 大奖！+${winnings} 铜钱`
-    pushActivity(`老虎机中奖 ${winnings} 铜钱！`, 'game')
+    slotMessage.value = `🎰 大奖！+${winnings} 金币`
+    pushActivity(`老虎机中奖 ${winnings} 金币！`, 'game')
   } else if (a === b || b === c || a === c) {
     const winnings = slotCost
-    gamificationState.value.copper += winnings
-    slotMessage.value = `✨ 两个相同！+${winnings} 铜钱`
+    adjustCopper(winnings)
+    slotMessage.value = `✨ 两个相同！+${winnings} 金币`
   } else {
     slotMessage.value = '再接再厉！'
   }
@@ -467,8 +491,8 @@ const checkGame24Win = (finalValue) => {
     if (gamificationState.value.game24DailyWins < GAME24_DAILY_LIMIT) {
       gamificationState.value.game24DailyWins++
       gamificationState.value.xp += GAME24_REWARD_XP
-      gamificationState.value.copper += GAME24_REWARD_COPPER
-      game24Message.value = `🎉 正确！+${GAME24_REWARD_XP} XP / +${GAME24_REWARD_COPPER} 铜钱 (今日 ${gamificationState.value.game24DailyWins}/${GAME24_DAILY_LIMIT})`
+      adjustCopper(GAME24_REWARD_COPPER)
+      game24Message.value = `🎉 正确！+${GAME24_REWARD_XP} XP / +${GAME24_REWARD_COPPER} 金币 (今日 ${gamificationState.value.game24DailyWins}/${GAME24_DAILY_LIMIT})`
       pushActivity(`24点计算成功 +${GAME24_REWARD_XP} XP`, 'game')
     } else {
       game24Message.value = `🎉 正确！但今日奖励已达上限 (${GAME24_DAILY_LIMIT}次)`
@@ -511,17 +535,17 @@ const skipGame24 = () => {
 
 const rewardPool = [
   { id: 'xp-small', label: '+50 XP', type: 'xp', value: 50, rarity: '常规', weight: 30, accent: '#5ef38c' },
-  { id: 'coin-mid', label: '+80 铜钱', type: 'copper', value: 80, rarity: '常规', weight: 26, accent: '#f9c80e' },
+  { id: 'coin-mid', label: '+80 金币', type: 'copper', value: 80, rarity: '常规', weight: 26, accent: '#f9c80e' },
   { id: 'energy', label: '+15 体力', type: 'energy', value: 15, rarity: '稀有', weight: 16, accent: '#f18701' },
   { id: 'xp-large', label: '+150 XP', type: 'xp', value: 150, rarity: '稀有', weight: 12, accent: '#7f5af0' },
   { id: 'badge', label: '限定徽章', type: 'badge', value: 1, rarity: '传说', weight: 6, accent: '#ff5d8f' },
-  { id: 'coin-big', label: '+200 铜钱', type: 'copper', value: 200, rarity: '史诗', weight: 10, accent: '#ffd166' },
+  { id: 'coin-big', label: '+200 金币', type: 'copper', value: 200, rarity: '史诗', weight: 10, accent: '#ffd166' },
 ]
 
 const activityFeed = ref([
   { id: 'seed-1', label: '完成「分享模因」任务，获得 40 XP', time: '1 小时前', type: 'task' },
-  { id: 'seed-2', label: '签到成功：+60 XP / +18 铜钱', time: '昨天', type: 'checkin' },
-  { id: 'seed-3', label: '抽奖抽中 +80 铜钱', time: '2 天前', type: 'lottery' },
+  { id: 'seed-2', label: '签到成功：+60 XP / +18 金币', time: '昨天', type: 'checkin' },
+  { id: 'seed-3', label: '抽奖抽中 +80 金币', time: '2 天前', type: 'lottery' },
 ])
 
 const snapshotStateToStorage = (key, state) => {
@@ -543,9 +567,14 @@ const loadStateForKey = (key) => {
   }
   try {
     const parsed = JSON.parse(raw)
+    const defaults = createDefaultState()
+    const safeCopper = Number(parsed.copper)
+    const safeXp = Number(parsed.xp)
     gamificationState.value = {
-      ...createDefaultState(),
+      ...defaults,
       ...parsed,
+      xp: Number.isFinite(safeXp) ? safeXp : defaults.xp,
+      copper: Number.isFinite(safeCopper) ? Math.max(0, Math.round(safeCopper)) : defaults.copper,
       tasks: parsed.tasks ? parsed.tasks.map((task) => ({ ...task })) : cloneTasks(defaultTasks),
       checkIns: Array.isArray(parsed.checkIns) ? parsed.checkIns : [],
     }
@@ -603,9 +632,9 @@ const applyTaskProgress = (taskId, increment = 1) => {
 
   if (completedTask) {
     gamificationState.value.xp += completedTask.rewardXp
-    gamificationState.value.copper += completedTask.rewardCopper
+    adjustCopper(completedTask.rewardCopper)
     pushActivity(
-      `完成「${completedTask.title}」 +${completedTask.rewardXp} XP / +${completedTask.rewardCopper} 铜钱`,
+      `完成「${completedTask.title}」 +${completedTask.rewardXp} XP / +${completedTask.rewardCopper} 金币`,
       'task'
     )
   }
@@ -676,6 +705,11 @@ const filteredTasks = computed(() =>
 )
 
 const energyPercent = computed(() => Math.min(100, gamificationState.value.energy))
+const displayCopper = computed(() => {
+  const value = Number(gamificationState.value.copper)
+  if (!Number.isFinite(value)) return 0
+  return Math.max(0, Math.round(value))
+})
 
 const weekMomentum = computed(() => Math.min(100, Math.round(previewStreak.value * 12 + completedTaskCount.value * 8)))
 
@@ -700,7 +734,7 @@ const applyReward = (reward) => {
       gamificationState.value.xp += reward.value
       break
     case 'copper':
-      gamificationState.value.copper += reward.value
+      adjustCopper(reward.value)
       break
     case 'energy':
       gamificationState.value.energy = Math.min(100, gamificationState.value.energy + reward.value)
@@ -723,10 +757,10 @@ const handleCheckIn = () => {
   gamificationState.value.lastCheckIn = todayKey
   gamificationState.value.streak = streak
   gamificationState.value.xp += xp
-  gamificationState.value.copper += coins
+  adjustCopper(coins)
   gamificationState.value.energy = Math.min(100, gamificationState.value.energy + 6)
   applyTaskProgress('milestone-checkin', 1)
-  pushActivity(`签到成功：+${xp} XP / +${coins} 铜钱`, 'checkin')
+  pushActivity(`签到成功：+${xp} XP / +${coins} 金币`, 'checkin')
 }
 
 const taskRoutes = {
@@ -853,10 +887,10 @@ watch(
 
       <article class="glass-card mini-stat">
         <div class="card-header">
-          <p>铜钱</p>
+          <p>金币</p>
           <span>{{ gamificationState.badges }} 徽章</span>
         </div>
-        <h2>{{ gamificationState.copper }}</h2>
+        <h2>{{ displayCopper }}</h2>
         <div class="energy-track">
           <div class="energy-fill" :style="{ width: `${energyPercent}%` }"></div>
         </div>
@@ -881,6 +915,18 @@ watch(
         <h2>{{ totalTaskProgress }}%</h2>
         <div class="chip secondary compact">势能 +{{ weekMomentum }}</div>
       </article>
+    </section>
+
+    <section class="exchange-row glass-card">
+      <div>
+        <p class="eyebrow">金币兑换 USDT</p>
+        <h3>汇率 50:1</h3>
+        <p class="muted">可兑换：{{ maxUsdtExchange }} USDT</p>
+        <p class="muted" v-if="goldExchangeMessage">{{ goldExchangeMessage }}</p>
+      </div>
+      <button class="primary-btn" :disabled="maxUsdtExchange === 0" @click="exchangeGoldToUsdt">
+        一键兑换
+      </button>
     </section>
 
     <!-- 主分栏导航 -->
@@ -950,7 +996,7 @@ watch(
               <p class="eyebrow">命运抽奖</p>
               <h3>用人品赢取额外奖励</h3>
             </div>
-            <span class="chip">消耗 50 铜钱</span>
+            <span class="chip">消耗 50 金币</span>
           </header>
           <div class="lottery-body">
             <div class="wheel" :class="{ spinning: isDrawing }">
@@ -1078,7 +1124,7 @@ watch(
               </div>
               <div class="task-reward">
                 <span>+{{ task.rewardXp }} XP</span>
-                <span>+{{ task.rewardCopper }} 铜钱</span>
+                <span>+{{ task.rewardCopper }} 金币</span>
               </div>
             </div>
             <div class="task-footer">
@@ -1210,7 +1256,7 @@ watch(
       <article v-if="activeGameTab === 'memory'" class="glass-card game-card">
         <div class="game-header">
           <h4>🧠 翻牌配对</h4>
-          <span class="game-badge">+XP +铜钱</span>
+          <span class="game-badge">+XP +金币</span>
         </div>
         <p class="muted">找到所有配对，步数越少奖励越高</p>
 
@@ -1250,7 +1296,7 @@ watch(
           <h4>🪙 硬币翻转</h4>
           <span class="game-badge">2x 赔率</span>
         </div>
-        <p class="muted">猜对正反面，赢取双倍铜钱</p>
+        <p class="muted">猜对正反面，赢取双倍金币</p>
 
         <div class="coin-flip-body">
           <div class="coin" :class="{ spinning: coinFlipSpinning, heads: coinFlipResult === 'heads', tails: coinFlipResult === 'tails' }">
@@ -1259,7 +1305,7 @@ watch(
           </div>
 
           <div class="bet-controls">
-            <label>下注铜钱</label>
+            <label>下注金币</label>
             <div class="bet-row">
               <button @click="coinFlipBet = Math.max(5, coinFlipBet - 5)">-</button>
               <span>{{ coinFlipBet }}</span>
@@ -1300,7 +1346,7 @@ watch(
           <h4>🎰 幸运老虎机</h4>
           <span class="game-badge">最高 20x</span>
         </div>
-        <p class="muted">消耗 {{ slotCost }} 铜钱，三个相同赢大奖</p>
+        <p class="muted">消耗 {{ slotCost }} 金币，三个相同赢大奖</p>
 
         <div class="slot-body">
           <div class="slot-display">
@@ -1509,6 +1555,22 @@ watch(
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
+}
+
+.exchange-row {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.exchange-row .muted {
+  margin-top: 4px;
+}
+
+.exchange-row .primary-btn {
+  min-width: 140px;
 }
 
 .glass-card {
