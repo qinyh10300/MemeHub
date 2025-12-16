@@ -169,7 +169,7 @@
     </div>
 
     <!-- 最近交易记录 -->
-    <div class="recent-trades">
+    <!-- <div class="recent-trades">
       <h3 class="section-title">交易历史</h3>
       <div class="trade-history">
         <div v-if="priceHistory.length === 0" class="empty-history">
@@ -190,7 +190,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
