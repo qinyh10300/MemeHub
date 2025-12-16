@@ -29,10 +29,6 @@
           <input type="checkbox" v-model="animations" @change="fetchProjects" />
           <span>动画</span>
         </label>
-        <!-- <button class="refresh-price-btn" @click="updatePrices" :disabled="loading">
-          <span class="refresh-icon">🔄</span>
-          刷新价格
-        </button> -->
       </div>
 
       <div class="filter-right">
@@ -87,57 +83,39 @@
 
     <!-- 卡片展示区 -->
     <div v-else :class="['card-grid', { list: !isGridView }]">
-      <div
-        v-for="(item, index) in projects"
-        :key="index"
+      <div 
+        v-for="(item, index) in projects" 
+        :key="index" 
         class="project-card"
         @click="goToMemeDetail(item)"
       >
         <div class="thumb">
-          <img :src="getImageUrl(item.image)" alt="project" />
+          <img :src="item.image" alt="project" />
         </div>
 
         <div class="info">
-          <div class="card-header">
-            <div class="title-section">
-              <h3>{{ item.name }}</h3>
-              <span class="ticker">${{ item.symbol }}</span>
-            </div>
-            <div class="user-info">
-              <img :src="getUserAvatar(item.userAvatar)" :alt="item.creator" class="user-avatar" />
-              <span class="creator-name">{{ item.creator }}</span>
-            </div>
-          </div>
-
+          <h3>{{ item.name }}</h3>
+          <p class="symbol">{{ item.symbol }}</p>
           <div class="meta">
-            <span class="time">{{ formatTimeAgo(item.createdAt) }}</span>
-            <span class="likes">❤️ {{ item.likes || 0 }}</span>
+            <span class="user">🧠 {{ item.creator }}</span>
+            <span class="time">{{ item.time }}</span>
           </div>
-
-          <div class="price-stats">
-            <div class="price-info">
-              <span class="price">${{ formatPrice(item.price) }}</span>
-              <span :class="['price-change', item.priceChange >= 0 ? 'positive' : 'negative']">
-                {{ item.priceChange >= 0 ? '+' : '' }}{{ item.priceChange }}%
-              </span>
+          <div class="mc-line">
+            <span class="mc-label">MC</span>
+            <span class="mc-value">${{ item.mc }}</span>
+            <div class="bar">
+              <div
+                class="fill"
+                :style="{
+                  width: item.mcPercent + '%',
+                  backgroundColor: item.change > 0 ? '#3fd67d' : '#e74c3c'
+                }"
+              ></div>
             </div>
-            <div class="market-progress">
-              <span class="market-cap-label">MC</span>
-              <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  :style="{
-                    width: Math.min(item.likes * 2, 100) + '%',
-                    background: item.priceChange >= 0 ?
-                      'linear-gradient(90deg, #00d084, #00a868)' :
-                      'linear-gradient(90deg, #ff3b69, #e74c3c)'
-                  }"
-                ></div>
-              </div>
-              <span class="market-cap-value">${{ formatMarketCap(item.likes) }}</span>
-            </div>
+            <span :class="['change', item.change > 0 ? 'up' : 'down']">
+              {{ item.change > 0 ? '↑' : '↓' }}{{ Math.abs(item.change) }}%
+            </span>
           </div>
-
           <p class="desc">{{ item.desc }}</p>
         </div>
       </div>
@@ -147,7 +125,7 @@
 
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
 
@@ -168,76 +146,7 @@ const authStore = useAuthStore();
 const server_ip = authStore.server_ip // 后端服务器地址
 const user_token = authStore.user_token // user token
 
-// 格式化价格显示
-const formatPrice = (price) => {
-  if (!price) return '0.000000'
-  if (price < 0.000001) return price.toExponential(2)
-  if (price < 1) return price.toFixed(6)
-  return price.toFixed(2)
-}
-
-// 格式化市值显示
-const formatMarketCap = (likes) => {
-  if (!likes) return '0'
-  if (likes >= 1000000) {
-    return (likes / 1000000).toFixed(2) + 'M'
-  } else if (likes >= 1000) {
-    return (likes / 1000).toFixed(2) + 'K'
-  }
-  return likes.toString()
-}
-
-// 格式化时间显示
-const formatTimeAgo = (dateStr) => {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diff = now - date
-  const hours = Math.floor(diff / 3600000)
-  if (hours < 1) return '刚刚'
-  if (hours < 24) return `${hours}小时前`
-  const days = Math.floor(hours / 24)
-  return `${days}天前`
-}
-
-// 获取图片URL
-const getImageUrl = (url) => {
-  console.log("getImageUrl url:", url)
-  if (!url) return ''
-  if (url.startsWith('http')) return url
-  return `${server_ip}${url.startsWith('/') ? '' : '/'}${url}`
-}
-
-// 获取用户头像URL
-const getUserAvatar = (avatarUrl) => {
-  if (!avatarUrl) return DEFAULT_AVATAR;
-
-  if (avatarUrl.startsWith('http')) return avatarUrl;
-  return `${server_ip}${avatarUrl.startsWith('/') ? '' : '/'}${avatarUrl}`;
-};
-
-// 异步获取用户详细信息（包括头像）
-const fetchUserDetails = async (username) => {
-  if (!username) return DEFAULT_AVATAR;
-
-  try {
-    const res = await axios.get(`${server_ip}/api/user/${username}`, {
-      headers: { 'token': authStore.username || '' }
-    });
-    const avatar = res.data?.data?.avatar;
-    if (avatar) {
-      return avatar.startsWith('http') ? avatar : `${server_ip}${avatar.startsWith('/') ? '' : '/'}${avatar}`;
-    }
-    return DEFAULT_AVATAR;
-  } catch (error) {
-    console.error("获取用户头像失败:", error);
-    return DEFAULT_AVATAR;
-  }
-};
-
-const DEFAULT_AVATAR ='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM0MENEQzYiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNSIgcj0iNyIgZmlsbD0iI0ZGRkZGRiIvPgo8ZWxsaXBzZSBjeD0iMjAiIGN5PSIzMCIgcng9IjEwIiByeT0iNyIgZmlsbD0iI0ZGRkZGRiIvPgo8L3N2Zz4K'
-
-/* 获取项目数据 */
+/* 模拟数据请求 */
 const fetchProjects = async () => {
   loading.value = true;
   error.value = null;
@@ -256,116 +165,59 @@ const fetchProjects = async () => {
       )
     );
 
-    // 第三步：适配字段并获取真实的价格数据
-    const processedProjects = await Promise.all(
-      memeDetails.map(async (item) => {
-        console.log("meme item:", item);
-
-        // 检查是否有代币
-        const withToken = item.userinfo?.withToken;
-        if (withToken === false) {
-          return null; // 跳过没有代币的模因
-        }
-
-        try {
-          // 并发获取价格和用户头像
-          const [priceRes, userAvatarUrl] = await Promise.all([
-            axios.get(`${server_ip}/api/meme/${item._id}/token/price`),
-            fetchUserDetails(item.author?.username)
-          ]);
-
-          console.log("price_res:", priceRes.data);
-
-          const priceData = priceRes.data.data || priceRes.data;
-          const currentPrice = priceData.price || (Math.random() * 0.001 + 0.000001);
-
-          // 计算价格变化（模拟历史数据对比）
-          const previousPrice = currentPrice * (1 + (Math.random() - 0.5) * 0.1);
-          const priceChange = ((currentPrice - previousPrice) / previousPrice) * 100;
-
-          return {
-            memeId: item._id,
-            name: item.title,
-            symbol: item.ticker,
-            creator: item.author?.username || "未知",
-            userAvatar: userAvatarUrl,
-            createdAt: item.createdAt,
-            price: Number(currentPrice),
-            priceChange: Number(priceChange.toFixed(2)),
-            likes: item.likes || 0,
-            image: item.imageUrl ? `${server_ip}/${item.imageUrl.replace(/^\/+/, '')}` : '',
-            desc: item.description
-          };
-        } catch (priceError) {
-          console.warn(`获取数据失败，使用模拟数据: ${priceError.message}`);
-          // 如果获取价格失败，使用模拟数据
-          const basePrice = Math.random() * 0.001 + 0.000001;
-          const priceChange = (Math.random() - 0.5) * 20;
-          const userAvatarUrl = await fetchUserDetails(item.author?.username);
-
-          return {
-            memeId: item._id,
-            name: item.title,
-            symbol: item.ticker,
-            creator: item.author?.username || "未知",
-            userAvatar: userAvatarUrl,
-            createdAt: item.createdAt,
-            price: Number(basePrice),
-            priceChange: Number(priceChange.toFixed(2)),
-            likes: item.likes || 0,
-            image: item.imageUrl ? `${server_ip}/${item.imageUrl.replace(/^\/+/, '')}` : '',
-            desc: item.description
-          };
-        }
-      })
-    );
-
-    // 过滤掉null值并设置projects
-    projects.value = processedProjects.filter(project => project !== null);
-
+    // 第三步：适配字段
+    projects.value = memeDetails.map((item) => ({
+      memeId: item._id, // 新增：保存 memeId
+      name: item.title,
+      symbol: item.ticker,
+      creator: item.author?.username || "未知",
+      time: new Date(item.createdAt).toLocaleString(),
+      mc: item.likes,
+      mcPercent: Math.min(item.likes * 10, 100),
+      change: 0,
+      image: item.imageUrl ? `${server_ip}/${item.imageUrl.replace(/^\/+/, '')}` : '',
+      desc: item.description
+    }));
   } 
   // 测试用例数据
   catch (err) {
     console.error("后端请求失败，使用预定义数据:", err);
     
-    // 使用预定义数据作为后备方案 - 添加模拟的完整数据
+    // 使用预定义数据作为后备方案 - 添加模拟的 memeId
     projects.value = [
       {
-        memeId: "1",
+        memeId: "1", 
         name: "Dogecoin",
         symbol: "DOGE",
-        creator: "Elon Musk",
-        userAvatar: null,
-        createdAt: new Date(Date.now() - 3600000).toISOString(), // 1小时前
-        price: 0.07234,
-        priceChange: +5.67,
-        likes: 18200,
+        creator: "2r5Vfc",
+        time: "1h ago",
+        mc: "18.2B",
+        mcPercent: 80,
+        change: +2.34,
         image: new URL('@/assets/doge.png', import.meta.url).href,
         desc: "Dogecoin（狗狗币）是一种以Doge表情包为灵感的加密货币，以社区驱动和趣味性著称，旨在让数字货币变得更加亲民有趣。"
       },
       {
-        memeId: "2",
+        memeId: "2", // 新增模拟ID
         name: "Pepe the Frog",
         symbol: "PEPE",
         creator: "Matt Furie",
-        userAvatar: null,
-        createdAt: new Date(Date.now() - 7200000).toISOString(), // 2小时前
-        price: 0.00001234,
-        priceChange: +8.91,
-        likes: 6530,
+        time: "1h ago",
+        mc: "653M",
+        mcPercent: 91,
+        change: +3.17,
         image: new URL('@/assets/pepe.avif', import.meta.url).href,
         desc: "Pepe the Frog（青蛙佩佩）起源于网络漫画，是网络文化中最具影响力的表情之一，后来被加密社区赋予象征幽默与团结的精神。"
       },
       {
-        memeId: "3",
+        memeId: "3", // 新增模拟ID
         name: "Bored Ape Yacht Club",
         symbol: "BAYC",
         creator: "Yuga Labs",
-        userAvatar: null,
-        createdAt: new Date(Date.now() - 10800000).toISOString(), // 3小时前
-        price: 12.45,
-        priceChange: -3.28,
-        likes: 5900,
+        time: "3h ago",
+        mc: "590M",
+        mcPercent: 89,
+        change: -1.24,
         image: new URL('@/assets/bayc.webp', import.meta.url).href,
         desc: "Bored Ape Yacht Club（无聊猿游艇俱乐部）是由Yuga Labs推出的知名NFT系列，共有1万只独特猿猴形象，象征数字身份、艺术品位与专属社群。"
       }
@@ -383,7 +235,7 @@ const fetchProjects = async () => {
 };
 
 const goToMemeDetail = (item) => {
-  console.log("item: ", item)
+  // console.log("item: ", item)
   router.push(`/meme/${item.memeId}`);
 };
 
@@ -397,66 +249,8 @@ const changeFilter = (type) => {
   fetchProjects();
 };
 
-// 价格更新定时器
-let priceUpdateInterval = null;
-
-// 更新价格数据的函数
-const updatePrices = async () => {
-  if (projects.value.length === 0) return;
-
-  try {
-    const updatedProjects = await Promise.all(
-      projects.value.map(async (project) => {
-        try {
-          // 获取最新价格
-          const priceRes = await axios.get(`${server_ip}/api/meme/${project.memeId}/token/price`);
-          const priceData = priceRes.data.data || priceRes.data;
-          const currentPrice = priceData.price || project.price;
-
-          // 计算价格变化
-          const previousPrice = project.price;
-          const priceChange = previousPrice ? ((currentPrice - previousPrice) / previousPrice) * 100 : 0;
-
-          return {
-            ...project,
-            price: Number(currentPrice),
-            priceChange: Number(priceChange.toFixed(2))
-          };
-        } catch (error) {
-          console.warn(`更新项目 ${project.memeId} 价格失败:`, error);
-          return project; // 保持原有数据
-        }
-      })
-    );
-
-    projects.value = updatedProjects;
-    console.log('价格数据已更新');
-  } catch (error) {
-    console.error('批量更新价格失败:', error);
-  }
-};
-
-// 启动价格更新定时器
-const startPriceUpdate = () => {
-  // 每30秒更新一次价格
-  priceUpdateInterval = setInterval(updatePrices, 30000);
-};
-
-// 停止价格更新定时器
-const stopPriceUpdate = () => {
-  if (priceUpdateInterval) {
-    clearInterval(priceUpdateInterval);
-    priceUpdateInterval = null;
-  }
-};
-
 onMounted(() => {
   fetchProjects();
-  startPriceUpdate(); // 启动价格更新
-});
-
-onUnmounted(() => {
-  stopPriceUpdate(); // 组件卸载时清理定时器
 });
 </script>
 
@@ -464,7 +258,6 @@ onUnmounted(() => {
 <style scoped>
 /* 右上角按钮组 */
 .filter-right {
-  /* margin-right: 16px; */
   display: flex;
   align-items: center;
   gap: 8px;
@@ -527,119 +320,44 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   width: 100%;
-  gap: 16px;
+  gap: 10px;
 }
 
 .card-grid.list .project-card {
   display: flex;
   flex-direction: row;
   align-items: center;
-  background: linear-gradient(135deg, rgba(27, 27, 27, 0.9), rgba(36, 36, 36, 0.8));
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--my-bg-soft);
   gap: 20px;
-  width: 100%;
+  width: 100%; /* ✅ 占据整个主页面宽度 */
   box-sizing: border-box;
-  padding: 20px;
 }
 
 .card-grid.list .thumb {
   width: 160px;
   height: 160px;
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex;              /* ✅ 启用flex布局 */
+  align-items: center;        /* ✅ 垂直居中 */
+  justify-content: center;    /* ✅ 水平居中 */
 }
 
+
 .card-grid.list .thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  width: 70%;     /* ✅ 缩放为原图大小的 70% */
+  height: auto;   /* ✅ 保持比例 */
+  object-fit: contain;  /* ✅ 不裁剪原图 */
+  border-radius: 8px;
 }
 
 .card-grid.list .info {
   flex: 1;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  margin-top: 0;
 }
 
-.card-grid.list .card-header {
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px;
-}
-
-.card-grid.list .user-info {
-  flex-direction: column;
-  align-items: center;
-}
-
-.card-grid.list .title-section h3 {
-  font-size: 20px;
-  line-height: 1.3;
-}
-
-.card-grid.list .ticker {
-  font-size: 15px;
-  margin-top: 4px;
-}
-
-.card-grid.list .desc {
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-line-clamp: 3;
-}
-
-.card-grid.list .price {
-  font-size: 22px;
-}
-
-.card-grid.list .price-change {
-  font-size: 16px;
-  padding: 4px 8px;
-}
-
-.card-grid.list .market-progress {
-  font-size: 14px;
-}
-
-/* 列表模式下的 hover 效果 */
+/* 在列表模式下，卡片的 hover 效果保持一致 */
 .card-grid.list .project-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(127, 90, 240, 0.2);
-  border-color: rgba(127, 90, 240, 0.4);
-}
-
-/* 列表模式下的响应式设计 */
-@media (max-width: 600px) {
-  .card-grid.list .project-card {
-    flex-direction: column;
-    text-align: center;
-    gap: 16px;
-    padding: 16px;
-  }
-
-  .card-grid.list .thumb {
-    width: 120px;
-    height: 120px;
-  }
-
-  .card-grid.list .card-header {
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .card-grid.list .user-info {
-    flex-direction: row;
-    justify-content: center;
-  }
+  transform: translateY(-3px);
 }
 
 .featured-container {
@@ -759,41 +477,6 @@ onUnmounted(() => {
   font-weight: bold;
 }
 
-/* 刷新价格按钮 */
-.refresh-price-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: linear-gradient(135deg, #42b983, #2c9c6a);
-  border: none;
-  border-radius: 8px;
-  color: white;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.refresh-price-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2c9c6a, #238055);
-  transform: translateY(-1px);
-}
-
-.refresh-price-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.refresh-icon {
-  font-size: 14px;
-  transition: transform 0.3s ease;
-}
-
-.refresh-price-btn:hover:not(:disabled) .refresh-icon {
-  transform: rotate(180deg);
-}
-
 .filter-right {
   display: flex;
   align-items: center;
@@ -826,39 +509,35 @@ onUnmounted(() => {
 /* 卡片区 */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, 1fr); /* 始终3列 */
   gap: 20px;
   width: 100%;
 }
 
 .project-card {
-  background: linear-gradient(135deg, rgba(27, 27, 27, 0.9), rgba(36, 36, 36, 0.8));
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 16px;
+  background-color: #1b1b1b;
+  border-radius: 12px;
+  padding: 12px;
   display: flex;
-  flex-direction: row;
+  flex-direction: row; 
   align-items: center;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   width: 100%;
   box-sizing: border-box;
-  gap: 16px;
+  gap: 12px; 
 }
 
+
 .project-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 30px rgba(127, 90, 240, 0.15);
-  border-color: rgba(127, 90, 240, 0.3);
-  background: linear-gradient(135deg, rgba(27, 27, 27, 0.95), rgba(36, 36, 36, 0.9));
+  transform: translateY(-4px);
+  background-color: #242424;
 }
 
 .thumb img {
-  width: 90px;
+  width: 90px; 
   height: 90px;
   object-fit: cover;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
 }
 
 .info {
@@ -866,152 +545,74 @@ onUnmounted(() => {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  justify-content: center;
 }
 
-/* 卡片头部 */
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+.info h3 {
+  font-size: 16px;
+  margin-bottom: 2px;
+  margin-top: 0px;
+}
+
+.symbol {
+  font-size: 13px;
+  color: #aaa;
   margin-bottom: 4px;
 }
 
-.title-section h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0;
-  color: #fff;
-  line-height: 1.2;
-}
+.desc {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #bbb;
+  line-height: 1.4;
 
-.ticker {
-  font-size: 13px;
-  color: #7f5af0;
-  font-weight: 500;
-  display: inline-block;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-direction: column;
-}
-
-.user-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid rgba(127, 90, 240, 0.3);
-  background: #2a2a2a;
-}
-
-.creator-name {
-  font-size: 11px;
-  color: #888;
-  max-width: 60px;
-  white-space: nowrap;
+  /* ✅ 限制最多显示两行，超出部分显示省略号 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;   /* 限制显示 2 行 */
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* 元数据 */
 .meta {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 13px;
   color: #888;
 }
 
-.likes {
-  color: #ff3b69;
-  font-weight: 500;
-}
-
-/* 价格统计 */
-.price-stats {
+.mc-line {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.price-info {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
 }
 
-.price {
-  font-size: 18px;
-  font-weight: 700;
-  color: #fff;
+.mc-value {
+  font-weight: bold;
 }
 
-.price-change {
-  font-size: 14px;
-  font-weight: 600;
-  padding: 2px 6px;
+.bar {
+  background-color: #333;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.price-change.positive {
-  color: #00d084;
-  background: rgba(0, 208, 132, 0.1);
-}
-
-.price-change.negative {
-  color: #ff3b69;
-  background: rgba(255, 59, 105, 0.1);
-}
-
-/* 市值进度条 */
-.market-progress {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.market-cap-label {
-  color: #888;
-  font-weight: 600;
-  min-width: 20px;
-}
-
-.progress-bar {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
   flex: 1;
   height: 6px;
   overflow: hidden;
 }
 
-.progress-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease;
+.fill {
+  height: 6px;
+  border-radius: 6px;
+  transition: width 0.3s;
 }
 
-.market-cap-value {
-  color: #fff;
-  font-weight: 600;
-  min-width: 40px;
-  text-align: right;
+.change.up {
+  color: #3fd67d;
 }
 
-/* 描述 */
-.desc {
-  font-size: 12px;
-  color: #bbb;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin: 0;
+.change.down {
+  color: #e74c3c;
 }
 
 
@@ -1024,27 +625,6 @@ onUnmounted(() => {
 @media (max-width: 600px) {
   .card-grid {
     grid-template-columns: repeat(1, 1fr);
-  }
-
-  .project-card {
-    flex-direction: column;
-    text-align: center;
-    gap: 12px;
-  }
-
-  .card-header {
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .user-info {
-    flex-direction: row;
-    justify-content: center;
-  }
-
-  .creator-name {
-    max-width: 120px;
   }
 }
 </style>
