@@ -328,11 +328,10 @@ const fetchQuoteAmount = async () => {
   quoteLoading.value = true;
   try {
     const res = await fetch(`${server_ip}/api/meme/${memeId.value}/token/price?${params.toString()}`);
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || '获取预估总额失败');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.message) {
+      throw new Error(data?.message || '获取预估总额失败');
     }
-    const data = await res.json();
     if (requestId !== quoteRequestId) return;
     const priceValue = Number(data.price);
     quoteAmount.value = Number.isFinite(priceValue) ? Math.abs(priceValue) : 0;
