@@ -130,6 +130,22 @@ const setUsdtBalance = (value = 0) => {
   return gamificationState.value.usdt
 }
 
+const persistCoins = async () => {
+  if (!authStore.username) return
+  try {
+    await fetch(`${server_ip}/api/user/coins`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        token: authStore.username || authStore.token || '',
+      },
+      body: JSON.stringify({ coins: getUsdtBalance() })
+    })
+  } catch (err) {
+    console.warn('同步 USDT 到服务器失败', err)
+  }
+}
+
 const goldExchangeMessage = ref('')
 const goldToUsdtInput = ref('')
 const usdtToGoldInput = ref('')
@@ -168,6 +184,7 @@ const exchangeGoldToUsdt = () => {
   adjustUsdt(usdtGain)
   goldExchangeMessage.value = `已兑换 ${usdtGain} USDT，消耗 ${amountGold} 金币`
   pushActivity(`兑换 ${usdtGain} USDT（耗费 ${amountGold} 金币）`, 'exchange')
+  persistCoins()
   goldToUsdtInput.value = ''
 }
 
@@ -188,6 +205,7 @@ const exchangeUsdtToGold = () => {
   adjustCopper(goldGain)
   goldExchangeMessage.value = `已兑换 ${goldGain} 金币，消耗 ${amountUsdt} USDT`
   pushActivity(`兑换 ${goldGain} 金币（耗费 ${amountUsdt} USDT）`, 'exchange')
+  persistCoins()
   usdtToGoldInput.value = ''
 }
 const activeTaskFilter = ref('daily')

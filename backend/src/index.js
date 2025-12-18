@@ -205,6 +205,7 @@ app.delete('/api/watchlist/:memeId', UserFeatures.removeFromWatchlist);
 app.get('/api/price-alerts', UserFeatures.getPriceAlerts);
 app.post('/api/price-alerts', UserFeatures.createPriceAlert);
 app.delete('/api/price-alerts/:alertId', UserFeatures.deletePriceAlert);
+app.post('/api/user/coins', UserFeatures.updateCoins);
 app.get('/api/achievements', UserFeatures.getUserAchievements);
 app.get('/api/creator-stats', UserFeatures.getCreatorStats);
 app.get('/api/recommendations', UserFeatures.getRecommendations);
