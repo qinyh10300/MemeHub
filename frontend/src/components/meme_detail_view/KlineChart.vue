@@ -201,7 +201,7 @@ const fetchPriceHistory = async (timeframe) => {
   error.value = null;
 
   try {
-    const config = timeframeConfigs[timeframe] || timeframeConfigs['1H'];
+    const config = timeframeConfigs[timeframe] || timeframeConfigs['1M'];
     const now = Date.now();
     const lookback = config?.durationMs || 7 * DAY;
     const startTime = now - lookback;
@@ -220,13 +220,22 @@ const fetchPriceHistory = async (timeframe) => {
     const params = new URLSearchParams();
     params.append('amount', 1);
     const latestPrice = await axios.get(`${API_BASE}/meme/${props.memeId}/token/price?${params.toString()}`);
+    // 获取5h之前的价格作为对比
+    const fiveHoursAgoPrice = await axios.get(`${API_BASE}/meme/${props.memeId}/token/price-history`, {
+      params: {
+        startTime: now - 5 * HOUR,
+        endTime: now - 5 * HOUR + 2 * MINUTE,
+        interval: '1M'
+      }
+    });
     // console.log("response.data: ", response.data)
-    console.log("latestPrice: ", latestPrice.data.price)
+    // console.log("latestPrice: ", latestPrice.data.price)
     // console.log("response.data: ", response.data.data[0]['open'])
+    console.log("fiveHoursAgoPrice: ", fiveHoursAgoPrice.data.data);
 
     if (response.data && response.data.code === 0) {
       const priceHistory = response.data.data;
-      return processPriceData(priceHistory, latestPrice.data?.price);
+      return processPriceData(priceHistory, latestPrice.data?.price, fiveHoursAgoPrice.data?.data);
     }
     throw new Error(response.data?.message || '获取价格历史失败');
   } catch (err) {
@@ -238,7 +247,7 @@ const fetchPriceHistory = async (timeframe) => {
   }
 };
 
-const processPriceData = (priceHistory = [], latestPrice = null) => {
+const processPriceData = (priceHistory = [], latestPrice = null, fiveHoursAgoPrice = null) => {
   if (!Array.isArray(priceHistory) || priceHistory.length === 0) {
     error.value = '暂无可用的 K 线数据';
     return null;
@@ -262,16 +271,17 @@ const processPriceData = (priceHistory = [], latestPrice = null) => {
   });
 
   
-  updatePriceStats(klineData, latestPrice);
+  updatePriceStats(klineData, latestPrice, fiveHoursAgoPrice);
   return klineData;
 };
 
-const updatePriceStats = (klineData, latestPrice) => {
+const updatePriceStats = (klineData, latestPrice, fiveHoursAgoPrice) => {
   if (!klineData.length) return;
 
-    // const latest = latestPrice;
-    const latest = klineData[klineData.length - 1].close;
-    const previous = klineData[0];
+    const latest = latestPrice;
+    const previous = fiveHoursAgoPrice[0];
+    // const latest = klineData[klineData.length - 1].close;
+    // const previous = klineData[0];
 
     currentPrice.value = latest;
     priceChange.value = latest - previous.close;
