@@ -117,11 +117,6 @@
                 <span class="checkbox-custom"></span>
                 站内通知
               </label>
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="newAlert.notifyEmail" />
-                <span class="checkbox-custom"></span>
-                邮件通知
-              </label>
             </div>
           </div>
         </div>
@@ -310,7 +305,7 @@ const newAlert = ref({
   type: 'above',
   targetPrice: null,
   notifyInApp: true,
-  notifyEmail: false,
+  notifyEmail: false, // 邮件通知已下线，默认仅站内
   note: ''
 })
 

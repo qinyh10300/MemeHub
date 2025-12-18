@@ -45,6 +45,7 @@
       v-if="isModalOpen"
       :nickname="userData?.nickname || ''"
       :bio="userData?.bio || ''"
+      :email="userData?.email || ''"
       @close="closeModal"
       @save="handleSave"
     />
@@ -150,6 +151,7 @@ const handleSave = (data) => {
     ...props.userData,
     nickname: data.nickname,
     bio: data.bio,
+    email: data.email,
   })
   closeModal()
 }

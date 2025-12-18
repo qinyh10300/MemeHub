@@ -59,6 +59,7 @@ const userData = ref({
   avatar: defaultAvatar, // 默认头像
   nickname: '',
   username: '',
+  email: '',
   bio: '',
   followers: 0,
   following: 0,
@@ -111,6 +112,7 @@ const fetchUserProfile = async () => {
         avatar: data.avatar || defaultAvatar, // 如果没有头像，使用默认头像
         nickname: data.nickname,
         username: data.username,
+        email: data.email || '',
         bio: data.bio,
         followers: data.followers,
         following: data.following,
@@ -168,6 +170,9 @@ const handleUserDataUpdate = (updatedData) => {
     }
     if (updatedData.bio !== undefined) {
       userData.value.bio = updatedData.bio
+    }
+    if (updatedData.email !== undefined) {
+      userData.value.email = updatedData.email
     }
     if (updatedData.avatar !== undefined && updatedData.avatar) {
       // 如果头像URL更新了，确保使用新的URL，同时保留原有查询参数

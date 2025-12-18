@@ -158,6 +158,8 @@ export const getPriceAlerts = async (req, res) => {
       return res.status(404).json({ code: 1002, message: '用户不存在' });
     }
 
+    const triggeredAlerts = [];
+
     // 获取当前价格并检查是否触发
     const alertsWithPrices = await Promise.all(
       user.priceAlerts.map(async (alert) => {
@@ -176,6 +178,12 @@ export const getPriceAlerts = async (req, res) => {
           }
         }
 
+        if (shouldTrigger) {
+          alert.status = 'triggered';
+          alert.triggeredAt = new Date();
+          triggeredAlerts.push({ alert, currentPrice });
+        }
+
         return {
           id: alert._id,
           memeId: alert.meme._id,
@@ -185,7 +193,7 @@ export const getPriceAlerts = async (req, res) => {
           type: alert.type,
           targetPrice: alert.targetPrice,
           currentPrice,
-          status: shouldTrigger ? 'triggered' : alert.status,
+          status: alert.status,
           notifyInApp: alert.notifyInApp,
           notifyEmail: alert.notifyEmail,
           note: alert.note,
@@ -194,6 +202,10 @@ export const getPriceAlerts = async (req, res) => {
         };
       })
     );
+
+    if (triggeredAlerts.length) {
+      await user.save();
+    }
 
     res.json({
       code: 0,

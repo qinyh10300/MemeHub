@@ -9,6 +9,7 @@ const userSchema = new Schema({
   bio: { type: String, default: '' }, // 个人简介
   avatar: { type: String, default: '' }, // 头像URL
   loginToken: { type: String },
+  email: { type: String, default: '', lowercase: true, trim: true },
   coins: { type: Number, default: 100 },
   workList: { type: [Schema.Types.ObjectId], ref: 'Meme', default: [] },
   favoriteList: { type: [Schema.Types.ObjectId], ref: 'Meme', default: [] },
