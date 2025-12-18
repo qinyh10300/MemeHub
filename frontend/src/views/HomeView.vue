@@ -6,10 +6,10 @@ import SmartRecommend from '../components/home/SmartRecommend.vue'
 
 <template>
   <main>
-     <header class="content-header">
-        <h1>欢迎来到MemeHub</h1>
-        <p>进行愉快的模因创作和模因币交易吧！</p>
-      </header>
+    <header class="content-header">
+      <h1 class="fancy-title">欢迎来到MemeHub🤗🤗🤗</h1>
+      <p class="fancy-subtitle">进行愉快的模因创作和模因币交易吧！</p>
+    </header>
       <div class="search-wrapper">
         <Search />
       </div>
@@ -39,7 +39,7 @@ import SmartRecommend from '../components/home/SmartRecommend.vue'
   box-sizing: border-box;
 }
 
-.content-header {
+/* .content-header {
   text-align: center;
   margin-bottom: 30px;
 }
@@ -56,9 +56,7 @@ import SmartRecommend from '../components/home/SmartRecommend.vue'
 }
 
 .content-card {
-  /* width: 100%; */
   width: 1250px;
-  /* max-width: 1200px;  */
   margin: 0 auto;    
   box-sizing: border-box;
   background-color: #000000;
@@ -71,5 +69,28 @@ import SmartRecommend from '../components/home/SmartRecommend.vue'
   .content-header h1 {
     font-size: 24px;
   }
+} */
+
+.content-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+/* 主标题样式 */
+.fancy-title {
+  font-size: 36px; /* 增大字体 */
+  color: #80da80; /* 暗绿色 */
+  font-weight: bold; /* 加粗字体 */
+  letter-spacing: 2px; /* 增加字间距 */
+  margin-bottom: 10px;
+}
+
+/* 副标题样式 */
+.fancy-subtitle {
+  font-size: 20px; /* 调整字体大小 */
+  color: #4b8966; /* 浅暗绿色 */
+  font-family: 'Arial', sans-serif; /* 改为无衬线字体 */
+  font-style: italic; /* 添加斜体 */
+  margin-top: 5px;
 }
 </style>
