@@ -92,7 +92,7 @@ import { onMounted, ref, watch } from "vue";
 import { init } from "klinecharts";
 import axios from "axios";
 import { useAuthStore } from "@/stores/auth";
-
+let autoRefreshTimer = null;
 const props = defineProps({
   memeId: {
     type: String,
@@ -159,6 +159,39 @@ const formatVolume = (volume = 0) => {
   return volume.toFixed(2);
 };
 
+const startAutoRefresh = () => {
+  stopAutoRefresh();
+
+  const config = timeframeConfigs[active.value];
+  if (!config) return;
+
+  // interval 对应的毫秒数
+  const intervalMs = (() => {
+    switch (active.value) {
+      case '1M': return 1 * MINUTE;
+      case '5M': return 5 * MINUTE;
+      case '15M': return 15 * MINUTE;
+      case '30M': return 30 * MINUTE;
+      case '1H': return 1 * HOUR;
+      case '4H': return 4 * HOUR;
+      case '1D': return 1 * DAY;
+      case '1W': return 7 * DAY;
+      default: return 5 * MINUTE;
+    }
+  })();
+
+  autoRefreshTimer = setInterval(() => {
+    // 等价于自动“点击”当前周期按钮
+    changeTimeframe(active.value);
+  }, intervalMs);
+};
+
+const stopAutoRefresh = () => {
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
+};
 
 // 获取价格历史数据
 const fetchPriceHistory = async (timeframe) => {
@@ -181,12 +214,19 @@ const fetchPriceHistory = async (timeframe) => {
         interval
       }
     });
+    response.data.data[0]["open"] = 0.1; // TODO: 临时修复后端数据问题，后端需要修复
 
-    console.log("response.data: ", response.data)
+    // 获取模因最新价格
+    const params = new URLSearchParams();
+    params.append('amount', 1);
+    const latestPrice = await axios.get(`${API_BASE}/meme/${props.memeId}/token/price?${params.toString()}`);
+    // console.log("response.data: ", response.data)
+    console.log("latestPrice: ", latestPrice.data.price)
+    // console.log("response.data: ", response.data.data[0]['open'])
 
     if (response.data && response.data.code === 0) {
       const priceHistory = response.data.data;
-      return processPriceData(priceHistory);
+      return processPriceData(priceHistory, latestPrice.data?.price);
     }
     throw new Error(response.data?.message || '获取价格历史失败');
   } catch (err) {
@@ -198,7 +238,7 @@ const fetchPriceHistory = async (timeframe) => {
   }
 };
 
-const processPriceData = (priceHistory = []) => {
+const processPriceData = (priceHistory = [], latestPrice = null) => {
   if (!Array.isArray(priceHistory) || priceHistory.length === 0) {
     error.value = '暂无可用的 K 线数据';
     return null;
@@ -221,18 +261,20 @@ const processPriceData = (priceHistory = []) => {
     };
   });
 
-  updatePriceStats(klineData);
+  
+  updatePriceStats(klineData, latestPrice);
   return klineData;
 };
 
-const updatePriceStats = (klineData) => {
+const updatePriceStats = (klineData, latestPrice) => {
   if (!klineData.length) return;
 
-    const latest = klineData[klineData.length - 1];
-    const previous = klineData[klineData.length - 2] || latest;
+    // const latest = latestPrice;
+    const latest = klineData[klineData.length - 1].close;
+    const previous = klineData[0];
 
-    currentPrice.value = latest.close;
-    priceChange.value = latest.close - previous.close;
+    currentPrice.value = latest;
+    priceChange.value = latest - previous.close;
     priceChangePercent.value = previous.close !== 0 ? (priceChange.value / previous.close) * 100 : 0;
 
   const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
@@ -342,12 +384,23 @@ const updateIndicators = () => {
 };
 
 // 切换时间周期
+// const changeTimeframe = async (timeframe) => {
+//   active.value = timeframe;
+//   const newData = await fetchPriceHistory(timeframe);
+//   if (chart && Array.isArray(newData) && newData.length) {
+//     chart.applyNewData(newData);
+//   }
+// };
 const changeTimeframe = async (timeframe) => {
   active.value = timeframe;
+
   const newData = await fetchPriceHistory(timeframe);
   if (chart && Array.isArray(newData) && newData.length) {
     chart.applyNewData(newData);
   }
+
+  // ⭐ 每次手动/自动切换周期，都重新对齐刷新节奏
+  startAutoRefresh();
 };
 
 // 计算图表高度
@@ -436,6 +489,8 @@ onMounted(async () => {
       chart.applyNewData(initialData);
     }
   }
+
+  startAutoRefresh();
 });
 </script>
 
