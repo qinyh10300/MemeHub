@@ -2,7 +2,6 @@ import { User } from '../models/user.js';
 import { Meme } from '../models/meme.js';
 import { Token } from '../models/token.js';
 import { ACHIEVEMENTS, getAllAchievements, calculateAchievementProgress } from '../configs/achievements.js';
-import { sendMail, isValidEmail, isEmailEnabled } from '../utils/mailer.js';
 
 // ============== 自选列表 API ==============
 
@@ -203,36 +202,6 @@ export const getPriceAlerts = async (req, res) => {
         };
       })
     );
-
-    // 邮件通知（仅对刚触发且开启邮箱提醒的预警）
-    if (triggeredAlerts.length && isEmailEnabled()) {
-      const recipient = user.username;
-      if (isValidEmail(recipient)) {
-        for (const { alert, currentPrice } of triggeredAlerts) {
-          if (!alert.notifyEmail) continue;
-          const direction = alert.type === 'above' ? '≥' : '≤';
-          const subject = `价格预警触发：${alert.meme?.title || '模因'} (${alert.meme?.ticker || ''})`;
-          const text = [
-            `价格预警已触发：${alert.meme?.title || ''} (${alert.meme?.ticker || ''})`,
-            `目标价：${direction} ${alert.targetPrice}`,
-            `当前价：${currentPrice}`,
-            `时间：${new Date().toLocaleString()}`
-          ].filter(Boolean).join('\n');
-          const html = `
-            <p>价格预警已触发：</p>
-            <p><strong>${alert.meme?.title || ''} (${alert.meme?.ticker || ''})</strong></p>
-            <p>目标价：${direction} ${alert.targetPrice}</p>
-            <p>当前价：${currentPrice}</p>
-            <p>时间：${new Date().toLocaleString()}</p>
-          `;
-          sendMail({ to: recipient, subject, text, html }).catch((err) =>
-            console.error('[price alert mail] send failed:', err?.message || err)
-          );
-        }
-      } else {
-        console.warn('[price alert mail] username is not a valid email, skip:', recipient);
-      }
-    }
 
     if (triggeredAlerts.length) {
       await user.save();

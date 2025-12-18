@@ -15,6 +15,7 @@ async function createUserWithRole({ username, password, role }) {
     password: hashedPassword,
     nickname,
     role,
+    email: username && username.includes('@') ? username : '',
   });
 
   await newUser.save();
@@ -147,7 +148,7 @@ export async function resetPassword(req, res) {
 // 更新昵称、个人简介和头像
 export async function updateNickname(req, res) {
   try {
-    const { nickname, bio, avatar } = req.body;
+    const { nickname, bio, avatar, email } = req.body;
     const token = req.headers.token || req.headers.authorization?.replace('Bearer ', '');
     
     if (!token) {
@@ -222,6 +223,15 @@ export async function updateNickname(req, res) {
       console.log('更新头像 - 设置后的user.avatar:', user.avatar);
     }
 
+    // 更新邮箱（如果提供）
+    if (email !== undefined) {
+      const trimmedEmail = (email || '').trim().toLowerCase();
+      if (trimmedEmail && !trimmedEmail.includes('@')) {
+        return res.status(400).json({ code: 1007, message: '邮箱格式不正确' });
+      }
+      user.email = trimmedEmail;
+    }
+
     await user.save();
     
     console.log('更新头像 - 保存后的user.avatar:', user.avatar);
@@ -231,7 +241,8 @@ export async function updateNickname(req, res) {
       message: '更新成功',
       nickname: user.nickname,
       bio: user.bio,
-      avatar: user.avatar
+      avatar: user.avatar,
+      email: user.email
     });
   } catch (error) {
     // 处理数据库唯一性约束错误

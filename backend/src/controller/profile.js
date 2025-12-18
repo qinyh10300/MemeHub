@@ -238,6 +238,7 @@ export const getUserProfile = async (req, res) => {
       avatar: userAvatar, // 使用用户设置的头像或默认头像
       nickname: user.nickname || `用户${user._id}`,
       username: `@${user.username}`,
+      email: user.email || '',
       bio: user.bio || `这是用户 ${user.username} 的个人简介。`, // 使用实际的bio字段，如果没有则使用默认值
       followers: followersCount, // 使用查询到的粉丝总数
       following: followingCount,

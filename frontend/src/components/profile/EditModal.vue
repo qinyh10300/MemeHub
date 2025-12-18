@@ -33,6 +33,17 @@
             <label for="editBio" :class="{ 'label-up': form.bio }">个人简介（可选，最多200字）</label>
           </div>
 
+          <!-- 邮箱 -->
+          <div class="input-group">
+            <input
+              id="editEmail"
+              type="email"
+              v-model="form.email"
+              placeholder="邮箱（用于邮件通知，可选）"
+            />
+            <label for="editEmail" :class="{ 'label-up': form.email }">邮箱（可选，用于邮件通知）</label>
+          </div>
+
           <button type="submit" class="submit-btn" :disabled="saving">
             {{ saving ? '保存中...' : '保存' }}
           </button>
@@ -55,6 +66,7 @@ import { useAuthStore } from '@/stores/auth';
 const props = defineProps({
   nickname: String,
   bio: String,
+  email: String,
 });
 
 const emit = defineEmits(['close', 'save']);
@@ -70,20 +82,23 @@ const saving = ref(false);
 const form = reactive({
   nickname: props.nickname || '',
   bio: props.bio || '',
+  email: props.email || '',
 });
 
 // 监听props变化，更新表单数据
-watch(() => [props.nickname, props.bio], ([newNickname, newBio]) => {
+watch(() => [props.nickname, props.bio, props.email], ([newNickname, newBio, newEmail]) => {
   form.nickname = newNickname || '';
   form.bio = newBio || '';
+  form.email = newEmail || '';
 }, { immediate: true });
 
 // 验证正则
 const nicknameRegex = /^[\u4e00-\u9fa5\w]{3,10}$/; // 汉字、英文、数字、下划线，3-10个字符
 const bioRegex = /^[\s\S]{0,200}$/; // 允许所有字符（包括换行、空格、标点等），0-200个字符
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // 实时清空错误提示
-watch(() => [form.nickname, form.bio], () => {
+watch(() => [form.nickname, form.bio, form.email], () => {
   errorMsg.value = '';
 });
 
@@ -98,6 +113,12 @@ const handleSave = async () => {
   // 验证个人简介
   if (!bioRegex.test(form.bio)) {
     errorMsg.value = '个人简介不能超过200个字符';
+    return;
+  }
+  
+  // 验证邮箱（可选）
+  if (form.email && !emailRegex.test(form.email)) {
+    errorMsg.value = '邮箱格式不正确';
     return;
   }
   
@@ -121,6 +142,7 @@ const handleSave = async () => {
       body: JSON.stringify({
         nickname: form.nickname,
         bio: form.bio,
+        email: form.email,
       }),
     });
 
@@ -131,6 +153,7 @@ const handleSave = async () => {
       emit('save', {
         nickname: result.nickname || form.nickname,
         bio: result.bio || form.bio,
+        email: result.email ?? form.email,
       });
       // 关闭弹窗
       emit('close');
