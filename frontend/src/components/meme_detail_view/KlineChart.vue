@@ -166,19 +166,21 @@ const startAutoRefresh = () => {
   if (!config) return;
 
   // interval 对应的毫秒数
-  const intervalMs = (() => {
-    switch (active.value) {
-      case '1M': return 1 * MINUTE;
-      case '5M': return 5 * MINUTE;
-      case '15M': return 15 * MINUTE;
-      case '30M': return 30 * MINUTE;
-      case '1H': return 1 * HOUR;
-      case '4H': return 4 * HOUR;
-      case '1D': return 1 * DAY;
-      case '1W': return 7 * DAY;
-      default: return 5 * MINUTE;
-    }
-  })();
+  // const intervalMs = (() => {
+  //   switch (active.value) {
+  //     case '1M': return 1 * MINUTE;
+  //     case '5M': return 5 * MINUTE;
+  //     case '15M': return 15 * MINUTE;
+  //     case '30M': return 30 * MINUTE;
+  //     case '1H': return 1 * HOUR;
+  //     case '4H': return 4 * HOUR;
+  //     case '1D': return 1 * DAY;
+  //     case '1W': return 7 * DAY;
+  //     default: return 5 * MINUTE;
+  //   }
+  // })();
+  const intervalMs = 5000; // 固定每5秒刷新
+
 
   autoRefreshTimer = setInterval(() => {
     // 等价于自动“点击”当前周期按钮
@@ -231,7 +233,7 @@ const fetchPriceHistory = async (timeframe) => {
     // console.log("response.data: ", response.data)
     // console.log("latestPrice: ", latestPrice.data.price)
     // console.log("response.data: ", response.data.data[0]['open'])
-    console.log("fiveHoursAgoPrice: ", fiveHoursAgoPrice.data.data);
+    // console.log("fiveHoursAgoPrice: ", fiveHoursAgoPrice.data.data);
 
     if (response.data && response.data.code === 0) {
       const priceHistory = response.data.data;
