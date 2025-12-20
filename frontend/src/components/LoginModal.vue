@@ -32,7 +32,8 @@
         <!-- 注册表单 -->
         <div v-else>
           <div class="form-header">
-            <h2>创建账号</h2>
+            <h2 v-if="!isAuditor">创建普通用户账号</h2>
+            <h2 v-else>创建审核员账号</h2>
             <p>开启您的美好旅程</p>
           </div>
 
