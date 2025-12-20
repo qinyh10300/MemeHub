@@ -219,6 +219,7 @@ async function fetchBufferFromUrl(url) {
 
 async function callStickerImage(plan, keyword = '') {
   ensureApiKey();
+
   const prompt = buildImagePrompt(plan, keyword);
   const sourceTag = isOpenAIStyleImageApi ? 'kolors' : 'wanx-t2i';
 
@@ -418,7 +419,7 @@ export async function generateStickerAsset(promptText = '', user = null) {
         mimeType: imageResult.mimeType || 'image/png',
         source: imageResult.source || 'wanx-t2i'
       }
-  };
+    };
   } catch (imageError) {
     console.error('[Sticker] image generation failed, fallback to SVG:', imageError);
     const svg = buildStickerSvg(plan);
