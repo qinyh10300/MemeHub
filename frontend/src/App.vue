@@ -187,8 +187,8 @@ const goToProfile = (username) => {
     <!-- 左侧导航栏 -->
     <aside class="sidebar">
       <div class="logo-container">
-        <img class="logo" src="@/assets/pumpfun.png" alt="Pumpfun Logo" />
-        <span class="logo-text">中文模因社区</span>
+        <img class="logo" src="@/assets/kapibala.ico" alt="Pumpfun Logo" />
+        <span class="logo-text">MemeHub</span>
       </div>
 
       <nav class="nav-container">
@@ -205,7 +205,7 @@ const goToProfile = (username) => {
           <span class="nav-text">创建模因</span>
         </RouterLink>
         <RouterLink v-if="isLoggedIn" :to="`/notification`" class="nav-item" active-class="active">
-          <img class="nav-icon" src="@/assets/pumpfun.png" alt="Profile" />
+          <img class="nav-icon" src="@/assets/kapibala.ico" alt="Profile" />
           <span class="nav-text">消息通知</span>
         </RouterLink>
         <RouterLink v-if="isLoggedIn" :to="`/chat`" class="nav-item" active-class="active">
@@ -245,7 +245,6 @@ const goToProfile = (username) => {
 
     <!-- 主内容区域 -->
     <main class="main-content">
-      <!-- ⭐ 新增这一行 -->
       <!-- 顶部栏 -->
       <div class="top-bar">
         <!-- 未登录按钮 -->
@@ -276,10 +275,12 @@ const goToProfile = (username) => {
           </div>
         </div>
       </div>
-
-      <!-- 路由视图 -->
-      <RouterView />
     </main>
+
+    <!-- 路由视图 - 独立于顶部栏 -->
+    <div class="router-content">
+      <RouterView />
+    </div>
   </div>
 </template>
 
@@ -403,20 +404,32 @@ const goToProfile = (username) => {
   50% { transform: scale(1.1); }
 }
 
-/* 主内容区域样式 */
+/* 主内容区域样式 - 仅包含顶部栏 */
 .main-content {
-  position: absolute;
+  position: fixed;
   left: 220px;
   right: 0;
   top: 0;
-  bottom: 0;
-  padding: 0px;
-  min-height: 100vh;
-  background-color: #000000; 
-  color: #ffffff; 
+  height: 60px;
+  background-color: #000000;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 100;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  padding: 0;
+}
+
+/* 路由内容区域样式 */
+.router-content {
+  position: absolute;
+  left: 220px;
+  right: 0;
+  top: 60px;
+  bottom: 0;
+  background-color: #000000;
+  color: #ffffff;
+  overflow-y: auto;
+  padding: 0;
 }
 
 /* 响应式设计 */
@@ -445,8 +458,12 @@ const goToProfile = (username) => {
   }
 
   .main-content {
-    margin-left: 70px;
-    padding: 20px;
+    left: 70px;
+  }
+
+  .router-content {
+    left: 70px;
+    top: 60px;
   }
 
   .content-header h1 {
@@ -512,15 +529,12 @@ const goToProfile = (username) => {
 /* 顶部工具栏，占据主区域最上方一行 */
 .top-bar {
   width: 100%;
-  height: 60px;
+  height: 100%;
   padding: 10px 20px;
 
   display: flex;
   justify-content: flex-end; /* 按钮靠右 */
   align-items: center;
-
-  background: #000000; 
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* 顶部按钮统一样式 */
