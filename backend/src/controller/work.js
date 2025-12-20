@@ -102,7 +102,7 @@ export const createMeme = async (req, res) => {
     }
     
     // 手动设置 imageUrl 并保存（确保路径以 / 开头）
-    newMeme.imageUrl = `/${Const.MEME_DIR}${newFilename}`;
+    newMeme.imageUrl = `/api/${Const.MEME_DIR}${newFilename}`;
     await newMeme.save();
 
     fs.renameSync(oldPath, newPath);
@@ -484,8 +484,8 @@ export const getTokenPriceByAmount = async (req, res) => {
     });
   }
 };
-
-export const getTokenPriceHistoryByTime = async (req, res) => {
+// TODO: 获取相对5h前的涨跌幅
+export const getTokenPriceHistoryByTime = async (req, res) => {// TODO：历史记录存在跳动
   try {
     const memeId = req.params.id;
     const meme = await Meme.findById(memeId);
@@ -515,7 +515,7 @@ export const getTokenPriceHistoryByTime = async (req, res) => {
     const intervalKey = (req.query.interval || '1h').toLowerCase();
     const intervalMs = intervalMap[intervalKey] || intervalMap['1h'];
     const requestedEnd = Number(req.query.endTime) || now;
-    const requestedStart = Number(req.query.startTime) || (requestedEnd - intervalMs * 120);
+    const requestedStart = token.createdAt;
 
     const tokenCreatedAt = new Date(token.createdAt).getTime();
     const startTime = Math.max(tokenCreatedAt, requestedStart);
@@ -544,6 +544,7 @@ export const getTokenPriceHistoryByTime = async (req, res) => {
     }
 
     const data = [];
+
     for (let bucketStart = startTime; bucketStart < endTime; bucketStart += intervalMs) {
       const bucketEnd = bucketStart + intervalMs;
 
@@ -552,18 +553,31 @@ export const getTokenPriceHistoryByTime = async (req, res) => {
       let bucketLow = lastPrice;
       let bucketClose = lastPrice;
       let bucketVolume = 0;
+      let traded = false;
 
       while (pointer < sortedHistory.length && sortedHistory[pointer].time < bucketEnd) {
         const entry = sortedHistory[pointer];
         const tradePrice = typeof entry.price === 'number' ? entry.price : lastPrice;
 
-        bucketHigh = Math.max(bucketHigh, lastPrice, tradePrice);
-        bucketLow = Math.min(bucketLow, lastPrice, tradePrice);
+        if (!traded) {
+          bucketOpen = lastPrice;
+          traded = true;
+        }
+        bucketHigh = Math.max(bucketHigh, tradePrice);
+        bucketLow = Math.min(bucketLow, tradePrice);
         bucketVolume += Math.abs(entry.amount || 0);
 
         lastPrice = tradePrice;
         bucketClose = lastPrice;
         pointer++;
+      }
+
+      // 如果本区间没有交易，open/high/low/close都继承上一区间的close（即lastPrice）
+      if (!traded) {
+        bucketOpen = lastPrice;
+        bucketHigh = lastPrice;
+        bucketLow = lastPrice;
+        bucketClose = lastPrice;
       }
 
       data.push({

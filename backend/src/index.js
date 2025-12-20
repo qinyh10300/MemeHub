@@ -143,8 +143,8 @@ app.get('/api/user/:username/follow', (req, res) => {
 // 模因操作
 
 app.use('/api/memefiles', express.static(Const.MEME_DIR));
-app.use('/api/avatars', express.static(Const.AVATAR_DIR));
-app.use('/api/stickers', express.static(Const.STICKER_DIR));
+app.use('/avatars', express.static(Const.AVATAR_DIR));
+// app.use('/api/stickers', express.static(Const.STICKER_DIR));
 // 接收前端的文件并创建模因
 app.post('/api/upload-meme', upload.single('file'), Work.createMeme);
 // 返回单个模因的详细信息
