@@ -145,6 +145,8 @@ app.get('/api/user/:username/follow', (req, res) => {
 app.use('/memefiles', express.static(Const.MEME_DIR));
 app.use('/avatars', express.static(Const.AVATAR_DIR));
 app.use('/stickers', express.static(Const.STICKER_DIR));
+// 兼容前端以 /api 开头访问头像资源
+app.use('/api/avatars', express.static(Const.AVATAR_DIR));
 // 接收前端的文件并创建模因
 app.post('/api/upload-meme', upload.single('file'), Work.createMeme);
 // 返回单个模因的详细信息
