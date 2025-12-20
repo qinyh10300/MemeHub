@@ -2,16 +2,25 @@ import fs from 'fs';
 import path from 'path';
 import * as Const from '../configs/const.js';
 
-const STICKER_PLAN_MODEL_ID = process.env.STICKER_PLAN_MODEL_ID || process.env.GLM_MODEL_ID || 'DeepSeek-V3.1';
-const STICKER_FALLBACK_MODEL_ID = process.env.STICKER_FALLBACK_MODEL_ID || 'DeepSeek-V3.1';
+const STICKER_PROVIDER = (process.env.STICKER_PROVIDER || '').toLowerCase();
+const isSiliconFlowProvider = STICKER_PROVIDER === 'siliconflow' || STICKER_PROVIDER === 'kolors';
+
+const STICKER_PLAN_MODEL_ID =
+  process.env.STICKER_PLAN_MODEL_ID ||
+  process.env.GLM_MODEL_ID ||
+  (isSiliconFlowProvider ? 'Qwen/Qwen2.5-7B-Instruct' : 'DeepSeek-V3.1');
+const STICKER_FALLBACK_MODEL_ID =
+  process.env.STICKER_FALLBACK_MODEL_ID ||
+  (isSiliconFlowProvider ? 'Qwen/Qwen2.5-7B-Instruct' : 'DeepSeek-V3.1');
 const STICKER_MODEL_ID = process.env.STICKER_MODEL_ID || 'WanX2.1-T2I-Turbo';
-const RAW_BASE_URL = process.env.STICKER_API_BASE_URL || process.env.GLM_BASE_URL || 'https://llmapi.paratera.com/v1';
+const DEFAULT_BASE_URL = isSiliconFlowProvider ? 'https://api.siliconflow.cn/v1' : 'https://llmapi.paratera.com/v1';
+const RAW_BASE_URL = process.env.STICKER_API_BASE_URL || process.env.GLM_BASE_URL || DEFAULT_BASE_URL;
 const stripTrailingSlash = (value = '') => value.replace(/\/+$/, '');
 const stripVersionSuffix = (value = '') => value.replace(/\/v1$/i, '');
 const BASE_URL = stripTrailingSlash(RAW_BASE_URL);
 const normalizePath = (segment = '') => (segment && segment.startsWith('/') ? segment : `/${segment || ''}`);
 const CHAT_PATH = process.env.STICKER_CHAT_PATH || '/chat/completions';
-const DEFAULT_IMAGE_PATH = '/v1/p003/text2image';
+const DEFAULT_IMAGE_PATH = isSiliconFlowProvider ? '/images/generations' : '/v1/p003/text2image';
 const STICKER_IMAGE_ENDPOINT = process.env.STICKER_IMAGE_ENDPOINT;
 const RAW_IMAGE_BASE_URL = stripTrailingSlash(
   process.env.STICKER_IMAGE_BASE_URL || stripVersionSuffix(RAW_BASE_URL)
@@ -22,8 +31,14 @@ const IMAGE_ENDPOINT = STICKER_IMAGE_ENDPOINT
   ? stripTrailingSlash(STICKER_IMAGE_ENDPOINT)
   : `${RAW_IMAGE_BASE_URL}${normalizePath(IMAGE_PATH)}`;
 const STICKER_API_KEY = process.env.STICKER_API_KEY || process.env.GLM_API_KEY;
-const STICKER_IMAGE_MODEL_ID = process.env.STICKER_IMAGE_MODEL_ID || STICKER_MODEL_ID;
-const STICKER_IMAGE_SIZE = process.env.STICKER_IMAGE_SIZE || '512x512';
+const STICKER_IMAGE_MODEL_ID =
+  process.env.STICKER_IMAGE_MODEL_ID ||
+  (isSiliconFlowProvider ? 'kolors' : STICKER_MODEL_ID);
+const STICKER_IMAGE_PROVIDER =
+  (process.env.STICKER_IMAGE_PROVIDER || (isSiliconFlowProvider ? 'siliconflow' : 'default')).toLowerCase();
+const STICKER_IMAGE_API_STYLE =
+  (process.env.STICKER_IMAGE_API_STYLE || (isSiliconFlowProvider ? 'openai' : 'default')).toLowerCase();
+const STICKER_IMAGE_SIZE = process.env.STICKER_IMAGE_SIZE || (isSiliconFlowProvider ? '768x768' : '512x512');
 const parseOptionalNumber = (value, parser = (v) => parseFloat(v)) => {
   if (value === undefined || value === null) return undefined;
   const trimmed = `${value}`.trim();
@@ -38,6 +53,7 @@ const STICKER_IMAGE_BATCH =
   parseOptionalNumber(process.env.STICKER_IMAGE_BATCH, (val) => parseInt(val, 10)) || 1;
 const STICKER_IMAGE_RESPONSE_FORMAT = process.env.STICKER_IMAGE_RESPONSE_FORMAT || 'b64_json';
 const STICKER_OUTPUT_DIR = path.join(process.cwd(), Const.STICKER_DIR);
+const isOpenAIStyleImageApi = ['openai', 'siliconflow', 'kolors'].includes(STICKER_IMAGE_API_STYLE);
 
 function ensureApiKey() {
   if (!STICKER_API_KEY) {
@@ -204,29 +220,57 @@ async function fetchBufferFromUrl(url) {
 async function callStickerImage(plan, keyword = '') {
   ensureApiKey();
   const prompt = buildImagePrompt(plan, keyword);
-  const inputPayload = {
-    prompt,
-    image_num: STICKER_IMAGE_BATCH,
-    response_format: STICKER_IMAGE_RESPONSE_FORMAT
-  };
-  if (STICKER_IMAGE_SIZE) {
-    inputPayload.size = STICKER_IMAGE_SIZE;
-  }
-  if (STICKER_IMAGE_NEG_PROMPT) {
-    inputPayload.negative_prompt = STICKER_IMAGE_NEG_PROMPT;
-  }
-  if (Number.isFinite(STICKER_IMAGE_CFG)) {
-    inputPayload.cfg_scale = STICKER_IMAGE_CFG;
-  }
-  if (Number.isFinite(STICKER_IMAGE_STEPS)) {
-    inputPayload.steps = STICKER_IMAGE_STEPS;
-  }
+  const sourceTag = isOpenAIStyleImageApi ? 'kolors' : 'wanx-t2i';
 
-  const body = {
-    model: STICKER_IMAGE_MODEL_ID,
-    n: STICKER_IMAGE_BATCH,
-    input: inputPayload
+  const buildWanxPayload = () => {
+    const inputPayload = {
+      prompt,
+      image_num: STICKER_IMAGE_BATCH,
+      response_format: STICKER_IMAGE_RESPONSE_FORMAT
+    };
+    if (STICKER_IMAGE_SIZE) {
+      inputPayload.size = STICKER_IMAGE_SIZE;
+    }
+    if (STICKER_IMAGE_NEG_PROMPT) {
+      inputPayload.negative_prompt = STICKER_IMAGE_NEG_PROMPT;
+    }
+    if (Number.isFinite(STICKER_IMAGE_CFG)) {
+      inputPayload.cfg_scale = STICKER_IMAGE_CFG;
+    }
+    if (Number.isFinite(STICKER_IMAGE_STEPS)) {
+      inputPayload.steps = STICKER_IMAGE_STEPS;
+    }
+
+    return {
+      model: STICKER_IMAGE_MODEL_ID,
+      n: STICKER_IMAGE_BATCH,
+      input: inputPayload
+    };
   };
+
+  const buildOpenAIPayload = () => {
+    const payload = {
+      model: STICKER_IMAGE_MODEL_ID,
+      prompt,
+      n: STICKER_IMAGE_BATCH,
+      response_format: STICKER_IMAGE_RESPONSE_FORMAT
+    };
+    if (STICKER_IMAGE_SIZE) {
+      payload.size = STICKER_IMAGE_SIZE;
+    }
+    if (STICKER_IMAGE_NEG_PROMPT) {
+      payload.negative_prompt = STICKER_IMAGE_NEG_PROMPT;
+    }
+    if (Number.isFinite(STICKER_IMAGE_CFG)) {
+      payload.cfg_scale = STICKER_IMAGE_CFG;
+    }
+    if (Number.isFinite(STICKER_IMAGE_STEPS)) {
+      payload.steps = STICKER_IMAGE_STEPS;
+    }
+    return payload;
+  };
+
+  const body = isOpenAIStyleImageApi ? buildOpenAIPayload() : buildWanxPayload();
 
   const response = await fetch(IMAGE_ENDPOINT, {
     method: 'POST',
@@ -274,6 +318,7 @@ async function callStickerImage(plan, keyword = '') {
       buffer: Buffer.from(base64, 'base64'),
       mimeType,
       modelId: data?.model || STICKER_IMAGE_MODEL_ID,
+      source: sourceTag
     };
   }
 
@@ -284,6 +329,7 @@ async function callStickerImage(plan, keyword = '') {
       buffer,
       mimeType,
       modelId: data?.model || STICKER_IMAGE_MODEL_ID,
+      source: sourceTag
     };
   }
 
@@ -370,7 +416,7 @@ export async function generateStickerAsset(promptText = '', user = null) {
         ...plan,
         modelId: imageResult.modelId || STICKER_IMAGE_MODEL_ID,
         mimeType: imageResult.mimeType || 'image/png',
-        source: 'wanx-t2i'
+        source: imageResult.source || 'wanx-t2i'
       }
   };
   } catch (imageError) {
