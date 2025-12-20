@@ -95,7 +95,7 @@ const fetchMemeData = async () => {
 
     if (response.status === 200) {
       // meme.image = result.imageUrl
-      meme.image = result.imageUrl ? `${server_ip}/${result.imageUrl.replace(/^\/+/, '')}` : '',
+      meme.image = `/api/${result.imageUrl}` ? `${server_ip}/api/${result.imageUrl.replace(/^\/+/, '')}` : '',
       meme.title = result.title
       meme.code = result.ticker
       meme.author = result.author

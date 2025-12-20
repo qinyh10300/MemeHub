@@ -219,6 +219,10 @@ export async function updateNickname(req, res) {
         return res.status(400).json({ code: 1004, message: '头像URL格式无效' });
       }
       user.avatar = avatar ? avatar.trim() : '';
+      // 在avatar中间的/avatar字段前添加/api
+      if (user.avatar && user.avatar.includes('/avatars/')) {
+        user.avatar = user.avatar.replace('/avatars/', '/api/avatars/');
+      }
       console.log('更新头像 - 设置后的user.avatar:', user.avatar);
     }
 

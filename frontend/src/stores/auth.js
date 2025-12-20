@@ -8,6 +8,7 @@ export const useAuthStore = defineStore('auth', {
     nickname: '', // 登录的昵称
     avatar: '', // 登录的头像
     server_ip: 'http://localhost:3000', // 后端服务器地址
+    // server_ip: '',
     user_token: '', // 用户 token
     user_role: '', // 用户身份
   }),
