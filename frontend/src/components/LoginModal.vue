@@ -64,8 +64,14 @@
 
             <!-- 审核员注册提示 -->
             <div class="auditor-register" v-if="!isAuditor">
-              <span>在这里注册为审核员，需要邀请码：</span>
+              <span>点这里注册为审核员，需要邀请码：</span>
               <a href="javascript:;" @click.prevent="registerAsAuditor">注册为审核员</a>
+            </div>
+
+            <!-- 普通用户注册提示 -->
+            <div class="auditor-register" v-if="isAuditor">
+              <span>点这里注册为普通用户：</span>
+              <a href="javascript:;" @click.prevent="registerAsNormer">注册为普通用户</a>
             </div>
           </form>
         </div>
@@ -250,6 +256,11 @@ const handleLogin = async () => {
 
 const usernameRegex = /^[a-zA-Z0-9]{7,18}$/; // 用户名正则
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[-_*^#])[A-Za-z\d-_*^#]{8,15}$/; // 密码正则
+
+const registerAsNormer = async () => {
+  isAuditor.value = false
+  errorMsg.value = '';
+}
 
 const registerAsAuditor = async () => {
   isAuditor.value = true
