@@ -91,13 +91,13 @@
         </div>
         <p class="quote-hint">
           <span v-if="quoteLoading">根据池子实时计算中...</span>
-          <span v-else-if="quoteError" class="error-text">{{ quoteError }}</span>
+          <!-- <span v-else-if="quoteError" class="error-text">{{ quoteError }}</span> -->
           <span v-else>以恒定乘积分布估算，实际下单时可能有滑点</span>
         </p>
       </div>
 
       <!-- 快速选择按钮 -->
-      <div class="quick-select">
+      <!-- <div class="quick-select">
         <button
           v-for="percent in [25, 50, 75, 100]"
           :key="percent"
@@ -106,7 +106,7 @@
         >
           {{ percent }}%
         </button>
-      </div>
+      </div> -->
 
       <!-- 可用余额显示 -->
       <div class="balance-info">
@@ -169,7 +169,7 @@
     </div>
 
     <!-- 最近交易记录 -->
-    <div class="recent-trades">
+    <!-- <div class="recent-trades">
       <h3 class="section-title">交易历史</h3>
       <div class="trade-history">
         <div v-if="priceHistory.length === 0" class="empty-history">
@@ -190,7 +190,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -328,11 +328,10 @@ const fetchQuoteAmount = async () => {
   quoteLoading.value = true;
   try {
     const res = await fetch(`${server_ip}/api/meme/${memeId.value}/token/price?${params.toString()}`);
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || '获取预估总额失败');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.message) {
+      throw new Error(data?.message || '获取预估总额失败');
     }
-    const data = await res.json();
     if (requestId !== quoteRequestId) return;
     const priceValue = Number(data.price);
     quoteAmount.value = Number.isFinite(priceValue) ? Math.abs(priceValue) : 0;

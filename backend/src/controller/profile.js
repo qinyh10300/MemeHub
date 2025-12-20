@@ -104,12 +104,15 @@ export const getUserProfile = async (req, res) => {
       if (imageUrl && !imageUrl.startsWith('http')) {
         imageUrl = imageUrl.startsWith('/') ? `${baseUrl}${imageUrl}` : `${baseUrl}/${imageUrl}`;
       }
+      const memeId = token.meme._id.toString();
       return {
         imageUrl,
         name: token.meme.title || '未命名模因币',
         code: token.meme.ticker || '',
         description: token.meme.description || '暂无简介',
-        id: token._id.toString(),
+        memeId,
+        tokenId: token._id.toString(),
+        id: memeId,
         amount: entry.amount || 0,
         value: (token.price || 0) * (entry.amount || 0)
       };
@@ -235,6 +238,7 @@ export const getUserProfile = async (req, res) => {
       avatar: userAvatar, // 使用用户设置的头像或默认头像
       nickname: user.nickname || `用户${user._id}`,
       username: `@${user.username}`,
+      email: user.email || '',
       bio: user.bio || `这是用户 ${user.username} 的个人简介。`, // 使用实际的bio字段，如果没有则使用默认值
       followers: followersCount, // 使用查询到的粉丝总数
       following: followingCount,

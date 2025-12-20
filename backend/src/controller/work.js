@@ -478,14 +478,9 @@ export const getTokenPriceByAmount = async (req, res) => {
     const price = token.getPriceByAmount(amount, expectedPrice);
     res.status(200).json({ price });
   } catch (error) {
-    res.status(500).json({
-      message: '获取Token价格失败',
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-        ...error
-      }
+    const statusCode = error.message?.includes('无法买入池中所有Token') ? 400 : 500;
+    res.status(statusCode).json({
+      message: error.message || '获取Token价格失败',
     });
   }
 };

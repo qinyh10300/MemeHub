@@ -330,7 +330,7 @@ onMounted(() => {
 .recommend-card {
   position: relative;
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(127, 90, 240, 0.25);
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;

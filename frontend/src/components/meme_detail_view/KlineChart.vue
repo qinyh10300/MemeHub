@@ -124,7 +124,7 @@
           <div class="indicator-values">
             <span>最新: {{ formatVolume(indicatorData.VOL.latest) }}</span>
             <span>7 日均量: {{ formatVolume(indicatorData.VOL.avg7) }}</span>
-          </div>
+        </div>
         </div>
 
         <div v-if="selectedIndicators.includes('MACD')" class="indicator-panel">
@@ -156,7 +156,7 @@
             <span>MACD: {{ formatNumber(indicatorData.MACD.macd) }}</span>
             <span>Signal: {{ formatNumber(indicatorData.MACD.signal) }}</span>
             <span>Histogram: {{ formatNumber(indicatorData.MACD.histogram) }}</span>
-          </div>
+        </div>
         </div>
 
         <div v-if="selectedIndicators.includes('RSI')" class="indicator-panel">
@@ -171,7 +171,7 @@
                 class="rsi-line"
               />
             </svg>
-          </div>
+            </div>
           <div class="indicator-values">
             <span>RSI(14): {{ formatNumber(indicatorData.RSI.value) }}</span>
           </div>
@@ -205,7 +205,7 @@ const resolveApiBase = () => {
 
 const API_BASE = `${resolveApiBase()}/api`;
 
-const active = ref("1D");
+const active = ref("5M");
 const currentPrice = ref(0);
 const priceChange = ref(0);
 const priceChangePercent = ref(0);
@@ -439,6 +439,8 @@ const fetchPriceHistory = async (timeframe) => {
       }
     });
 
+    console.log("response.data: ", response.data)
+
     if (response.data && response.data.code === 0) {
       const priceHistory = response.data.data;
       return processPriceData(priceHistory);
@@ -483,12 +485,12 @@ const processPriceData = (priceHistory = []) => {
 const updatePriceStats = (klineData) => {
   if (!klineData.length) return;
 
-  const latest = klineData[klineData.length - 1];
-  const previous = klineData[klineData.length - 2] || latest;
+    const latest = klineData[klineData.length - 1];
+    const previous = klineData[klineData.length - 2] || latest;
 
-  currentPrice.value = latest.close;
-  priceChange.value = latest.close - previous.close;
-  priceChangePercent.value = previous.close !== 0 ? (priceChange.value / previous.close) * 100 : 0;
+    currentPrice.value = latest.close;
+    priceChange.value = latest.close - previous.close;
+    priceChangePercent.value = previous.close !== 0 ? (priceChange.value / previous.close) * 100 : 0;
 
   const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
   const lastDayData = klineData.filter(item => item.timestamp >= dayAgo);
@@ -943,45 +945,45 @@ onMounted(async () => {
 
         .volume-chart {
           height: 80px;
-          display: flex;
-          align-items: flex-end;
-          gap: 2px;
-          padding: 4px;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            padding: 4px;
 
-          .volume-bar {
-            flex: 1;
-            min-height: 2px;
+            .volume-bar {
+              flex: 1;
+              min-height: 2px;
             background: linear-gradient(180deg, #6cdd8b, #2f8555);
-            border-radius: 1px;
+              border-radius: 1px;
             opacity: 0.85;
+            }
           }
-        }
 
         .macd-chart {
           display: flex;
           flex-direction: column;
           gap: 6px;
 
-          .macd-histogram {
-            display: flex;
-            align-items: center;
-            gap: 2px;
+            .macd-histogram {
+              display: flex;
+              align-items: center;
+              gap: 2px;
             height: 38px;
 
-            .histogram-bar {
-              flex: 1;
-              width: 2px;
-              border-radius: 1px;
+              .histogram-bar {
+                flex: 1;
+                width: 2px;
+                border-radius: 1px;
 
-              &.positive {
-                background: #65c281;
-              }
+                &.positive {
+                  background: #65c281;
+                }
 
-              &.negative {
-                background: #ff3b69;
+                &.negative {
+                  background: #ff3b69;
+                }
               }
             }
-          }
 
           svg {
             width: 100%;
@@ -1007,7 +1009,7 @@ onMounted(async () => {
           svg {
             width: 100%;
             height: 80px;
-          }
+            }
 
           .rsi-line {
             fill: none;
@@ -1019,11 +1021,11 @@ onMounted(async () => {
             stroke-width: 1;
             stroke-dasharray: 4;
 
-            &.overbought {
+                &.overbought {
               stroke: rgba(255, 59, 105, 0.6);
-            }
+                }
 
-            &.oversold {
+                &.oversold {
               stroke: rgba(101, 194, 129, 0.6);
             }
           }
@@ -1033,7 +1035,7 @@ onMounted(async () => {
           font-size: 11px;
           color: #888;
           margin: 6px 0 4px;
-        }
+                }
 
         .indicator-values {
           font-size: 12px;
