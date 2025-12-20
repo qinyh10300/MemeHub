@@ -1,9 +1,11 @@
+// node example.js 命令来运行javascript代码吗？
+
 import fs from 'fs';
 import path from 'path';
 
 // ====== 配置区 ======
 const API_KEY = 'sk-btigmjrdoudrlhkivnxtvkmaeuwpcyinckkpoqunsjyvaqxn'; // ← 换成你的
-const OUTPUT_DIR = './outputs';
+const OUTPUT_DIR = 'testGen/outputs';
 const OUTPUT_NAME = 'result.png';
 
 // SiliconFlow API
@@ -21,7 +23,7 @@ async function generateAndSaveImage() {
     body: JSON.stringify({
       model: 'Kwai-Kolors/Kolors',
       prompt:
-        'an island near sea, with seagulls, moon shining over the sea, lighthouse, boats in the background, fish flying over the sea',
+        '梅西',
       image_size: '1024x1024',
       batch_size: 1,
       num_inference_steps: 20,

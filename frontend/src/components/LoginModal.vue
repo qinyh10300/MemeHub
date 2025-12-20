@@ -46,15 +46,31 @@
               <input id="regPassword" v-model="registerForm.password" type="password" required />
               <label for="regPassword">密码</label>
             </div>
-            <button type="submit" class="submit-btn">立即注册</button>
+
+            <!-- 新增邀请码输入框，仅在审核员注册时显示 -->
+            <div class="input-group" v-if="isAuditor">
+              <input id="invitationCode" v-model="registerForm.invitationCode" type="text" required />
+              <label for="invitationCode">邀请码</label>
+            </div>
+
+            <button type="submit" class="submit-btn">
+              {{ isAuditor ? '注册为审核员' : '立即注册' }}
+            </button>
 
             <div class="form-footer">
               <span>已有账号？</span>
               <a href="javascript:;" @click.prevent="switchForm">立即登录</a>
             </div>
+
+            <!-- 审核员注册提示 -->
+            <div class="auditor-register" v-if="!isAuditor">
+              <span>在这里注册为审核员，需要邀请码：</span>
+              <a href="javascript:;" @click.prevent="registerAsAuditor">注册为审核员</a>
+            </div>
           </form>
         </div>
         
+        <!-- 错误提示 -->
         <div
           v-if="registerForm.username && !isUsernameValid"
           class="error-message"
@@ -79,10 +95,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { computed } from 'vue';
-import { watch } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+
+const isAuditor = ref(false) // 是否为审核员注册
 
 // 实时验证用户名
 const isUsernameValid = computed(() => usernameRegex.test(registerForm.username));
@@ -235,6 +251,55 @@ const handleLogin = async () => {
 const usernameRegex = /^[a-zA-Z0-9]{7,18}$/; // 用户名正则
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[-_*^#])[A-Za-z\d-_*^#]{8,15}$/; // 密码正则
 
+const registerAsAuditor = async () => {
+  isAuditor.value = true
+  // 验证用户名和密码
+  if (!isUsernameValid.value || !isPasswordValid.value) {
+    triggerShake();
+    return;
+  }
+
+  // 审核员注册时，邀请码不能为空
+  if (!registerForm.invitationCode) {
+    errorMsg.value = '请输入邀请码';
+    triggerShake();
+    return;
+  }
+
+  try {
+    // 调用审核员注册接口
+    const url = `${server_ip}/api/reviewer/register`;
+
+    const bodyData = {
+      username: registerForm.username,
+      password: registerForm.password,
+      reviewerCode: registerForm.invitationCode,
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bodyData),
+    });
+
+    const data = await response.json();
+
+    if (response.status === 201) {
+      alert('审核员注册成功！');
+      switchForm(); // 切换回登录表单
+    } else if (response.status === 400) {
+      errorMsg.value = '用户名或密码缺失';
+    } else if (response.status === 403) {
+      errorMsg.value = '邀请码错误';
+    } else {
+      errorMsg.value = '服务器错误';
+    }
+  } catch (error) {
+    console.error('注册时发生错误:', error);
+    alert('服务器连接失败，请稍后再试！');
+  }
+}
+
 // 注册提交
 const handleRegister = async () => {
   // 验证用户名和密码
@@ -280,11 +345,12 @@ const triggerShake = () => {
 // 切换登录/注册表单
 const switchForm = () => {
   isLogin.value = !isLogin.value
-  // 清空表单数据
-  loginForm.username = '';
-  loginForm.password = '';
-  registerForm.username = '';
-  registerForm.password = '';
+  isAuditor.value = false
+  loginForm.username = ''
+  loginForm.password = ''
+  registerForm.username = ''
+  registerForm.password = ''
+  registerForm.invitationCode = ''
 }
 
 // 关闭弹窗
@@ -515,5 +581,23 @@ onMounted(validateInput)
     opacity: 1;
     transform: scale(1);
   }
+}
+
+.auditor-register {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #95a5a6;
+}
+
+.auditor-register a {
+  color: #5a9d76;
+  text-decoration: none;
+  margin-left: 5px;
+  font-weight: 600;
+}
+
+.auditor-register a:hover {
+  text-decoration: underline;
 }
 </style>
