@@ -125,9 +125,12 @@
 
 
 <script setup>
-import { ref, onMounted } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
+import { ref, onMounted, onUnmounted } from "vue";
+
+const lastMemeCount = ref(0);      // ⬅️ 记录上一次 memeDetails 长度
+let pollTimer = null;              // ⬅️ 5s 轮询定时器
 
 // ✅ 使用 Vue Router
 const router = useRouter();
@@ -148,7 +151,7 @@ const user_token = authStore.user_token // user token
 
 /* 模拟数据请求 */
 const fetchProjects = async () => {
-  loading.value = true;
+  // loading.value = true;
   error.value = null;
 
   try {
@@ -164,6 +167,14 @@ const fetchProjects = async () => {
         axios.get(`${server_ip}/api/meme/${id}`).then(r => r.data)
       )
     );
+    if (memeDetails.length === lastMemeCount.value) {
+      // loading.value = false;
+      return;
+    }
+    lastMemeCount.value = memeDetails.length;
+    loading.value = true; // 仅在数据变化时设置 loading 状态。TODO：较难测试。有问题修改上述一小段逻辑改为不更新即可
+
+    // console.log("Fetched meme details:", memeDetails);
 
     // 第三步：适配字段
     projects.value = memeDetails.map((item) => ({
@@ -172,12 +183,20 @@ const fetchProjects = async () => {
       symbol: item.ticker,
       creator: item.author?.username || "未知",
       time: new Date(item.createdAt).toLocaleString(),
-      mc: item.likes,
-      mcPercent: Math.min(item.likes * 10, 100),
-      change: 0,
-      image: item.imageUrl ? `${server_ip}/${item.imageUrl.replace(/^\/+/, '')}` : '',
+      mc: item.token?.price ? (item.token.price).toFixed(4) : 0,
+      mcPercent: item.token?.changeRate? item.token.changeRate.toFixed(4) : 0,
+      change: item.token?.changeRate ? parseFloat(item.token.changeRate.toFixed(4)) : 0,
+      image: item.imageUrl
+        ? (() => {
+            const url = item.imageUrl.replace(/^\/+/, '');
+            const base = url.includes('api') ? server_ip : `${server_ip}/api`;
+            return `${base}/${url}`;
+          })()
+        : '',
       desc: item.description
     }));
+
+
   } 
   // 测试用例数据
   catch (err) {
@@ -251,6 +270,17 @@ const changeFilter = (type) => {
 
 onMounted(() => {
   fetchProjects();
+
+  pollTimer = setInterval(() => {
+    fetchProjects(); // 每 5s 检查一次
+  }, 5000);
+});
+
+onUnmounted(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
 });
 </script>
 
