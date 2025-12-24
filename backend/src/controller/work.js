@@ -152,7 +152,8 @@ export const createMeme = async (req, res) => {
     }
     
     // 手动设置 imageUrl 并保存（确保路径以 / 开头）
-    newMeme.imageUrl = `/${Const.MEME_DIR}${newFilename}`;
+    // 统一使用 /api/memefiles 以适配常见反向代理只转发 /api 的部署方式
+    newMeme.imageUrl = `/api/${Const.MEME_DIR}${newFilename}`;
     await newMeme.save();
 
     fs.renameSync(oldPath, newPath);

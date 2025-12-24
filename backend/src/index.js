@@ -145,6 +145,8 @@ app.get('/api/user/:username/follow', (req, res) => {
 app.use('/memefiles', express.static(Const.MEME_DIR));
 app.use('/avatars', express.static(Const.AVATAR_DIR));
 app.use('/stickers', express.static(Const.STICKER_DIR));
+// 兼容前端以 /api 开头访问模因资源（常见反代只转发 /api）
+app.use('/api/memefiles', express.static(Const.MEME_DIR));
 // 兼容前端以 /api 开头访问头像资源
 app.use('/api/avatars', express.static(Const.AVATAR_DIR));
 // 兼容前端以 /api 开头访问表情包资源
