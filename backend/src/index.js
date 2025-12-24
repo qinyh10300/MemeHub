@@ -154,8 +154,9 @@ app.use('/api/memefiles', express.static(Const.MEME_DIR));
 app.use('/api/avatars', express.static(Const.AVATAR_DIR));
 // 兼容前端以 /api 开头访问表情包资源
 app.use('/api/stickers', express.static(Const.STICKER_DIR));
-// 接收前端的文件并创建模因
+// 生成AI模因图片
 app.post('/api/meme/avatar/ai', Work.generateMemeAvatar);
+// 接收前端的文件并创建模因
 app.post('/api/upload-meme', upload.single('file'), Work.createMeme);
 // 返回单个模因的详细信息
 app.get('/api/meme/:id', Work.getMemeDetail);

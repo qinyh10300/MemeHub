@@ -348,7 +348,7 @@ export const getMemeList = async (req, res) => {
   try {
     // 支持 ?sortBy=hot（热度）/time/likes
     const sortBy = req.query.sortBy;
-    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1; // 默认倒序
+    const sortOrder = req.query.sortOrder === 'asc' ? -1 : 1; // 默认倒序
 
     // 查询所有 active meme，带上点赞和收藏数
     const memes = await Meme.find({ status: 'active' })
