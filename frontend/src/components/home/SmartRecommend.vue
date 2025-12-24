@@ -198,6 +198,7 @@ const fetchRecommendations = async (type) => {
       headers: { 'token': authStore.username || '' }
     })
     const data = await response.json()
+    console.log(`Fetched ${type} recommendations:`, data)
     if (data.code === 0) {
       return data.data || []
     }
@@ -220,14 +221,14 @@ const loadAllRecommendations = async () => {
     
     hotMemes.value = hot.map(m => ({
       ...m,
-      change: m.priceChange || 0
+      change: m.token?.changeRate ? m.token.changeRate.toFixed(4) : "0"
     }))
     
     newMemes.value = newList
     
     potentialMemes.value = potential.map(m => ({
       ...m,
-      change: m.priceChange || 0,
+      change: m.token?.changeRate ? m.token.changeRate.toFixed(4) : "0",
       score: m.hotScore ? Math.min(100, Math.round(m.hotScore / 10)) : 50
     }))
     
