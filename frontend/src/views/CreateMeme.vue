@@ -9,6 +9,19 @@
           @form-data="handleFormData"
           @file-selected="handleFileSelected"
         />
+        <section class="ai-generator">
+          <div class="ai-text">
+            <div class="panel-title">AI 生成封面</div>
+            <div class="ai-sub">基于名称和简介，使用私信同款模型自动生成</div>
+          </div>
+          <primary-button 
+            class="ai-btn" 
+            :disabled="isAiGenerating"
+            @click="handleAiGenerateAvatar"
+          >
+            {{ isAiGenerating ? '生成中...' : 'AI 生成封面' }}
+          </primary-button>
+        </section>
         <div class="notice">
           {{ isEditMode ? '修改后模因将重新进入待审核状态' : '模因币数据只能在此时添加，创建后无法更改或编辑' }}
         </div>
@@ -93,7 +106,17 @@ const router = useRouter()
 const route = useRoute()
 const server_ip = authStore.server_ip  // 后端服务器地址
 
+const isAiGenerating = ref(false)
+
 const isEditMode = computed(() => !!route.query.id)
+
+function resolveAssetUrl(path) {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  const base = server_ip.replace(/\/$/, '')
+  const normalized = path.startsWith('/') ? path : `/${path}`
+  return `${base}${normalized}`
+}
 
 // 组件卸载时清理URL
 onUnmounted(() => {
@@ -149,6 +172,60 @@ function handleFileSelected(file) {
 }
 
 // 处理创建/更新模因币
+async function handleAiGenerateAvatar() {
+  if (!authStore.username) {
+    alert('请先登录')
+    router.push('/')
+    return
+  }
+
+  const name = formData.value?.coinname?.trim()
+  const desc = formData.value?.description?.trim()
+  const prompt = [name, desc].filter(Boolean).join(' ')
+  if (!prompt) {
+    alert('请先输入模因名称或简介，再尝试 AI 生成封面')
+    return
+  }
+
+  isAiGenerating.value = true
+  try {
+    const res = await fetch(`${server_ip}/api/meme/avatar/ai`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'token': authStore.username || authStore.token || ''
+      },
+      body: JSON.stringify({ title: name, description: desc })
+    })
+    const result = await res.json()
+    if (res.ok && result.code === 0) {
+      const imageUrl = resolveAssetUrl(result.data?.url || result.data?.path)
+      if (!imageUrl) {
+        throw new Error('未返回生成的图片地址')
+      }
+      const downloadRes = await fetch(imageUrl)
+      if (!downloadRes.ok) {
+        throw new Error('下载生成的封面失败')
+      }
+      const blob = await downloadRes.blob()
+      const ext = (blob.type && blob.type.split('/')[1]) || 'png'
+      const aiFile = new File([blob], `ai-meme-avatar-${Date.now()}.${ext}`, {
+        type: blob.type || 'image/png'
+      })
+      selectedFile.value = aiFile
+      filePreviewUrl.value = imageUrl
+      alert('AI 已生成封面并自动填充，请确认后提交')
+    } else {
+      alert(result.message || '生成模因头像失败')
+    }
+  } catch (err) {
+    console.error('AI 生成模因头像失败', err)
+    alert(`生成失败：${err.message || '请稍后重试'}`)
+  } finally {
+    isAiGenerating.value = false
+  }
+}
+
 async function handleCreateMeme() {
   // 检查是否登录
   if (!authStore.username) {
@@ -370,6 +447,10 @@ async function handleCreateMemeCoin() {
 .left{ flex:1; min-width:0; background: var(--muted); }
 .right{ width:320px; padding:48px; background: var(--muted); }
 .notice{ padding:36px; background:var(--panel); border-radius:10px; color:var(--my-c-text-soft); font-size:13px }
+.ai-generator{ display:flex; align-items:center; justify-content:space-between; padding:16px 36px; margin:12px 0; background:var(--panel); border-radius:10px; }
+.ai-text{ display:flex; flex-direction:column; gap:4px; }
+.ai-sub{ color:var(--my-c-text-soft); font-size:13px; margin:0; }
+.ai-btn{ min-width:140px; }
 .create-btn{ margin-left:36px }
 .preview{ background:transparent }
 .panel-title{ color:var(--muted); margin-bottom:8px }
