@@ -284,7 +284,7 @@ function formatTime(dateStr) {
 
 // 获取服务器地址
 function getServerUrl() {
-  return authStore.serverIp || 'http://localhost:3000';
+  return authStore.server_ip;
 }
 
 const applyCommonToken = (target, tokenValue) => {

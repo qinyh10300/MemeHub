@@ -84,7 +84,7 @@ const defaultTasks = [
 const cloneTasks = (tasks) => tasks.map((task) => ({ ...task }))
 
 const GOLD_TO_USDT_RATE = 50
-const server_ip = authStore.server_ip || 'http://localhost:3000'
+const server_ip = authStore.server_ip 
 
 const createDefaultState = () => ({
   xp: 1860,

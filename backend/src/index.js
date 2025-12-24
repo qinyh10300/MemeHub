@@ -19,6 +19,9 @@ import { Token } from './models/token.js';
 
 import * as MessageController from './controller/message.js';
 import * as C2CController from './controller/c2cCtrl.js';
+import * as LeaderboardCtrl from './controller/leaderboard.js';
+import * as UserFeatures from './controller/userFeatures.js';
+import * as PollCtrl from './controller/pollCtrl.js';
 
 const app = express();
 app.use(cors());
@@ -197,14 +200,12 @@ app.get('/api/token/by-ticker/:ticker', Work.getUserTokenByTicker);
 app.get('/api/user/:username/orders', Work.getUserOrders);
 
 // 排行榜
-import * as LeaderboardCtrl from './controller/leaderboard.js';
 app.get('/api/leaderboard', LeaderboardCtrl.getLeaderboard);
 app.get('/api/meme/:id/trend', LeaderboardCtrl.getMemeTrend);
 app.get('/api/memes/compare', LeaderboardCtrl.compareMemes);
 app.get('/api/memes/search-for-compare', LeaderboardCtrl.searchMemesForCompare);
 
 // 用户功能 (自选、价格预警、成就、创作者数据、推荐)
-import * as UserFeatures from './controller/userFeatures.js';
 app.get('/api/watchlist', UserFeatures.getWatchlist);
 app.post('/api/watchlist', UserFeatures.addToWatchlist);
 app.delete('/api/watchlist/:memeId', UserFeatures.removeFromWatchlist);
@@ -217,7 +218,6 @@ app.get('/api/creator-stats', UserFeatures.getCreatorStats);
 app.get('/api/recommendations', UserFeatures.getRecommendations);
 
 // 社区投票
-import * as PollCtrl from './controller/pollCtrl.js';
 app.get('/api/polls', PollCtrl.getPolls);
 app.post('/api/polls', PollCtrl.createPoll);
 app.get('/api/polls/stats', PollCtrl.getPollStats);

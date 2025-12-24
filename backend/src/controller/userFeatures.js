@@ -587,10 +587,23 @@ export const getRecommendations = async (req, res) => {
       const recentHistory = priceHistory.filter(h => new Date(h.time) >= yesterday);
 
       // 计算价格变化
-      let priceChange = 0;
-      if (recentHistory.length > 0) {
-        const oldPrice = recentHistory[0].newPrice || token.price;
-        priceChange = oldPrice > 0 ? ((token.price - oldPrice) / oldPrice) * 100 : 0;
+      let changeRate = 0;
+      // 若模因创建时间不足5h，与0.1比较；若超过5h，则与>5h的最近一次交易后价格比较
+      const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000);
+      if (token.createdAt > fiveHoursAgo) {
+        // console.log('Token创建时间不足5h，涨跌幅与初始价格比较');
+        changeRate = ((token.price - Const.TOKEN_INIT_PRICE) / Const.TOKEN_INIT_PRICE);
+      } else
+      {
+        const historyAfter5h = priceHistoryWithNickname.filter(item => new Date(item.time) < fiveHoursAgo);
+        if (historyAfter5h.length > 0) {
+          const priceAt5h = historyAfter5h[0].newPrice;
+          changeRate = ((token.price - priceAt5h) / priceAt5h);
+          // console.log(`Token创建时间超过5h，涨跌幅与5h前价格比较${priceAt5h}: ${token.price}，变化率${changeRate}`);
+        } else {
+          // console.log('Token创建时间超过5h，但5h前无交易记录，涨跌幅与初始价格比较');
+          changeRate = ((token.price - Const.TOKEN_INIT_PRICE) / Const.TOKEN_INIT_PRICE) ;
+        }
       }
 
       // 计算热度分数
@@ -605,7 +618,7 @@ export const getRecommendations = async (req, res) => {
         imageUrl: meme.imageUrl,
         description: meme.description,
         price: token.price,
-        priceChange,
+        priceChange: changeRate * 100,
         volume,
         hotScore,
         createdAt: meme.createdAt

@@ -177,7 +177,7 @@ import { useAuthStore } from '@/stores/auth'
 // ✅ 使用 Vue Router
 const router = useRouter()
 const authStore = useAuthStore()
-const server_ip = authStore.server_ip || 'http://localhost:3000'
+const server_ip = authStore.server_ip
 
 const emit = defineEmits(['refresh'])
 

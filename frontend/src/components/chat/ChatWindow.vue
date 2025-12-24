@@ -239,7 +239,7 @@ const refreshAlerts = inject('refreshAlerts', () => {});
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
-const server_ip = authStore.server_ip || 'http://localhost:3000';
+const server_ip = authStore.server_ip ;
 const RECALL_WINDOW_MS = 5 * 60 * 1000;
 
 const conversations = ref([]);

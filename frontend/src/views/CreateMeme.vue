@@ -91,7 +91,7 @@ watch(selectedFile, (newFile) => {
 const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
-const server_ip = authStore.server_ip || 'http://localhost:3000' // 后端服务器地址
+const server_ip = authStore.server_ip  // 后端服务器地址
 
 const isEditMode = computed(() => !!route.query.id)
 

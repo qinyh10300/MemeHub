@@ -93,7 +93,6 @@ const avatarUrl = computed(() => {
 })
 
 const serverIp = authStore.server_ip // 后端服务器地址
-// const serverIp = computed(() => authStore.server_ip || 'http://localhost:3000')
 const storedUserToken = computed(() => authStore.user_token || authStore.username || authStore.token || '')
 const isLoggedIn = computed(() => !!storedUserToken.value)
 const followLoading = ref(false)
