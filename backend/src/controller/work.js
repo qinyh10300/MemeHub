@@ -177,9 +177,28 @@ export const getMemeDetail = async (req, res) => {
           // _id: item._id
         }));
 
+        let changeRate = 0;
+        // 若模因创建时间不足5h，与0.1比较；若超过5h，则与>5h的最近一次交易后价格比较
+        const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000);
+        if (token.createdAt > fiveHoursAgo) {
+          // console.log('Token创建时间不足5h，涨跌幅与初始价格比较');
+          changeRate = ((token.price - Const.TOKEN_INIT_PRICE) / Const.TOKEN_INIT_PRICE);
+        } else
+        {
+          const historyAfter5h = priceHistoryWithNickname.filter(item => new Date(item.time) < fiveHoursAgo);
+          if (historyAfter5h.length > 0) {
+            const priceAt5h = historyAfter5h[0].newPrice;
+            changeRate = ((token.price - priceAt5h) / priceAt5h);
+            // console.log(`Token创建时间超过5h，涨跌幅与5h前价格比较${priceAt5h}: ${token.price}，变化率${changeRate}`);
+          } else {
+            // console.log('Token创建时间超过5h，但5h前无交易记录，涨跌幅与初始价格比较');
+            changeRate = ((token.price - Const.TOKEN_INIT_PRICE) / Const.TOKEN_INIT_PRICE) ;
+          }
+        }
+
         tokenInfo = { 
           price: token.price,
-          // changeRate: ,  // TODO: 添加5h涨跌幅
+          changeRate: changeRate,
           priceHistory: priceHistoryWithNickname
         }
       }
@@ -485,8 +504,8 @@ export const getTokenPriceByAmount = async (req, res) => {
     });
   }
 };
-// TODO: 获取相对5h前的涨跌幅
-export const getTokenPriceHistoryByTime = async (req, res) => {// TODO：历史记录存在跳动
+
+export const getTokenPriceHistoryByTime = async (req, res) => {
   try {
     const memeId = req.params.id;
     const meme = await Meme.findById(memeId);
