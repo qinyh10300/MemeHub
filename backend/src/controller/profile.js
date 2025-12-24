@@ -12,7 +12,7 @@ const { verify } = pkg;
 
 // 统一构建外部可访问的基础 URL（在反向代理场景下可通过环境变量覆盖端口/域名）
 function getBaseUrl(req) {
-  return process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+  return process.env.PUBLIC_BASE_URL;
 }
 
 // 获取用户个人主页数据
