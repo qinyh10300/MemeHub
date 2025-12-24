@@ -37,6 +37,23 @@ async function resolveUser(token) {
   return user;
 }
 
+function getBaseUrl(req) {
+  const envBase = process.env.PUBLIC_BASE_URL;
+  if (envBase && envBase.trim()) return envBase.replace(/\/+$/, '');
+  const host = req.get('host');
+  if (!host) return '';
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  return `${protocol}://${host}`;
+}
+
+function normalizeAvatarUrl(url, baseUrl) {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url) || /^data:/i.test(url) || /^blob:/i.test(url)) {
+    return url;
+  }
+  return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
 function cleanupLocalAvatar(avatarUrl) {
   if (!avatarUrl || !avatarUrl.includes('/avatars/')) {
     return;
@@ -58,9 +75,10 @@ function cleanupLocalAvatar(avatarUrl) {
 }
 
 export function getDefaultAvatars(req, res) {
+  const baseUrl = getBaseUrl(req);
   const data = DEFAULT_AVATARS.map((url, index) => ({
     id: index,
-    url,
+    url: normalizeAvatarUrl(url, baseUrl),
   }));
 
   res.status(200).json({
@@ -88,7 +106,9 @@ export async function selectDefaultAvatar(req, res) {
 
     cleanupLocalAvatar(user.avatar);
 
-    const avatarUrl = DEFAULT_AVATARS[parsedId];
+    const baseUrl = getBaseUrl(req);
+    const rawUrl = DEFAULT_AVATARS[parsedId];
+    const avatarUrl = normalizeAvatarUrl(rawUrl, baseUrl);
     user.avatar = avatarUrl;
     await user.save();
 

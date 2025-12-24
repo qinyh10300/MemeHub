@@ -81,7 +81,7 @@ const uploadedImagePreview = ref(null)
 const fileInput = ref(null)
 const isUploadedFile = ref(false)
 
-// 默认头像列表（改为项目内相对路径，本地打包即用）
+// 默认头像列表；优先从后端获取，失败时使用本地内置资源
 const localAvatarFiles = [
   'avatar1.svg',
   'avatar2.svg',
@@ -101,7 +101,21 @@ const defaultAvatars = ref(
   )
 )
 
+const fetchDefaultAvatars = async () => {
+  try {
+    const res = await fetch(`${server_ip}/api/avatars/default`);
+    const result = await res.json();
+    if (res.ok && result.code === 0 && Array.isArray(result.data)) {
+      // 后端返回 { id, url }
+      defaultAvatars.value = result.data.map(item => item.url).filter(Boolean);
+    }
+  } catch (err) {
+    console.error('获取默认头像列表失败，回退本地资源:', err);
+  }
+};
+
 onMounted(() => {
+  fetchDefaultAvatars();
   // 如果当前有头像，设置为选中状态
   if (props.currentAvatar) {
     selectedAvatar.value = props.currentAvatar
@@ -213,12 +227,12 @@ const handleConfirm = async () => {
         errorMsg.value = result.message || '上传失败，请稍后重试'
       }
     } else {
-      // 如果是选择默认头像，调用更新接口
+      // 如果是选择默认头像，调用后端默认头像接口
       console.log('走默认头像逻辑，选择的头像URL:', selectedAvatar.value)
       
       // 确保 selectedAvatar 是默认头像列表中的一个
-      if (!selectedAvatar.value || !defaultAvatars.value.includes(selectedAvatar.value)) {
-        // 如果 selectedAvatar 不是默认头像（可能是 base64 预览），尝试从预览中恢复
+      const selectedIndex = defaultAvatars.value.findIndex(a => a === selectedAvatar.value)
+      if (selectedIndex < 0) {
         if (uploadedImagePreview.value) {
           errorMsg.value = '请先确认上传文件或选择默认头像'
           saving.value = false
@@ -236,14 +250,14 @@ const handleConfirm = async () => {
         return
       }
 
-      const response = await fetch(`${server_ip}/api/update-nickname`, {
-        method: 'PUT',
+      const response = await fetch(`${server_ip}/api/avatars/select`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'token': headerToken,
         },
         body: JSON.stringify({
-          avatar: selectedAvatar.value,
+          avatarId: selectedIndex,
         }),
       })
 

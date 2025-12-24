@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="320" height="320" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d2b64"/>
+      <stop offset="1" stop-color="#f8cdda"/>
+    </linearGradient>
+    <radialGradient id="aurora" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="rgba(255,255,255,0.50)"/>
+      <stop offset="1" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+    <filter id="b" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+  <rect width="320" height="320" rx="56" fill="url(#bg)"/>
+  <circle cx="135" cy="115" r="130" fill="url(#aurora)" filter="url(#b)"/>
+  <g opacity="0.20" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="10">
+    <circle cx="235" cy="220" r="64"/>
+    <circle cx="235" cy="220" r="34"/>
+  </g>
+  <path d="M-10 248 C 70 205, 150 300, 340 230" stroke="rgba(255,255,255,0.18)" stroke-width="16" stroke-linecap="round" fill="none"/>
+</svg>
+
