@@ -10,6 +10,11 @@ import * as Const from '../configs/const.js';
 import pkg from 'jsonwebtoken';
 const { verify } = pkg;
 
+// 统一构建外部可访问的基础 URL（在反向代理场景下可通过环境变量覆盖端口/域名）
+function getBaseUrl(req) {
+  return process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+}
+
 // 获取用户个人主页数据
 export const getUserProfile = async (req, res) => {
   try {
@@ -55,7 +60,7 @@ export const getUserProfile = async (req, res) => {
     const totalLikes = userMemes.reduce((sum, meme) => sum + (meme.likes || 0), 0);
 
     // 获取服务器基础URL（用于构建完整的图片URL）
-    const baseUrl = req.protocol + '://' + req.get('host');
+    const baseUrl = getBaseUrl(req);
     
     // 格式化我创作的模因数据
     const myMemes = (user.workList || []).map(meme => {
@@ -424,7 +429,7 @@ export const uploadAvatar = async (req, res) => {
 
     // 构建头像URL
     // 使用 /api 前缀，方便在反向代理仅转发 /api 路由时仍能访问头像静态资源
-    const baseUrl = req.protocol + '://' + req.get('host');
+    const baseUrl = getBaseUrl(req);
     const avatarUrl = `${baseUrl}/api/avatars/${file.filename}`;
 
     // 更新用户头像

@@ -46,6 +46,20 @@
               <input id="regPassword" v-model="registerForm.password" type="password" required />
               <label for="regPassword">密码</label>
             </div>
+
+            <!-- 审核员注册开关 -->
+            <div class="reviewer-row">
+              <label class="reviewer-checkbox">
+                <input type="checkbox" v-model="isReviewer" />
+                <span>我是审核员</span>
+              </label>
+              <span class="reviewer-hint">勾选后需填写审核员注册码</span>
+            </div>
+
+            <div v-if="isReviewer" class="input-group reviewer-code-group">
+              <input id="reviewerCode" v-model="reviewerCode" type="text" required />
+              <label for="reviewerCode">审核员注册码</label>
+            </div>
             <button type="submit" class="submit-btn">立即注册</button>
 
             <div class="form-footer">
@@ -113,10 +127,12 @@ const registerForm = reactive({
   username: '',
   password: ''
 })
+const isReviewer = ref(false)
+const reviewerCode = ref('')
 
 // 🔍监听输入变化清空错误信息
 watch(
-  () => [registerForm.username, registerForm.password],
+  () => [registerForm.username, registerForm.password, reviewerCode.value, isReviewer.value],
   () => {
     errorMsg.value = ''
   }
@@ -242,26 +258,37 @@ const handleRegister = async () => {
     triggerShake();
     return;
   }
+  if (isReviewer.value && !reviewerCode.value) {
+    errorMsg.value = '请输入审核员注册码';
+    triggerShake();
+    return;
+  }
   try {
-    const response = await fetch(`${server_ip}/api/register`, {
+    const apiPath = isReviewer.value ? '/api/reviewer/register' : '/api/register';
+    const response = await fetch(`${server_ip}${apiPath}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(registerForm),
+      body: JSON.stringify({
+        ...registerForm,
+        reviewerCode: isReviewer.value ? reviewerCode.value : undefined
+      }),
     });
 
     const data = await response.json();
 
     // if (response.ok) {
     if (response.status == 201) {
-      alert('注册成功！');
+      alert(isReviewer.value ? '审核员注册成功！' : '注册成功！');
       switchForm(); // 切换回登录表单
     } else if (response.status == 400){
-      errorMsg.value = '用户名已被注册';
+      errorMsg.value = data.message || '用户名已被注册';
+    } else if (response.status == 403){
+      errorMsg.value = data.message || '审核员注册码错误';
     } else {
       // errorMsg.value = data.message || '用户名或密码错误';
-      errorMsg.value = '服务器错误';
+      errorMsg.value = data.message || '服务器错误';
     }
   } catch (error) {
     console.error('注册时发生错误:', error);
@@ -285,6 +312,8 @@ const switchForm = () => {
   loginForm.password = '';
   registerForm.username = '';
   registerForm.password = '';
+  isReviewer.value = false;
+  reviewerCode.value = '';
 }
 
 // 关闭弹窗
@@ -409,6 +438,22 @@ onMounted(validateInput)
   left: 1px;
   font-size: 14px;
   color: #aceab5;
+}
+
+/* 审核员注册码输入样式：避免浮动标签上移压到提示文案 */
+.reviewer-code-group {
+  margin-top: 12px;
+}
+.reviewer-code-group label {
+  top: 50%;
+  transform: translateY(-50%);
+}
+.reviewer-code-group input:focus+label,
+.reviewer-code-group input:valid+label {
+  top: 6px;
+  left: 10px;
+  transform: none;
+  font-size: 13px;
 }
 
 /* 提交按钮 */
