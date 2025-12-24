@@ -423,8 +423,9 @@ export const uploadAvatar = async (req, res) => {
     }
 
     // 构建头像URL
+    // 使用 /api 前缀，方便在反向代理仅转发 /api 路由时仍能访问头像静态资源
     const baseUrl = req.protocol + '://' + req.get('host');
-    const avatarUrl = `${baseUrl}/avatars/${file.filename}`;
+    const avatarUrl = `${baseUrl}/api/avatars/${file.filename}`;
 
     // 更新用户头像
     user.avatar = avatarUrl;

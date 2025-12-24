@@ -39,6 +39,9 @@ const STICKER_IMAGE_PROVIDER =
 const STICKER_IMAGE_API_STYLE =
   (process.env.STICKER_IMAGE_API_STYLE || (isSiliconFlowProvider ? 'openai' : 'default')).toLowerCase();
 const STICKER_IMAGE_SIZE = process.env.STICKER_IMAGE_SIZE || (isSiliconFlowProvider ? '768x768' : '512x512');
+const STICKER_SIMPLE_MODE =
+  `${process.env.STICKER_USE_SIMPLE_IMAGE || ''}`.toLowerCase() === 'true' ||
+  STICKER_IMAGE_API_STYLE === 'simple';
 const parseOptionalNumber = (value, parser = (v) => parseFloat(v)) => {
   if (value === undefined || value === null) return undefined;
   const trimmed = `${value}`.trim();
@@ -215,6 +218,50 @@ async function fetchBufferFromUrl(url) {
   }
   const arrayBuffer = await response.arrayBuffer();
   return Buffer.from(arrayBuffer);
+}
+
+// 直接走与 testGen/stickerGen.js 类似的简单生成（无规划阶段）
+async function callSimpleImage(promptText = '') {
+  ensureApiKey();
+
+  const endpoint = STICKER_IMAGE_ENDPOINT || `${RAW_IMAGE_BASE_URL}/images/generations`;
+  const body = {
+    model: STICKER_IMAGE_MODEL_ID || 'Kwai-Kolors/Kolors',
+    prompt: promptText || 'cute sticker, bright cartoon style, transparent background',
+    image_size: STICKER_IMAGE_SIZE || '768x768',
+    batch_size: 1,
+    num_inference_steps: Number.isFinite(STICKER_IMAGE_STEPS) ? STICKER_IMAGE_STEPS : 20,
+    guidance_scale: Number.isFinite(STICKER_IMAGE_CFG) ? STICKER_IMAGE_CFG : 7.5
+  };
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${STICKER_API_KEY}`
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Sticker simple image API failed: ${response.status} ${text}`);
+  }
+
+  const data = await response.json();
+  const url = data?.data?.[0]?.url;
+  if (!url) {
+    throw new Error(`Sticker simple image API missing url: ${JSON.stringify(data).slice(0, 400)}`);
+  }
+
+  const buffer = await fetchBufferFromUrl(url);
+  return {
+    buffer,
+    mimeType: 'image/png',
+    modelId: STICKER_IMAGE_MODEL_ID,
+    source: 'simple-direct',
+    url
+  };
 }
 
 async function callStickerImage(plan, keyword = '') {
@@ -394,6 +441,32 @@ function persistStickerContent(content, extension = '.svg', encoding = 'utf8') {
 
 export async function generateStickerAsset(promptText = '', user = null) {
   ensureDirectory();
+
+  // 简单模式：完全复用 testGen/stickerGen.js 的直连生成
+  if (STICKER_SIMPLE_MODE) {
+    try {
+      const imageResult = await callSimpleImage(promptText);
+      const { url } = persistStickerContent(
+        imageResult.buffer,
+        guessExtension(imageResult.mimeType),
+      );
+
+      return {
+        url,
+        meta: {
+          tagline: promptText.slice(0, 20) || 'AI Sticker',
+          modelId: imageResult.modelId || STICKER_IMAGE_MODEL_ID,
+          mimeType: imageResult.mimeType || 'image/png',
+          source: imageResult.source || 'simple-direct',
+          originUrl: imageResult.url
+        }
+      };
+    } catch (simpleError) {
+      console.error('[Sticker] simple image generation failed, fallback to plan flow:', simpleError);
+      // 继续走下方 plan+image 逻辑作为兜底
+    }
+  }
+
   let planResult;
   try {
     planResult = await requestStickerPlan(promptText);
