@@ -207,8 +207,15 @@ async function handleAiGenerateAvatar() {
       if (!downloadRes.ok) {
         throw new Error('下载生成的封面失败')
       }
+      const contentType = downloadRes.headers.get('content-type') || ''
+      if (!contentType.startsWith('image/')) {
+        // 常见情况：拿到的是 404/反代回退的 HTML 页面，会导致生成 .html 上传
+        const text = await downloadRes.text().catch(() => '')
+        throw new Error(`下载内容不是图片（${contentType || 'unknown'}），请检查部署域名/反代/静态资源。${text ? '（返回了HTML页面）' : ''}`)
+      }
       const blob = await downloadRes.blob()
-      const ext = (blob.type && blob.type.split('/')[1]) || 'png'
+      const extRaw = (blob.type && blob.type.split('/')[1]) || 'png'
+      const ext = extRaw.includes('+xml') ? 'svg' : extRaw
       const aiFile = new File([blob], `ai-meme-avatar-${Date.now()}.${ext}`, {
         type: blob.type || 'image/png'
       })
@@ -254,7 +261,9 @@ async function handleCreateMeme() {
   uploadData.append('xiaohongshu', formData.value.social?.xiaohongshu || '')
   
   if (selectedFile.value) {
-    uploadData.append('file', selectedFile.value)
+    const fileValue = selectedFile.value
+    const filename = fileValue?.name || `upload-${Date.now()}.png`
+    uploadData.append('file', fileValue, filename)
   }
 
   const url = isEditMode.value 
@@ -359,7 +368,9 @@ async function handleCreateMemeCoin() {
   uploadData.append('xiaohongshu', formData.value.social?.xiaohongshu || '')
   
   if (selectedFile.value) {
-    uploadData.append('file', selectedFile.value)
+    const fileValue = selectedFile.value
+    const filename = fileValue?.name || `upload-${Date.now()}.png`
+    uploadData.append('file', fileValue, filename)
   }
 
   uploadData.append('withToken', true);

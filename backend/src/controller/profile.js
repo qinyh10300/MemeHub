@@ -8,11 +8,13 @@ import fs from 'fs';
 import path from 'path';
 import * as Const from '../configs/const.js';
 import pkg from 'jsonwebtoken';
+import { getPublicBaseUrl, resolvePublicUrl } from '../utils/publicUrl.js';
+import { resolveUserAvatar } from '../utils/avatarUrl.js';
 const { verify } = pkg;
 
 // 统一构建外部可访问的基础 URL（在反向代理场景下可通过环境变量覆盖端口/域名）
 function getBaseUrl(req) {
-  return process.env.PUBLIC_BASE_URL;
+  return getPublicBaseUrl(req);
 }
 
 // 获取用户个人主页数据
@@ -64,11 +66,8 @@ export const getUserProfile = async (req, res) => {
     
     // 格式化我创作的模因数据
     const myMemes = (user.workList || []).map(meme => {
-      let imageUrl = meme.imageUrl || `https://i.pravatar.cc/150?img=${meme._id}`;
-      // 如果是相对路径，转换为完整URL
-      if (imageUrl && !imageUrl.startsWith('http')) {
-        imageUrl = imageUrl.startsWith('/') ? `${baseUrl}${imageUrl}` : `${baseUrl}/${imageUrl}`;
-      }
+      let imageUrl = meme.imageUrl || '';
+      imageUrl = resolvePublicUrl(imageUrl, baseUrl) || `https://i.pravatar.cc/150?img=${meme._id}`;
       return {
         image: imageUrl,
         name: meme.title || '未命名模因',
@@ -81,11 +80,8 @@ export const getUserProfile = async (req, res) => {
 
     // 格式化我的收藏数据
     const myFavorites = (user.favoriteList || []).map(meme => {
-      let imageUrl = meme.imageUrl || `https://i.pravatar.cc/150?img=${meme._id}`;
-      // 如果是相对路径，转换为完整URL
-      if (imageUrl && !imageUrl.startsWith('http')) {
-        imageUrl = imageUrl.startsWith('/') ? `${baseUrl}${imageUrl}` : `${baseUrl}/${imageUrl}`;
-      }
+      let imageUrl = meme.imageUrl || '';
+      imageUrl = resolvePublicUrl(imageUrl, baseUrl) || `https://i.pravatar.cc/150?img=${meme._id}`;
       return {
         image: imageUrl,
         name: meme.title || '未命名模因',
@@ -105,10 +101,8 @@ export const getUserProfile = async (req, res) => {
     const myTokens = myTokenEntries.map(entry => {
       const token = tokenMap.get(entry.token.toString());
       if (!token || !token.meme) return null;
-      let imageUrl = token.meme.imageUrl || `https://i.pravatar.cc/150?img=${token.meme._id}`;
-      if (imageUrl && !imageUrl.startsWith('http')) {
-        imageUrl = imageUrl.startsWith('/') ? `${baseUrl}${imageUrl}` : `${baseUrl}/${imageUrl}`;
-      }
+      let imageUrl = token.meme.imageUrl || '';
+      imageUrl = resolvePublicUrl(imageUrl, baseUrl) || `https://i.pravatar.cc/150?img=${token.meme._id}`;
       const memeId = token.meme._id.toString();
       return {
         imageUrl,
@@ -165,20 +159,7 @@ export const getUserProfile = async (req, res) => {
       // 格式化粉丝数据
       followers = followersList.map(follower => {
         const idStr = follower._id.toString();
-        
-        // 优先使用用户设置的头像，如果没有则生成默认头像
-        let followerAvatar = follower.avatar;
-        if (!followerAvatar || followerAvatar.trim() === '') {
-          // 使用ID的hash值生成1-70之间的数字
-          let hash = 0;
-          for (let i = 0; i < idStr.length; i++) {
-            hash = ((hash << 5) - hash) + idStr.charCodeAt(i);
-            hash = hash & hash; // Convert to 32bit integer
-          }
-          const imgNum = Math.abs(hash % 70) + 1;
-          followerAvatar = `https://i.pravatar.cc/150?img=${imgNum}`;
-        }
-        
+        const followerAvatar = resolveUserAvatar(follower, baseUrl);
         return {
           id: idStr,
           username: `@${follower.username}`,
@@ -200,20 +181,7 @@ export const getUserProfile = async (req, res) => {
     const followingCount = followingDocs.length;
     const followingPreview = followingDocs.slice(0, 100).map(followedUser => {
       const idStr = followedUser._id.toString();
-      
-      // 优先使用用户设置的头像，如果没有则生成默认头像
-      let followedAvatar = followedUser.avatar;
-      if (!followedAvatar || followedAvatar.trim() === '') {
-        // 使用ID的hash值生成1-70之间的数字
-        let hash = 0;
-        for (let i = 0; i < idStr.length; i++) {
-          hash = ((hash << 5) - hash) + idStr.charCodeAt(i);
-          hash = hash & hash; // Convert to 32bit integer
-        }
-        const imgNum = Math.abs(hash % 70) + 1;
-        followedAvatar = `https://i.pravatar.cc/150?img=${imgNum}`;
-      }
-      
+      const followedAvatar = resolveUserAvatar(followedUser, baseUrl);
       return {
         id: idStr,
         username: `@${followedUser.username}`,
@@ -223,19 +191,7 @@ export const getUserProfile = async (req, res) => {
     });
     const followingForDisplay = isOwnProfile ? followingPreview : [];
 
-    // 生成默认头像（如果用户没有设置头像）
-    let userAvatar = user.avatar;
-    if (!userAvatar || userAvatar.trim() === '') {
-      // 使用ID的hash值生成1-70之间的数字
-      const idStr = user._id.toString();
-      let hash = 0;
-      for (let i = 0; i < idStr.length; i++) {
-        hash = ((hash << 5) - hash) + idStr.charCodeAt(i);
-        hash = hash & hash;
-      }
-      const imgNum = Math.abs(hash % 70) + 1;
-      userAvatar = `https://i.pravatar.cc/150?img=${imgNum}`;
-    }
+    const userAvatar = resolveUserAvatar(user, baseUrl);
 
     // 构建返回数据
     const userData = {

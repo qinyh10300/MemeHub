@@ -84,13 +84,32 @@ async function handleFile(file) {
     alert('不支持的文件类型')
     return
   }
+
+  if (!processedBlob) {
+    alert('文件处理失败，请重试')
+    return
+  }
+
+  // 将 Blob 包装为带扩展名的 File，避免后端拿到奇怪的 originalname（例如 .html）
+  const mime = processedBlob.type || 'image/png'
+  const extMap = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+    'image/svg+xml': 'svg'
+  }
+  const ext = extMap[mime] || 'png'
+  const safeFile = new File([processedBlob], `upload-${Date.now()}.${ext}`, { type: mime })
+
   const reader = new FileReader()
   reader.onload = () => {
     previewFile.value = reader.result
   }
   reader.readAsDataURL(processedBlob)
 
-  emit('file-change', processedBlob)
+  emit('file-change', safeFile)
 }
 
 // 图片裁剪 1:1 并至少 1000×1000

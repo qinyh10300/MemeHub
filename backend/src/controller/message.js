@@ -2,6 +2,8 @@ import { Message } from '../models/message.js';
 import { User } from '../models/user.js';
 import pkg from 'jsonwebtoken';
 import { generateStickerAsset } from '../services/stickerGenerator.js';
+import { getPublicBaseUrl, resolvePublicUrl } from '../utils/publicUrl.js';
+import { resolveUserAvatar } from '../utils/avatarUrl.js';
 const { verify } = pkg;
 
 const RECALL_WINDOW_MINUTES = parseInt(process.env.MESSAGE_RECALL_WINDOW_MINUTES, 10) || 5;
@@ -10,36 +12,8 @@ const STICKER_GENERATION_DISABLED_MESSAGE =
   process.env.STICKER_GENERATION_DISABLED_MESSAGE || 'AI生成表情包功能已暂时关闭';
 const STICKER_GENERATION_DISABLED = `${process.env.STICKER_GENERATION_DISABLED}` === 'true';
 
-// 辅助函数：构建头像URL
-function buildAvatarUrl(userDoc = {}, baseUrl = '') {
-  const rawAvatar = userDoc.avatar?.trim();
-  if (rawAvatar && rawAvatar.length > 0) {
-    const isAbsolute = /^https?:\/\//i.test(rawAvatar);
-    if (isAbsolute) return rawAvatar;
-    if (rawAvatar.startsWith('//')) return `${baseUrl ? baseUrl.split('://')[0] : 'http'}:${rawAvatar}`;
-    if (baseUrl) {
-      const normalized = rawAvatar.startsWith('/') ? rawAvatar : `/${rawAvatar}`;
-      return `${baseUrl}${normalized}`;
-    }
-    return rawAvatar;
-  }
-  // 默认头像逻辑
-  const seed = userDoc._id?.toString() || userDoc.username || 'default';
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
-    hash |= 0;
-  }
-  const imgNum = Math.abs(hash % 70) + 1;
-  return `https://i.pravatar.cc/150?img=${imgNum}`;
-}
-
 function buildStickerUrl(pathValue = '', baseUrl = '') {
-  if (!pathValue) return '';
-  if (/^https?:\/\//i.test(pathValue)) return pathValue;
-  if (pathValue.startsWith('//')) return `${baseUrl ? baseUrl.split('://')[0] : 'http'}:${pathValue}`;
-  const normalized = pathValue.startsWith('/') ? pathValue : `/${pathValue}`;
-  return baseUrl ? `${baseUrl}${normalized}` : normalized;
+  return resolvePublicUrl(pathValue, baseUrl);
 }
 
 async function findUserByToken(token) {
@@ -144,9 +118,8 @@ export const getHistory = async (req, res) => {
       );
     }
 
-    // 处理头像URL
-    const host = req.get('host');
-    const baseUrl = host ? `${req.protocol}://${host}` : '';
+    // 处理头像URL（优先使用 PUBLIC_BASE_URL，适配反代端口）
+    const baseUrl = getPublicBaseUrl(req);
 
     const formattedMessages = messages.map(msg => {
       const plain = msg.toObject();
@@ -163,11 +136,11 @@ export const getHistory = async (req, res) => {
         ...plain,
         sender: {
           ...msg.sender.toObject(),
-          avatar: buildAvatarUrl(msg.sender, baseUrl)
+          avatar: resolveUserAvatar(msg.sender, baseUrl)
         },
         receiver: {
           ...msg.receiver.toObject(),
-          avatar: buildAvatarUrl(msg.receiver, baseUrl)
+          avatar: resolveUserAvatar(msg.receiver, baseUrl)
         }
       };
     });
@@ -195,8 +168,7 @@ export const getConversations = async (req, res) => {
     .populate('receiver', 'username nickname avatar');
 
     const conversationMap = new Map();
-    const host = req.get('host');
-    const baseUrl = host ? `${req.protocol}://${host}` : '';
+    const baseUrl = getPublicBaseUrl(req);
 
     messages.forEach(msg => {
       const isSender = msg.sender._id.toString() === currentUser._id.toString();
@@ -209,7 +181,7 @@ export const getConversations = async (req, res) => {
             _id: otherUser._id,
             username: otherUser.username,
             nickname: otherUser.nickname,
-            avatar: buildAvatarUrl(otherUser, baseUrl)
+            avatar: resolveUserAvatar(otherUser, baseUrl)
           },
           lastMessage: {
             type: msg.type,
@@ -244,6 +216,7 @@ export const getUnreadCount = async (req, res) => {
     const token = req.headers.token;
     const currentUser = await findUserByToken(token);
     if (!currentUser) return res.status(401).json({ message: '用户未登录' });
+    const baseUrl = getPublicBaseUrl(req);
 
     const total = await Message.countDocuments({
       receiver: currentUser._id,
@@ -266,7 +239,7 @@ export const getUnreadCount = async (req, res) => {
         _id: msg.sender._id,
         username: msg.sender.username,
         nickname: msg.sender.nickname,
-        avatar: msg.sender.avatar
+        avatar: resolveUserAvatar(msg.sender, baseUrl)
       },
       preview: msg.type === 'sticker' ? '[表情包]' : msg.content,
       createdAt: msg.createdAt
@@ -340,8 +313,7 @@ export const generateSticker = async (req, res) => {
     }
 
     const result = await generateStickerAsset(prompt.trim(), currentUser);
-    const host = req.get('host');
-    const baseUrl = host ? `${req.protocol}://${host}` : '';
+    const baseUrl = getPublicBaseUrl(req);
     const absoluteUrl = buildStickerUrl(result.url, baseUrl);
 
     res.status(200).json({

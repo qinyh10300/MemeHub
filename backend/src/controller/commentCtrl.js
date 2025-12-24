@@ -2,35 +2,11 @@ import { Meme } from '../models/meme.js';
 import { User } from '../models/user.js';
 import { Comment } from '../models/comment.js';
 import { Notification } from '../models/notification.js';
+import pkg from 'jsonwebtoken';
+import { getPublicBaseUrl } from '../utils/publicUrl.js';
+import { resolveUserAvatar } from '../utils/avatarUrl.js';
+const { verify } = pkg;
 
-
-function buildAvatarUrl(userDoc = {}, baseUrl = '') {
-  const rawAvatar = userDoc.avatar?.trim();
-  if (rawAvatar && rawAvatar.length > 0) {
-    const isAbsolute = /^https?:\/\//i.test(rawAvatar);
-    if (isAbsolute) {
-      return rawAvatar;
-    }
-    if (rawAvatar.startsWith('//')) {
-      return `${baseUrl ? baseUrl.split('://')[0] : 'http'}:${rawAvatar}`;
-    }
-
-    if (baseUrl) {
-      const normalized = rawAvatar.startsWith('/') ? rawAvatar : `/${rawAvatar}`;
-      return `${baseUrl}${normalized}`;
-    }
-    return rawAvatar;
-  }
-
-  const seed = userDoc._id?.toString() || userDoc.username || 'default';
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
-    hash |= 0; // 转为32位整数
-  }
-  const imgNum = Math.abs(hash % 70) + 1;
-  return `https://i.pravatar.cc/150?img=${imgNum}`;
-}
 
 async function findUserByToken(token) {
   if (!token) {
@@ -84,8 +60,7 @@ export const commentMeme = async (req, res) => {
     meme.comments.push(comment._id);
     await meme.save();
 
-    const host = req.get('host');
-    const baseUrl = host ? `${req.protocol}://${host}` : '';
+    const baseUrl = getPublicBaseUrl(req);
 
     // 消息推送，如果是回复评论，则通知被回复用户
     if (reference) {
@@ -120,7 +95,7 @@ export const commentMeme = async (req, res) => {
         meme: comment.meme,
         user: user.username,
         nickname: user.nickname,
-        avatar: buildAvatarUrl(user, baseUrl),
+        avatar: resolveUserAvatar(user, baseUrl),
       }
     });
   } catch (error) {
@@ -142,8 +117,7 @@ export const getMemeComments = async (req, res) => {
     const sortBy = req.query.sortBy === 'time' ? 'createdAt' : 'likes';
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1; // 默认倒序
     const token = req.headers.token || req.headers.authorization?.replace('Bearer ', '');
-    const host = req.get('host');
-    const baseUrl = host ? `${req.protocol}://${host}` : '';
+    const baseUrl = getPublicBaseUrl(req);
 
     // 检查meme是否存在
     const meme = await Meme.findById(memeId);
@@ -162,7 +136,7 @@ export const getMemeComments = async (req, res) => {
     const formattedComments = comments.map((comment) => {
       const userInfo = comment.user || {};
       const userId = userInfo._id ? userInfo._id.toString() : '';
-      const avatar = buildAvatarUrl(userInfo, baseUrl);
+      const avatar = resolveUserAvatar(userInfo, baseUrl);
       const isLiked = viewUser
         ? Array.isArray(comment.likeList) && comment.likeList.some((id) => id.toString() === viewUser._id.toString())
         : false;
@@ -205,8 +179,7 @@ export const getListComment = async (req, res) => {
     const commentIds = req.body.commentIds;
     const token = req.headers.token;
     const username = token; // TODO:暂时用username作为token内容、
-    const host = req.get('host');
-    const baseUrl = host ? `${req.protocol}://${host}` : '';
+    const baseUrl = getPublicBaseUrl(req);
 
     const view_user = await User.findOne({ username });
     if (!view_user) {
@@ -247,10 +220,10 @@ export const getListComment = async (req, res) => {
         if (!comment.user) {
           comment.user = null;
         } else {
-          comment.user.avatar = buildAvatarUrl(comment.user, baseUrl);
+          comment.user.avatar = resolveUserAvatar(comment.user, baseUrl);
         }
         if (comment.reference?.user) {
-          comment.reference.user.avatar = buildAvatarUrl(comment.reference.user, baseUrl);
+          comment.reference.user.avatar = resolveUserAvatar(comment.reference.user, baseUrl);
         }
         is_liked = Array.isArray(comment.likeList) && comment.likeList.some(id => id.toString() === view_user._id.toString());
         is_author = comment.user && (comment.user.username === username);

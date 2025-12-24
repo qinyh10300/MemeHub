@@ -76,7 +76,7 @@ export const searchUser = async (req, res) => {
     };
     // 查询用户，筛选active用户
     const users = await User.find({ ...query, status: 'active' })
-      .select('-_id username nickname avatarUrl bio followersCount followingCount memesCount')
+      .select('-_id username nickname avatar bio followersCount followingCount memesCount')
       .sort({ followersCount: -1 }); // 按关注者数量降序排序
     const userIds = users.map(user => user.username);
 
