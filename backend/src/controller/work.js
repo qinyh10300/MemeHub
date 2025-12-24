@@ -346,18 +346,81 @@ export const getListMeme = async (req, res) => {
 
 export const getMemeList = async (req, res) => {
   try {
-    // 支持 ?sortBy=time 或 ?sortBy=likes
-    const sortBy = req.query.sortBy === 'hot' ? 'likes' : 'createdAt';
+    // 支持 ?sortBy=hot（热度）/time/likes
+    const sortBy = req.query.sortBy;
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1; // 默认倒序
 
-    const memes = await Meme.find({ status: 'active' })// 筛选active
-      .select('_id likes createdAt')
-      .sort({ [sortBy]: sortOrder });
+    // 查询所有 active meme，带上点赞和收藏数
+    const memes = await Meme.find({ status: 'active' })
+      .select('_id title ticker imageUrl description createdAt likes favorites withToken');
 
-    // res.status(200).json(memes);
-    
-    const memeIds = memes.map(meme => meme._id);
-    res.status(200).json({ memeIds });
+    if (sortBy === 'hot') {
+      // 计算热度指数
+      // 24小时内
+      const startTime = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      // 批量查找所有 meme 的 token
+      const memeIds = memes.map(m => m._id);
+      const tokens = await Token.find({ meme: { $in: memeIds } });
+      const tokenMap = new Map(tokens.map(t => [t.meme.toString(), t]));
+
+      // 计算每个模因的统计数据
+      const memeStats = memes.map(meme => {
+        const token = tokenMap.get(meme._id.toString());
+        // 没有 token 只计入点赞和收藏
+        let priceChange = 0, volume24h = 0, tradeCount = 0, holders = 0;
+        if (token) {
+          const priceHistory = token.priceHistory || [];
+          const recentHistory = priceHistory.filter(h => new Date(h.time) >= startTime);
+          // 价格变化
+          if (recentHistory.length > 0) {
+            const oldPrice = recentHistory[0].price || token.price;
+            const newPrice = token.price;
+            priceChange = oldPrice > 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : 0;
+          }
+          // 交易量
+          volume24h = recentHistory.reduce((sum, h) => sum + (h.price || 0), 0);
+          // 交易笔数
+          tradeCount = recentHistory.length;
+          // 持有人数
+          holders = new Set(priceHistory.filter(h => h.side === 'BUY').map(h => h.user?.toString())).size;
+        }
+        // 热度指数
+        const hotScore = (
+          (volume24h * 0.4) +
+          (tradeCount * 10) +
+          ((meme.likes || 0) * 2) +
+          ((meme.favorites || 0) * 3)
+        );
+        return {
+          id: meme._id,
+          hotScore,
+          createdAt: meme.createdAt
+        };
+      });
+      // 排序
+      memeStats.sort((a, b) => {
+        if (b.hotScore === a.hotScore) {
+          // 热度相同按时间
+          return sortOrder * (new Date(b.createdAt) - new Date(a.createdAt));
+        }
+        return sortOrder * (b.hotScore - a.hotScore);
+      });
+      const sortedIds = memeStats.map(m => m.id);
+      return res.status(200).json({ memeIds: sortedIds });
+    } else {
+      // 其他排序方式
+      let sortField = 'createdAt';
+      if (sortBy === 'likes') sortField = 'likes';
+      // 只查 id，按指定字段排序
+      const sorted = memes.sort((a, b) => {
+        if (b[sortField] === a[sortField]) {
+          return sortOrder * (new Date(b.createdAt) - new Date(a.createdAt));
+        }
+        return sortOrder * (b[sortField] - a[sortField]);
+      });
+      const memeIds = sorted.map(m => m._id);
+      return res.status(200).json({ memeIds });
+    }
   } catch (error) {
     res.status(500).json({
       message: '获取模因列表失败',
@@ -369,7 +432,7 @@ export const getMemeList = async (req, res) => {
       }
     });
   }
-};
+}
 
 export const deleteMeme = async (req, res) => {
   try {

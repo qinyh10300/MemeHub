@@ -190,7 +190,7 @@ tokenSchema.methods = {
           await firstSellOrder.save();
         }
       }
-      this.hasPendingOrder = await Order.exists({ meme: memeId, status: 'pending' });
+      this.hasPendingOrder = !!(await Order.exists({ meme: memeId, status: 'pending' }));
       await this.save();
     }
     finally { // 释放锁
