@@ -510,3 +510,73 @@ export async function generateStickerAsset(promptText = '', user = null) {
   }
 }
 
+// 专供模因封面/头像生成：强制先试简单直连，再走计划+图片，最后 SVG 兜底
+export async function generateStickerAssetForAvatar(promptText = '', user = null) {
+  ensureDirectory();
+
+  // 尝试简单直连模式（不依赖 STICKER_SIMPLE_MODE 开关）
+  try {
+    const imageResult = await callSimpleImage(promptText);
+    const { url } = persistStickerContent(
+      imageResult.buffer,
+      guessExtension(imageResult.mimeType),
+    );
+
+    return {
+      url,
+      meta: {
+        tagline: promptText.slice(0, 20) || 'AI Sticker',
+        modelId: imageResult.modelId || STICKER_IMAGE_MODEL_ID,
+        mimeType: imageResult.mimeType || 'image/png',
+        source: imageResult.source || 'simple-direct',
+        originUrl: imageResult.url
+      }
+    };
+  } catch (simpleError) {
+    console.error('[Sticker] simple image generation failed (avatar flow):', simpleError);
+    // 继续走 plan+image 逻辑作为兜底
+  }
+
+  let planResult;
+  try {
+    planResult = await requestStickerPlan(promptText);
+  } catch (error) {
+    console.error('[Sticker] plan generation failed (avatar flow):', error);
+    planResult = { plan: buildFallbackPlan(promptText), modelId: STICKER_FALLBACK_MODEL_ID };
+  }
+
+  const plan = planResult.plan || buildFallbackPlan(promptText);
+
+  try {
+    const imageResult = await callStickerImage(plan, promptText);
+    const { url } = persistStickerContent(
+      imageResult.buffer,
+      guessExtension(imageResult.mimeType),
+    );
+
+    return {
+      url,
+      meta: {
+        ...plan,
+        modelId: imageResult.modelId || STICKER_IMAGE_MODEL_ID,
+        mimeType: imageResult.mimeType || 'image/png',
+        source: imageResult.source || 'wanx-t2i'
+      }
+    };
+  } catch (imageError) {
+    console.error('[Sticker] image generation failed, fallback to SVG (avatar flow):', imageError);
+    const svg = buildStickerSvg(plan);
+    const { url } = persistStickerContent(svg, '.svg', 'utf8');
+
+    return {
+      url,
+      meta: {
+        ...plan,
+        modelId: planResult.modelId || STICKER_FALLBACK_MODEL_ID,
+        source: 'svg-fallback',
+        error: imageError.message
+      }
+    };
+  }
+}
+

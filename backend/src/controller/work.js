@@ -4,6 +4,7 @@ import { Order } from '../models/order.js';
 import { User } from '../models/user.js';
 import { Comment } from '../models/comment.js';
 import { Notification } from '../models/notification.js';
+import { generateStickerAssetForAvatar } from '../services/stickerGenerator.js';
 
 import * as Const from '../configs/const.js';
 
@@ -12,6 +13,55 @@ import path from 'path';
 import pkg from 'jsonwebtoken';
 
 const { verify } = pkg;
+
+function buildBaseUrl(req) {
+  const host = req.get('host');
+  if (!host) return '';
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  return `${protocol}://${host}`;
+}
+
+// 基于模因名称/简介调用与私信表情包相同的 AI 生成封面
+export const generateMemeAvatar = async (req, res) => {
+  try {
+    const token = req.headers.token;
+    const username = token; // TODO: 暂时用 username 作为 token
+    const { title, description, prompt } = req.body || {};
+
+    const promptText = (prompt || `${title || ''} ${description || ''}`).trim();
+    if (!promptText) {
+      return res.status(400).json({ code: 1011, message: '请先填写模因名称或简介' });
+    }
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ code: 1002, message: '用户不存在，请先登录' });
+    }
+
+    const result = await generateStickerAssetForAvatar(promptText, user);
+    const baseUrl = buildBaseUrl(req);
+    const resolvedUrl = result?.url?.startsWith('http')
+      ? result.url
+      : `${baseUrl}${result?.url?.startsWith('/') ? '' : '/'}${result?.url || ''}`;
+
+    return res.status(200).json({
+      code: 0,
+      message: '生成模因头像成功',
+      data: {
+        url: resolvedUrl,
+        path: result?.url,
+        meta: result?.meta
+      }
+    });
+  } catch (error) {
+    console.error('[AI Meme Avatar] failed:', error);
+    return res.status(500).json({
+      code: 5000,
+      message: '生成模因头像失败',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
 
 // 创建模因
 export const createMeme = async (req, res) => {
