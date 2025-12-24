@@ -105,8 +105,8 @@ const authStore = useAuthStore();
 const resolveApiBase = () => {
   const base =
     authStore.server_ip ||
-    (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  return (base || 'http://localhost:3000').replace(/\/$/, '');
+    (typeof window !== 'undefined' ? window.location.origin : '');
+  return (base).replace(/\/$/, '');
 };
 
 const API_BASE = `${resolveApiBase()}/api`;
