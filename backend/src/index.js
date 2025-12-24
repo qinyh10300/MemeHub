@@ -100,6 +100,10 @@ setInterval(async () => {
   }
 }, Const.CHECK_ORDER_INTERVAL_MS);
 
+app.get('/api/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 
 // 用户个人信息
 

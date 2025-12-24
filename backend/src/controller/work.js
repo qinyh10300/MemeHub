@@ -177,8 +177,9 @@ export const getMemeDetail = async (req, res) => {
           // _id: item._id
         }));
 
-        tokenInfo = {
+        tokenInfo = { 
           price: token.price,
+          // changeRate: ,  // TODO: 添加5h涨跌幅
           priceHistory: priceHistoryWithNickname
         }
       }
