@@ -203,36 +203,32 @@ async function fetchBufferFromUrl(url) {
 
 async function callStickerImage(plan, keyword = '') {
   ensureApiKey();
+
   const prompt = buildImagePrompt(plan, keyword);
-  const inputPayload = {
-    prompt,
-    image_num: STICKER_IMAGE_BATCH,
-    response_format: STICKER_IMAGE_RESPONSE_FORMAT
-  };
-  if (STICKER_IMAGE_SIZE) {
-    inputPayload.size = STICKER_IMAGE_SIZE;
-  }
-  if (STICKER_IMAGE_NEG_PROMPT) {
-    inputPayload.negative_prompt = STICKER_IMAGE_NEG_PROMPT;
-  }
-  if (Number.isFinite(STICKER_IMAGE_CFG)) {
-    inputPayload.cfg_scale = STICKER_IMAGE_CFG;
-  }
-  if (Number.isFinite(STICKER_IMAGE_STEPS)) {
-    inputPayload.steps = STICKER_IMAGE_STEPS;
-  }
 
   const body = {
     model: STICKER_IMAGE_MODEL_ID,
-    n: STICKER_IMAGE_BATCH,
-    input: inputPayload
+    prompt,
+    image_size: STICKER_IMAGE_SIZE || '512x512',
+    batch_size: STICKER_IMAGE_BATCH || 1,
+    num_inference_steps: Number.isFinite(STICKER_IMAGE_STEPS)
+      ? STICKER_IMAGE_STEPS
+      : 20,
+    guidance_scale: Number.isFinite(STICKER_IMAGE_CFG)
+      ? STICKER_IMAGE_CFG
+      : 7.5
   };
 
-  const response = await fetch(IMAGE_ENDPOINT, {
+  // negative prompt（可选）
+  if (STICKER_IMAGE_NEG_PROMPT) {
+    body.negative_prompt = STICKER_IMAGE_NEG_PROMPT;
+  }
+
+  const response = await fetch(SILICONFLOW_IMAGE_ENDPOINT, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${STICKER_API_KEY}`
+      'Authorization': `Bearer ${STICKER_API_KEY}`,
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(body)
   });
@@ -243,51 +239,24 @@ async function callStickerImage(plan, keyword = '') {
   }
 
   const data = await response.json();
-  const candidateLists = [data?.data, data?.output, data?.images, data?.result, data?.results];
-  let payloadList = null;
-  for (const candidate of candidateLists) {
-    if (Array.isArray(candidate) && candidate.length) {
-      payloadList = candidate;
-      break;
-    }
-    if (candidate && typeof candidate === 'object') {
-      payloadList = [candidate];
-      break;
-    }
-  }
-  if (!payloadList || !payloadList.length) {
-    console.warn('[Sticker] image API returned unexpected shape:', JSON.stringify(data).slice(0, 500));
-    throw new Error('Sticker image API returned empty payload');
+
+  if (!data?.data || !data.data[0]?.url) {
+    throw new Error(
+      'Sticker image API returned invalid result: ' +
+      JSON.stringify(data).slice(0, 500)
+    );
   }
 
-  const payload = payloadList[0];
-  const base64 =
-    payload?.b64_json ||
-    payload?.image_base64 ||
-    payload?.base64 ||
-    payload?.base64_data ||
-    payload?.b64;
+  const imageUrl = data.data[0].url;
 
-  if (base64) {
-    const mimeType = payload?.mime_type || payload?.content_type || 'image/png';
-    return {
-      buffer: Buffer.from(base64, 'base64'),
-      mimeType,
-      modelId: data?.model || STICKER_IMAGE_MODEL_ID,
-    };
-  }
+  // SiliconFlow 只返回 URL，需要手动下载
+  const buffer = await fetchBufferFromUrl(imageUrl);
 
-  if (payload?.url) {
-    const mimeType = payload?.mime_type || payload?.content_type || 'image/png';
-    const buffer = await fetchBufferFromUrl(payload.url);
-    return {
-      buffer,
-      mimeType,
-      modelId: data?.model || STICKER_IMAGE_MODEL_ID,
-    };
-  }
-
-  throw new Error('Sticker image API payload missing base64/url data');
+  return {
+    buffer,
+    mimeType: 'image/png',
+    modelId: data.model || STICKER_IMAGE_MODEL_ID
+  };
 }
 
 function buildStickerSvg(plan) {

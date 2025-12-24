@@ -158,6 +158,8 @@ export const getPriceAlerts = async (req, res) => {
       return res.status(404).json({ code: 1002, message: '用户不存在' });
     }
 
+    const triggeredAlerts = [];
+
     // 获取当前价格并检查是否触发
     const alertsWithPrices = await Promise.all(
       user.priceAlerts.map(async (alert) => {
@@ -176,6 +178,12 @@ export const getPriceAlerts = async (req, res) => {
           }
         }
 
+        if (shouldTrigger) {
+          alert.status = 'triggered';
+          alert.triggeredAt = new Date();
+          triggeredAlerts.push({ alert, currentPrice });
+        }
+
         return {
           id: alert._id,
           memeId: alert.meme._id,
@@ -185,7 +193,7 @@ export const getPriceAlerts = async (req, res) => {
           type: alert.type,
           targetPrice: alert.targetPrice,
           currentPrice,
-          status: shouldTrigger ? 'triggered' : alert.status,
+          status: alert.status,
           notifyInApp: alert.notifyInApp,
           notifyEmail: alert.notifyEmail,
           note: alert.note,
@@ -194,6 +202,10 @@ export const getPriceAlerts = async (req, res) => {
         };
       })
     );
+
+    if (triggeredAlerts.length) {
+      await user.save();
+    }
 
     res.json({
       code: 0,
@@ -276,6 +288,38 @@ export const deletePriceAlert = async (req, res) => {
   } catch (error) {
     console.error('[deletePriceAlert] Error:', error);
     res.status(500).json({ code: 1000, message: '删除价格预警失败', error: error.message });
+  }
+};
+
+/**
+ * 更新用户 USDT（coins）余额，用于兑换同步
+ */
+export const updateCoins = async (req, res) => {
+  try {
+    const username = req.headers.token;
+    const { coins } = req.body || {};
+
+    if (!username) {
+      return res.status(401).json({ code: 1001, message: '未登录' });
+    }
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ code: 1002, message: '用户不存在' });
+    }
+
+    const numeric = Number(coins);
+    if (!Number.isFinite(numeric) || numeric < 0) {
+      return res.status(400).json({ code: 1005, message: 'coins 参数无效' });
+    }
+
+    user.coins = Math.round(numeric * 10000) / 10000;
+    await user.save();
+
+    res.json({ code: 0, message: '余额已更新', coins: user.coins });
+  } catch (error) {
+    console.error('[updateCoins] Error:', error);
+    res.status(500).json({ code: 1000, message: '更新余额失败', error: error.message });
   }
 };
 

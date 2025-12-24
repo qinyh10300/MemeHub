@@ -187,8 +187,8 @@ const goToProfile = (username) => {
     <!-- 左侧导航栏 -->
     <aside class="sidebar">
       <div class="logo-container">
-        <img class="logo" src="@/assets/pumpfun.png" alt="Pumpfun Logo" />
-        <span class="logo-text">中文模因社区</span>
+        <img class="logo" src="@/assets/kapibala.ico" alt="Pumpfun Logo" />
+        <span class="logo-text">MemeHub</span>
       </div>
 
       <nav class="nav-container">
@@ -205,7 +205,7 @@ const goToProfile = (username) => {
           <span class="nav-text">创建模因</span>
         </RouterLink>
         <RouterLink v-if="isLoggedIn" :to="`/notification`" class="nav-item" active-class="active">
-          <img class="nav-icon" src="@/assets/pumpfun.png" alt="Profile" />
+          <img class="nav-icon" src="@/assets/kapibala.ico" alt="Profile" />
           <span class="nav-text">消息通知</span>
         </RouterLink>
         <RouterLink v-if="isLoggedIn" :to="`/chat`" class="nav-item" active-class="active">

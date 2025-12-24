@@ -152,8 +152,8 @@ onMounted(() => {
 width: 100%;
 max-width: 600px;
 position: relative; /* 或 absolute */
-top: 40px; /* 向下移动 10px */
-right: 250px; /* 向右移动 15px */
+top: 40px; 
+left: 100px;
 padding: 16px;
 color: white;
 }

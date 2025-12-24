@@ -84,10 +84,12 @@ const defaultTasks = [
 const cloneTasks = (tasks) => tasks.map((task) => ({ ...task }))
 
 const GOLD_TO_USDT_RATE = 50
+const server_ip = authStore.server_ip || 'http://localhost:3000'
 
 const createDefaultState = () => ({
   xp: 1860,
   copper: 520, // 金币
+  usdt: 0, // USDT（游戏化内的展示用余额）
   badges: 6,
   energy: 78,
   streak: 0,
@@ -109,19 +111,102 @@ const adjustCopper = (delta = 0) => {
   return gamificationState.value.copper
 }
 
+const adjustUsdt = (delta = 0) => {
+  const current = Number(gamificationState.value.usdt) || 0
+  const next = Math.max(0, current + Number(delta || 0))
+  gamificationState.value.usdt = Math.round(next * 10000) / 10000
+  return gamificationState.value.usdt
+}
+
+const getUsdtBalance = () => {
+  const v = Number(gamificationState.value.usdt)
+  return Number.isFinite(v) ? v : 0
+}
+
+const setUsdtBalance = (value = 0) => {
+  const v = Number(value)
+  const safe = Number.isFinite(v) ? Math.max(0, v) : 0
+  gamificationState.value.usdt = Math.round(safe * 10000) / 10000
+  return gamificationState.value.usdt
+}
+
+const persistCoins = async () => {
+  if (!authStore.username) return
+  try {
+    await fetch(`${server_ip}/api/user/coins`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        token: authStore.username || authStore.token || '',
+      },
+      body: JSON.stringify({ coins: getUsdtBalance() })
+    })
+  } catch (err) {
+    console.warn('同步 USDT 到服务器失败', err)
+  }
+}
+
 const goldExchangeMessage = ref('')
+const goldToUsdtInput = ref('')
+const usdtToGoldInput = ref('')
 const maxUsdtExchange = computed(() => Math.floor((Number(gamificationState.value.copper) || 0) / GOLD_TO_USDT_RATE))
+const syncUsdtFromProfile = async () => {
+  if (!authStore.username) return
+  try {
+    const res = await fetch(`${server_ip}/api/user/${authStore.username}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        token: authStore.username || authStore.token || ''
+      }
+    })
+    const data = await res.json()
+    if (res.ok && data?.code === 0) {
+      const coins = Number(data.data?.coins)
+      setUsdtBalance(Number.isFinite(coins) ? coins : 0)
+    }
+  } catch (err) {
+    console.warn('同步账户 USDT 失败', err)
+  }
+}
 
 const exchangeGoldToUsdt = () => {
-  const available = maxUsdtExchange.value
-  if (!available) {
-    goldExchangeMessage.value = '金币不足，兑换比例 50:1'
+  const amountGold = Number(goldToUsdtInput.value || 0)
+  if (!Number.isFinite(amountGold) || amountGold <= 0) {
+    goldExchangeMessage.value = '请输入兑换的金币数量'
     return
   }
-  const goldUsed = available * GOLD_TO_USDT_RATE
-  adjustCopper(-goldUsed)
-  goldExchangeMessage.value = `已兑换 ${available} USDT，消耗 ${goldUsed} 金币`
-  pushActivity(`兑换 ${available} USDT（耗费 ${goldUsed} 金币）`, 'exchange')
+  if (amountGold > gamificationState.value.copper) {
+    goldExchangeMessage.value = '金币不足'
+    return
+  }
+  const usdtGain = Math.round((amountGold / GOLD_TO_USDT_RATE) * 10000) / 10000
+  adjustCopper(-amountGold)
+  adjustUsdt(usdtGain)
+  goldExchangeMessage.value = `已兑换 ${usdtGain} USDT，消耗 ${amountGold} 金币`
+  pushActivity(`兑换 ${usdtGain} USDT（耗费 ${amountGold} 金币）`, 'exchange')
+  persistCoins()
+  goldToUsdtInput.value = ''
+}
+
+const exchangeUsdtToGold = () => {
+  const amountUsdt = Number(usdtToGoldInput.value || 0)
+  if (!Number.isFinite(amountUsdt) || amountUsdt <= 0) {
+    goldExchangeMessage.value = '请输入兑换的 USDT 数量'
+    return
+  }
+  const balance = getUsdtBalance()
+  const epsilon = 1e-6
+  if (amountUsdt - balance > epsilon) {
+    goldExchangeMessage.value = `USDT 余额不足，可用 ${balance.toFixed(4)}`
+    return
+  }
+  const goldGain = Math.round(amountUsdt * GOLD_TO_USDT_RATE)
+  adjustUsdt(-amountUsdt)
+  adjustCopper(goldGain)
+  goldExchangeMessage.value = `已兑换 ${goldGain} 金币，消耗 ${amountUsdt} USDT`
+  pushActivity(`兑换 ${goldGain} 金币（耗费 ${amountUsdt} USDT）`, 'exchange')
+  persistCoins()
+  usdtToGoldInput.value = ''
 }
 const activeTaskFilter = ref('daily')
 const isDrawing = ref(false)
@@ -570,11 +655,13 @@ const loadStateForKey = (key) => {
     const defaults = createDefaultState()
     const safeCopper = Number(parsed.copper)
     const safeXp = Number(parsed.xp)
+    const safeUsdt = Number(parsed.usdt)
     gamificationState.value = {
       ...defaults,
       ...parsed,
       xp: Number.isFinite(safeXp) ? safeXp : defaults.xp,
       copper: Number.isFinite(safeCopper) ? Math.max(0, Math.round(safeCopper)) : defaults.copper,
+      usdt: Number.isFinite(safeUsdt) ? Math.max(0, Math.round(safeUsdt * 10000) / 10000) : defaults.usdt,
       tasks: parsed.tasks ? parsed.tasks.map((task) => ({ ...task })) : cloneTasks(defaultTasks),
       checkIns: Array.isArray(parsed.checkIns) ? parsed.checkIns : [],
     }
@@ -710,6 +797,11 @@ const displayCopper = computed(() => {
   if (!Number.isFinite(value)) return 0
   return Math.max(0, Math.round(value))
 })
+const displayUsdt = computed(() => {
+  const value = Number(gamificationState.value.usdt)
+  if (!Number.isFinite(value)) return 0
+  return Math.max(0, Math.round(value * 10000) / 10000)
+})
 
 const weekMomentum = computed(() => Math.min(100, Math.round(previewStreak.value * 12 + completedTaskCount.value * 8)))
 
@@ -820,6 +912,7 @@ const drawReward = () => {
 onMounted(() => {
   loadStateForKey(storageKey.value)
   flushQueuedProgress()
+  syncUsdtFromProfile()
   fetchAchievements()
   if (typeof window !== 'undefined') {
     window.addEventListener(GAMIFICATION_TASK_EVENT, handleExternalTaskEvent)
@@ -840,6 +933,7 @@ watch(storageKey, (newKey, oldKey) => {
     listenerUser.value = authStore.username || 'guest'
     loadStateForKey(newKey)
     flushQueuedProgress()
+    syncUsdtFromProfile()
     setGamificationListenerActive(getListenerUser(), true)
   }
 })
@@ -921,12 +1015,26 @@ watch(
       <div>
         <p class="eyebrow">金币兑换 USDT</p>
         <h3>汇率 50:1</h3>
-        <p class="muted">可兑换：{{ maxUsdtExchange }} USDT</p>
+        <p class="muted">当前：{{ displayCopper }} 金币 / {{ displayUsdt }} USDT</p>
         <p class="muted" v-if="goldExchangeMessage">{{ goldExchangeMessage }}</p>
       </div>
-      <button class="primary-btn" :disabled="maxUsdtExchange === 0" @click="exchangeGoldToUsdt">
-        一键兑换
-      </button>
+      <div class="exchange-controls">
+        <div class="field-group">
+          <label>金币 → USDT</label>
+          <div class="input-row">
+            <input v-model.number="goldToUsdtInput" type="number" min="0" placeholder="输入金币数量" />
+            <button class="primary-btn" @click="exchangeGoldToUsdt">兑换</button>
+          </div>
+          <p class="muted">最多可兑换 {{ maxUsdtExchange }} USDT（基于当前金币）</p>
+        </div>
+        <div class="field-group">
+          <label>USDT → 金币</label>
+          <div class="input-row">
+            <input v-model.number="usdtToGoldInput" type="number" min="0" step="0.0001" placeholder="输入 USDT 数量" />
+            <button class="primary-btn" @click="exchangeUsdtToGold">兑换</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- 主分栏导航 -->
@@ -1569,8 +1677,36 @@ watch(
   margin-top: 4px;
 }
 
-.exchange-row .primary-btn {
-  min-width: 140px;
+.exchange-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.exchange-controls .field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.exchange-controls .input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.exchange-controls input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+}
+
+.exchange-controls .primary-btn {
+  min-width: 100px;
+  white-space: nowrap;
 }
 
 .glass-card {
