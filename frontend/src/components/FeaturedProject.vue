@@ -174,7 +174,7 @@ const fetchProjects = async () => {
     lastMemeCount.value = memeDetails.length;
     loading.value = true; // 仅在数据变化时设置 loading 状态。TODO：较难测试。有问题修改上述一小段逻辑改为不更新即可
 
-    console.log("Fetched meme details:", memeDetails);
+    // console.log("Fetched meme details:", memeDetails);
 
     // 第三步：适配字段
     projects.value = memeDetails.map((item) => ({
@@ -186,9 +186,17 @@ const fetchProjects = async () => {
       mc: item.token?.price ? (item.token.price).toFixed(4) : 0,
       mcPercent: item.token?.changeRate? item.token.changeRate.toFixed(4) : 0,
       change: item.token?.changeRate ? parseFloat(item.token.changeRate.toFixed(4)) : 0,
-      image: item.imageUrl ? `${server_ip}/${item.imageUrl.replace(/^\/+/, '')}` : '',
+      image: item.imageUrl
+        ? (() => {
+            const url = item.imageUrl.replace(/^\/+/, '');
+            const base = url.includes('api') ? server_ip : `${server_ip}/api`;
+            return `${base}/${url}`;
+          })()
+        : '',
       desc: item.description
     }));
+
+
   } 
   // 测试用例数据
   catch (err) {

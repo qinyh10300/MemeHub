@@ -211,11 +211,25 @@ const fetchPriceHistory = async (timeframe, { silent = false } = {}) => {
     // console.log("latestPrice: ", latestPrice.data.price)
     // console.log("response.data: ", response.data.data[0]['open'])
     // console.log("fiveHoursAgoPrice: ", fiveHoursAgoPrice.data.data);
+    // 修改当前的价格和变化
+    const res = await axios.get(`${API_BASE}/meme/${props.memeId}`);
+    // console.log("res: ", res.data)
+    const memeDetails = res.data && typeof res.data === 'object' ? res.data : null;
+    // console.log("memeDetails: ", memeDetails)
+    currentPrice.value = memeDetails?.token?.price ?? 0;
+    priceChangePercent.value = memeDetails?.token?.changeRate * 100 ?? 0;
+    priceChange.value = currentPrice.value - (currentPrice.value / (1 + (priceChangePercent.value / 100)));
+    priceChangePercent.value = parseFloat(priceChangePercent.value.toFixed(4))
+    priceChange.value = parseFloat(priceChange.value.toFixed(4))
+    // console.log("currentPrice.value: ", currentPrice.value)
+    // console.log("priceChange.value: ", priceChange.value)
+    // console.log("priceChangePercent.value: ", priceChangePercent.value)
 
     if (response.data && response.data.code === 0) {
       const priceHistory = response.data.data;
       return processPriceData(priceHistory, latestPrice.data?.price);
     }
+    
     throw new Error(response.data?.message || '获取价格历史失败');
   } catch (err) {
     console.error('获取价格历史失败:', err);
@@ -263,8 +277,8 @@ const updatePriceStats = (klineData, latestPrice) => {
     // const previous = klineData[0];
 
     currentPrice.value = latest;
-    priceChange.value = latest - previous.close;
-    priceChangePercent.value = previous.close !== 0 ? (priceChange.value / previous.close) * 100 : 0;
+    // priceChange.value = latest - previous.close;
+    // priceChangePercent.value = previous.close !== 0 ? (priceChange.value / previous.close) * 100 : 0;
 
   const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
   const lastDayData = klineData.filter(item => item.timestamp >= dayAgo);

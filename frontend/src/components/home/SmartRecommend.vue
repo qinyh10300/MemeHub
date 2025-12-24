@@ -161,7 +161,7 @@ const likedMemes = ref([])
 const formatPrice = (price) => {
   if (!price) return '0.000000'
   if (price < 0.000001) return price.toExponential(2)
-  if (price < 1) return price.toFixed(6)
+  if (price < 1) return price.toFixed(4)
   return price.toFixed(2)
 }
 
@@ -200,7 +200,17 @@ const fetchRecommendations = async (type) => {
     const data = await response.json()
     console.log(`Fetched ${type} recommendations:`, data)
     if (data.code === 0) {
-      return data.data || []
+      return (data.data || []).map(item => {
+        if (!item.imageUrl) return item
+
+        const url = item.imageUrl.replace(/^\/+/, '')
+        const base = url.includes('api/') ? serverIp : `${serverIp}/api`
+
+        return {
+          ...item,
+          imageUrl: `${base}/${url}`
+        }
+      })
     }
     return []
   } catch (error) {
@@ -221,14 +231,14 @@ const loadAllRecommendations = async () => {
     
     hotMemes.value = hot.map(m => ({
       ...m,
-      change: m.token?.changeRate ? m.token.changeRate.toFixed(4) : "0"
+      change: m.token?.priceChange ? m.token.priceChange.toFixed(4) : "0"
     }))
     
     newMemes.value = newList
     
     potentialMemes.value = potential.map(m => ({
       ...m,
-      change: m.token?.changeRate ? m.token.changeRate.toFixed(4) : "0",
+      change: m.token?.priceChange ? m.token.priceChange.toFixed(4) : "0",
       score: m.hotScore ? Math.min(100, Math.round(m.hotScore / 10)) : 50
     }))
     
