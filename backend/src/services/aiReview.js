@@ -20,6 +20,10 @@ function imageToBase64(imagePath) {
   try {
     // 处理相对路径，假设图片在 backend/memefiles 目录下
     let fullPath = imagePath;
+    // 删去开头的/api
+    if (imagePath.startsWith('/api/')) {
+      imagePath = imagePath.replace('/api/', '/');
+    }
     if (imagePath.startsWith('/memefiles/')) {
       fullPath = path.join(process.cwd(), imagePath);
     } else if (!path.isAbsolute(imagePath)) {

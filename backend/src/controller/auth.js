@@ -214,12 +214,23 @@ export async function updateNickname(req, res) {
     // 更新头像（如果提供）
     if (avatar !== undefined) {
       console.log('更新头像 - 收到的avatar:', avatar);
-      // 验证头像URL格式（简单验证）
-      if (avatar && avatar.trim().length > 0 && !avatar.startsWith('http')) {
+      const trimmedAvatar = (avatar || '').trim();
+      const normalizedAvatar = trimmedAvatar.startsWith('/api/')
+        ? trimmedAvatar.replace(/^\/api/, '')
+        : trimmedAvatar;
+      const isValidAvatar =
+        !normalizedAvatar ||
+        /^https?:\/\//i.test(normalizedAvatar) || // 线上/本地 http(s)
+        /^data:image\//i.test(normalizedAvatar) || // base64 data url
+        /^blob:/i.test(normalizedAvatar) || // 浏览器 blob
+        normalizedAvatar.startsWith('/'); // 相对路径（如内置资源）
+
+      if (!isValidAvatar) {
         console.log('头像URL格式无效:', avatar);
         return res.status(400).json({ code: 1004, message: '头像URL格式无效' });
       }
-      user.avatar = avatar ? avatar.trim() : '';
+
+      user.avatar = normalizedAvatar;
       console.log('更新头像 - 设置后的user.avatar:', user.avatar);
     }
 

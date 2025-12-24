@@ -165,26 +165,10 @@ const startAutoRefresh = () => {
   const config = timeframeConfigs[active.value];
   if (!config) return;
 
-  // interval 对应的毫秒数
-  // const intervalMs = (() => {
-  //   switch (active.value) {
-  //     case '1M': return 1 * MINUTE;
-  //     case '5M': return 5 * MINUTE;
-  //     case '15M': return 15 * MINUTE;
-  //     case '30M': return 30 * MINUTE;
-  //     case '1H': return 1 * HOUR;
-  //     case '4H': return 4 * HOUR;
-  //     case '1D': return 1 * DAY;
-  //     case '1W': return 7 * DAY;
-  //     default: return 5 * MINUTE;
-  //   }
-  // })();
   const intervalMs = 5000; // 固定每5秒刷新
-
-
   autoRefreshTimer = setInterval(() => {
     // 等价于自动“点击”当前周期按钮
-    changeTimeframe(active.value);
+    changeTimeframe(active.value, { silent: true });
   }, intervalMs);
 };
 
@@ -196,10 +180,10 @@ const stopAutoRefresh = () => {
 };
 
 // 获取价格历史数据
-const fetchPriceHistory = async (timeframe) => {
+const fetchPriceHistory = async (timeframe, { silent = false } = {}) => {
   if (!props.memeId) return;
 
-  loading.value = true;
+  if (!silent) loading.value = true;
   error.value = null;
 
   try {
@@ -222,14 +206,7 @@ const fetchPriceHistory = async (timeframe) => {
     const params = new URLSearchParams();
     params.append('amount', 1);
     const latestPrice = await axios.get(`${API_BASE}/meme/${props.memeId}/token/price?${params.toString()}`);
-    // 获取5h之前的价格作为对比
-    const fiveHoursAgoPrice = await axios.get(`${API_BASE}/meme/${props.memeId}/token/price-history`, {
-      params: {
-        startTime: now - 5 * HOUR,
-        endTime: now - 5 * HOUR + 2 * MINUTE,
-        interval: '1M'
-      }
-    });
+
     // console.log("response.data: ", response.data)
     // console.log("latestPrice: ", latestPrice.data.price)
     // console.log("response.data: ", response.data.data[0]['open'])
@@ -237,7 +214,7 @@ const fetchPriceHistory = async (timeframe) => {
 
     if (response.data && response.data.code === 0) {
       const priceHistory = response.data.data;
-      return processPriceData(priceHistory, latestPrice.data?.price, fiveHoursAgoPrice.data?.data);
+      return processPriceData(priceHistory, latestPrice.data?.price);
     }
     throw new Error(response.data?.message || '获取价格历史失败');
   } catch (err) {
@@ -249,7 +226,7 @@ const fetchPriceHistory = async (timeframe) => {
   }
 };
 
-const processPriceData = (priceHistory = [], latestPrice = null, fiveHoursAgoPrice = null) => {
+const processPriceData = (priceHistory = [], latestPrice = null) => {
   if (!Array.isArray(priceHistory) || priceHistory.length === 0) {
     error.value = '暂无可用的 K 线数据';
     return null;
@@ -273,15 +250,15 @@ const processPriceData = (priceHistory = [], latestPrice = null, fiveHoursAgoPri
   });
 
   
-  updatePriceStats(klineData, latestPrice, fiveHoursAgoPrice);
+  updatePriceStats(klineData, latestPrice);
   return klineData;
 };
 
-const updatePriceStats = (klineData, latestPrice, fiveHoursAgoPrice) => {
+const updatePriceStats = (klineData, latestPrice) => {
   if (!klineData.length) return;
 
     const latest = latestPrice;
-    const previous = fiveHoursAgoPrice[0];
+    const previous = klineData[0].close;
     // const latest = klineData[klineData.length - 1].close;
     // const previous = klineData[0];
 
@@ -403,10 +380,10 @@ const updateIndicators = () => {
 //     chart.applyNewData(newData);
 //   }
 // };
-const changeTimeframe = async (timeframe) => {
+const changeTimeframe = async (timeframe, silent = false) => {
   active.value = timeframe;
 
-  const newData = await fetchPriceHistory(timeframe);
+  const newData = await fetchPriceHistory(timeframe, { silent });
   if (chart && Array.isArray(newData) && newData.length) {
     chart.applyNewData(newData);
   }
@@ -415,7 +392,6 @@ const changeTimeframe = async (timeframe) => {
   startAutoRefresh();
 };
 
-// 计算图表高度
 
 // 监听memeId变化，重新加载数据
 watch(() => props.memeId, async (newMemeId) => {

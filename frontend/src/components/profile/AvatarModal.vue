@@ -81,29 +81,25 @@ const uploadedImagePreview = ref(null)
 const fileInput = ref(null)
 const isUploadedFile = ref(false)
 
-// 默认头像列表（使用pravatar.cc提供的头像）
-const defaultAvatars = ref([
-  'https://i.pravatar.cc/150?img=1',
-  'https://i.pravatar.cc/150?img=2',
-  'https://i.pravatar.cc/150?img=3',
-  'https://i.pravatar.cc/150?img=4',
-  'https://i.pravatar.cc/150?img=5',
-  'https://i.pravatar.cc/150?img=6',
-  'https://i.pravatar.cc/150?img=7',
-  'https://i.pravatar.cc/150?img=8',
-  'https://i.pravatar.cc/150?img=9',
-  'https://i.pravatar.cc/150?img=10',
-  'https://i.pravatar.cc/150?img=11',
-  'https://i.pravatar.cc/150?img=12',
-  'https://i.pravatar.cc/150?img=13',
-  'https://i.pravatar.cc/150?img=14',
-  'https://i.pravatar.cc/150?img=15',
-  'https://i.pravatar.cc/150?img=16',
-  'https://i.pravatar.cc/150?img=17',
-  'https://i.pravatar.cc/150?img=18',
-  'https://i.pravatar.cc/150?img=19',
-  'https://i.pravatar.cc/150?img=20',
-])
+// 默认头像列表（改为项目内相对路径，本地打包即用）
+const localAvatarFiles = [
+  'avatar1.svg',
+  'avatar2.svg',
+  'avatar3.svg',
+  'avatar4.svg',
+  'avatar5.svg',
+  'avatar6.svg',
+  'avatar7.svg',
+  'avatar8.svg',
+  'avatar9.svg',
+  'avatar10.svg'
+]
+
+const defaultAvatars = ref(
+  localAvatarFiles.map(name =>
+    new URL(`../../assets/avatars/${name}`, import.meta.url).href
+  )
+)
 
 onMounted(() => {
   // 如果当前有头像，设置为选中状态
@@ -233,11 +229,18 @@ const handleConfirm = async () => {
         return
       }
       
+      const headerToken = authStore.username || authStore.token || authStore.user_token || ''
+      if (!headerToken) {
+        errorMsg.value = '请先登录后再保存头像'
+        saving.value = false
+        return
+      }
+
       const response = await fetch(`${server_ip}/api/update-nickname`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'token': authStore.token || authStore.username || '',
+          'token': headerToken,
         },
         body: JSON.stringify({
           avatar: selectedAvatar.value,
