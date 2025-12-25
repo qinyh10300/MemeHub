@@ -6,7 +6,7 @@
     >
       <img 
         :key="avatarUrl"
-        :src="avatarUrl" 
+        :src="resolveAssetUrl(avatarUrl)" 
         alt="avatar" 
         class="avatar" 
         @error="handleAvatarError"
@@ -68,6 +68,22 @@ import AvatarModal from './AvatarModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { emitTaskProgress } from '@/utils/gamificationEvents'
 
+const resolveAssetUrl = (url = '') => {
+  if (!url) return '';
+  // 如果是 http://ip/api/xxx 这种格式，      换为 http://ip:8080/api/xxx
+  const apiPattern = /^http:\/\/(\d+\.\d+\.\d+\.\d+)(:\d+)?(\/api\/.*)$/i;
+  const match = url.match(apiPattern);
+  if (match) {
+    return `http://${match[1]}:8080${match[3]}`;
+  }
+  // 其他 http(s) 链接直接返回
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith('//')) return `${window.location.protocol}${url}`;
+  // 相对路径补全
+  const normalized = url.startsWith('/') ? `http://154.8.192.208:8080${url}` : `http://154.8.192.208:8080/${url}`;
+  return normalized;
+};
+
 const props = defineProps({
   userData: Object,
 })
@@ -85,7 +101,7 @@ const isOwnProfile = computed(() => {
 })
 
 // 默认头像URL
-const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
+const defaultAvatar = ''
 
 // 计算头像URL，如果为空或加载失败则使用默认头像
 const avatarUrl = computed(() => {

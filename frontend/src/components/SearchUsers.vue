@@ -62,21 +62,18 @@ const goToUserProfile = (username) => {
 const handleAvatarError = (event) => {
   // Try default avatars first
   if (!event.target.src.includes('/avatars/default')) {
-    event.target.src = `${import.meta.env.VITE_SERVER_IP}/api/avatars/default/gradient-01.svg`
-  } else {
-    // If even default fails, use a remote avatar service
-    event.target.src = 'https://i.pravatar.cc/150?img=1'
+    event.target.src = `/api/avatars/default/gradient-01.svg`
   }
 }
 
 const getUserAvatar = (avatarUrl) => {
-  if (!avatarUrl) return `${import.meta.env.VITE_SERVER_IP}/api/avatars/default/gradient-01.svg`
+  if (!avatarUrl) return `/api/avatars/default/gradient-01.svg`
   // 如果是完整URL（如 https://i.pravatar.cc/150?img=61），直接使用
   if (avatarUrl.startsWith('http')) {
     return avatarUrl
   }
   // 如果是相对路径，添加服务器地址
-  const server_ip = import.meta.env.VITE_SERVER_IP
+  const server_ip = ''
   return `${server_ip}/${avatarUrl.replace(/^\/+/, '')}`
 }
 

@@ -167,7 +167,7 @@ const validateInput = () => {
 }
 
 // 默认头像URL
-const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
+const defaultAvatar = ''
 
 // 用户数据（包含所有信息）
 const userData = ref({

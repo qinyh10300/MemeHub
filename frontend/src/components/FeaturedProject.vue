@@ -25,10 +25,7 @@
             时间
           </button>
         </div>
-        <label class="toggle">
-          <input type="checkbox" v-model="animations" @change="fetchProjects" />
-          <span>动画</span>
-        </label>
+
       </div>
 
       <div class="filter-right">
@@ -156,17 +153,26 @@ const fetchProjects = async () => {
 
   try {
     // 根据选择的方式获取 memeIds 列表
+    if (!oldsortBy) {
+      var oldsortBy = 'hot'; // 记录旧的排序方式
+    }
     const sortParam = sortBy.value === 'hot' ? 'hot' : 'time';
     const sortOrder = sortBy.value === 'hot' ? 'desc' : 'desc';
+    console.log(`Fetching memes sorted by ${sortParam} in ${sortOrder} order.`);
     const res = await axios.get(`${server_ip}/api/meme-list?sortBy=${sortParam}&sortOrder=${sortOrder}`);
     const memeIds = Array.isArray(res.data.memeIds) ? res.data.memeIds : [];
-
+    console.log("Fetched meme IDs:", memeIds);
     // 第二步：并发获取每个 meme 的详细信息
     const memeDetails = await Promise.all(
       memeIds.slice(0, 10).map(id =>
         axios.get(`${server_ip}/api/meme/${id}`).then(r => r.data)
       )
     );
+    if (oldsortBy !== sortBy.value) {
+      // 如果排序方式改变，重置 lastMemeCount
+      lastMemeCount.value = 0;
+      oldsortBy = sortBy.value;
+    }
     if (memeDetails.length === lastMemeCount.value) {
       // loading.value = false;
       return;
@@ -174,7 +180,7 @@ const fetchProjects = async () => {
     lastMemeCount.value = memeDetails.length;
     loading.value = true; // 仅在数据变化时设置 loading 状态。TODO：较难测试。有问题修改上述一小段逻辑改为不更新即可
 
-    // console.log("Fetched meme details:", memeDetails);
+    console.log("Fetched meme details:", memeDetails);
 
     // 第三步：适配字段
     projects.value = memeDetails.map((item) => ({
@@ -195,6 +201,7 @@ const fetchProjects = async () => {
         : '',
       desc: item.description
     }));
+    console.log("000Fetched meme details:", memeDetails);
 
 
   } 

@@ -96,7 +96,7 @@ const goToProfile = (authorId) => {
 };
 
 const getAvatarUrl = (url) => {
-    if (!url) return 'https://i.pravatar.cc/150?img=1'; // Default avatar
+    // if (!url) return 'https://i.pravatar.cc/150?img=1'; // Default avatar
     if (url.startsWith('http') || url.startsWith('data:')) return url;
     return `${server_ip}/${url.replace(/^\/+/, '')}`;
 };

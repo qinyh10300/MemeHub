@@ -39,7 +39,7 @@
             :class="['avatar-item', { 'selected': selectedAvatar === avatar }]"
             @click="selectAvatar(avatar)"
           >
-            <img :src="avatar" alt="avatar" class="avatar-preview" />
+            <img :src="resolveAssetUrl(avatar)" alt="avatar" class="avatar-preview" />
             <div v-if="selectedAvatar === avatar" class="checkmark">✓</div>
           </div>
         </div>
@@ -80,6 +80,22 @@ const uploadedFile = ref(null)
 const uploadedImagePreview = ref(null)
 const fileInput = ref(null)
 const isUploadedFile = ref(false)
+
+const resolveAssetUrl = (url = '') => {
+  if (!url) return '';
+  // 如果是 http://ip/api/xxx 这种格式，      换为 http://ip:8080/api/xxx
+  const apiPattern = /^http:\/\/(\d+\.\d+\.\d+\.\d+)(:\d+)?(\/api\/.*)$/i;
+  const match = url.match(apiPattern);
+  if (match) {
+    return `http://${match[1]}:8080${match[3]}`;
+  }
+  // 其他 http(s) 链接直接返回
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith('//')) return `${window.location.protocol}${url}`;
+  // 相对路径补全
+  const normalized = url.startsWith('/') ? `http://154.8.192.208:8080${url}` : `http://154.8.192.208:8080/${url}`;
+  return normalized;
+};
 
 // 默认头像列表；优先从后端获取，失败时使用本地内置资源
 const localAvatarFiles = [

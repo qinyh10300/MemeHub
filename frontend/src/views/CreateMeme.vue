@@ -86,6 +86,22 @@ const isImage = computed(() => selectedFile.value?.type?.startsWith('image/'))
 const isVideo = computed(() => selectedFile.value?.type?.startsWith('video/'))
 const isGif = computed(() => selectedFile.value?.type === 'image/gif')
 
+const resolveAssetUrl = (url = '') => {
+  if (!url) return '';
+  // 如果是 http://ip/api/xxx 这种格式，      换为 http://ip:8080/api/xxx
+  const apiPattern = /^http:\/\/(\d+\.\d+\.\d+\.\d+)(:\d+)?(\/api\/.*)$/i;
+  const match = url.match(apiPattern);
+  if (match) {
+    return `http://${match[1]}:8080${match[3]}`;
+  }
+  // 其他 http(s) 链接直接返回
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith('//')) return `${window.location.protocol}${url}`;
+  // 相对路径补全
+  const normalized = url.startsWith('/') ? `http://154.8.192.208:8080${url}` : `http://154.8.192.208:8080/${url}`;
+  return normalized;
+};
+
 // 监听文件变化，创建预览URL
 watch(selectedFile, (newFile) => {
   // 清理之前的URL (如果是 Blob URL)
@@ -110,13 +126,13 @@ const isAiGenerating = ref(false)
 
 const isEditMode = computed(() => !!route.query.id)
 
-function resolveAssetUrl(path) {
-  if (!path) return ''
-  if (path.startsWith('http')) return path
-  const base = server_ip.replace(/\/$/, '')
-  const normalized = path.startsWith('/') ? path : `/${path}`
-  return `${base}${normalized}`
-}
+// function resolveAssetUrl(path) {
+//   if (!path) return ''
+//   if (path.startsWith('http')) return path
+//   const base = server_ip.replace(/\/$/, '')
+//   const normalized = path.startsWith('/') ? path : `/${path}`
+//   return `${base}${normalized}`
+// }
 
 // 组件卸载时清理URL
 onUnmounted(() => {
@@ -198,8 +214,10 @@ async function handleAiGenerateAvatar() {
       body: JSON.stringify({ title: name, description: desc })
     })
     const result = await res.json()
+    console.log('AI 生成模因头像结果:', result)
     if (res.ok && result.code === 0) {
       const imageUrl = resolveAssetUrl(result.data?.url || result.data?.path)
+      console.log('AI 生成的模因头像URL:',result.data?.url, '->' , imageUrl)
       if (!imageUrl) {
         throw new Error('未返回生成的图片地址')
       }
@@ -214,11 +232,11 @@ async function handleAiGenerateAvatar() {
         throw new Error(`下载内容不是图片（${contentType || 'unknown'}），请检查部署域名/反代/静态资源。${text ? '（返回了HTML页面）' : ''}`)
       }
       const blob = await downloadRes.blob()
-      const extRaw = (blob.type && blob.type.split('/')[1]) || 'png'
-      const ext = extRaw.includes('+xml') ? 'svg' : extRaw
+      const ext = 'png'
       const aiFile = new File([blob], `ai-meme-avatar-${Date.now()}.${ext}`, {
         type: blob.type || 'image/png'
       })
+      console.log('AI 生成的模因头像文件:', aiFile)
       selectedFile.value = aiFile
       filePreviewUrl.value = imageUrl
       alert('AI 已生成封面并自动填充，请确认后提交')

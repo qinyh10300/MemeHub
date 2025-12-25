@@ -13,6 +13,22 @@ const route = useRoute()
 const messageCount = ref(0)
 const tradeCount = ref(0)
 
+const resolveAssetUrl = (url = '') => {
+  if (!url) return '';
+  // 如果是 http://ip/api/xxx 这种格式，      换为 http://ip:8080/api/xxx
+  const apiPattern = /^http:\/\/(\d+\.\d+\.\d+\.\d+)(:\d+)?(\/api\/.*)$/i;
+  const match = url.match(apiPattern);
+  if (match) {
+    return `http://${match[1]}:8080${match[3]}`;
+  }
+  // 其他 http(s) 链接直接返回
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith('//')) return `${window.location.protocol}${url}`;
+  // 相对路径补全
+  const normalized = url.startsWith('/') ? `http://154.8.192.208:8080${url}` : `http://154.8.192.208:8080/${url}`;
+  return normalized;
+};
+
 const fetchAlertCounts = async () => {
   const token = authStore.token || localStorage.getItem('auth_token') || authStore.username || ''
   if (!token) return
@@ -62,7 +78,8 @@ watch(() => route.path, (newPath, oldPath) => {
 })
 
 // 默认头像URL
-const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
+const defaultAvatar = ''
+// const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
 
 // 用户数据（包含所有信息）
 const userData = ref({
@@ -257,7 +274,7 @@ const goToProfile = (username) => {
         <div v-else class="top-buttons">
           <!-- 左侧的头像 + 昵称 + 用户名 -->
           <div class="user-info" @click="goToProfile(authStore.username)" style="cursor: pointer;">
-            <img :src="authStore.avatar" alt="avatar" class="user-avatar" />
+            <img :src="resolveAssetUrl(authStore.avatar)" alt="avatar" class="user-avatar" />
             <div class="user-text">
               <span class="nickname">{{ authStore.nickname }}</span>
               <span class="username">@{{ authStore.username }}</span>
@@ -615,3 +632,5 @@ const goToProfile = (username) => {
   display: inline-block; /* 内联块元素 */
 }
 </style>
+
+

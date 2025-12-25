@@ -39,10 +39,9 @@ export const generateMemeAvatar = async (req, res) => {
     }
 
     const result = await generateStickerAssetForAvatar(promptText, user);
-    const baseUrl = buildBaseUrl(req);
     const resolvedUrl = result?.url?.startsWith('http')
       ? result.url
-      : `${baseUrl}${result?.url?.startsWith('/') ? '' : '/'}${result?.url || ''}`;
+      : `/api${result?.url?.startsWith('/') ? '' : '/'}${result?.url || ''}`;
 
     return res.status(200).json({
       code: 0,
@@ -350,6 +349,8 @@ export const getMemeList = async (req, res) => {
     // 支持 ?sortBy=hot（热度）/time/likes
     const sortBy = req.query.sortBy;
     const sortOrder = req.query.sortOrder === 'asc' ? -1 : 1; // 默认倒序
+
+    console.log(`Getting meme list sorted by ${sortBy} in order ${sortOrder}`);
 
     // 查询所有 active meme，带上点赞和收藏数
     const memes = await Meme.find({ status: 'active' })

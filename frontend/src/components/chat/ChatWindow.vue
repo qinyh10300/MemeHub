@@ -15,12 +15,12 @@
             @click="selectConversation(conv.user)"
         >
             <div class="avatar-wrapper">
-            <img :src="conv.user.avatar" class="avatar" />
+            <img :src="resolveAssetUrl(conv.user.avatar)" class="avatar" />
             <span v-if="conv.unreadCount > 0" class="unread-dot"></span>
             </div>
             <div class="info">
             <div class="top-row">
-                <div class="name">{{ conv.user.nickname || conv.user.username }}</div>
+                <div class="name">{{ conv.user.nickname }}@{{ conv.user.username }}</div>
                 <div class="time-badge">
                   <div class="time">{{ formatTime(conv.lastMessage.createdAt) }}</div>
                   <span v-if="conv.unreadCount > 0" class="unread-count">
@@ -52,8 +52,8 @@
         <template v-if="currentTarget">
         <div class="chat-header">
             <div class="header-user">
-            <img :src="currentTarget.avatar" class="header-avatar" />
-            <span class="header-name">{{ currentTarget.nickname || currentTarget.username }}</span>
+            <img :src="resolveAssetUrl(currentTarget.avatar)" class="header-avatar" />
+            <span class="header-name">{{ currentTarget.nickname }}@{{currentTarget.username }}</span>
             </div>
         </div>
         
@@ -64,7 +64,7 @@
             class="message-row"
             :class="{ 'mine': msg.sender.username === authStore.username }"
             >
-            <img v-if="msg.sender.username !== authStore.username" :src="msg.sender.avatar" class="msg-avatar" />
+            <img v-if="msg.sender.username !== authStore.username" :src="resolveAssetUrl(msg.sender.avatar)" class="msg-avatar" />
             <div class="bubble-container">
                 <div 
                   class="message-bubble" 
@@ -308,10 +308,18 @@ const isGeneratingSticker = ref(false);
 const getToken = () => authStore.token || localStorage.getItem('auth_token') || authStore.username || '';
 const resolveAssetUrl = (url = '') => {
   if (!url) return '';
+  // 如果是 http://ip/api/xxx 这种格式，      换为 http://ip:8080/api/xxx
+  const apiPattern = /^http:\/\/(\d+\.\d+\.\d+\.\d+)(:\d+)?(\/api\/.*)$/i;
+  const match = url.match(apiPattern);
+  if (match) {
+    return `http://${match[1]}:8080${match[3]}`;
+  }
+  // 其他 http(s) 链接直接返回
   if (/^https?:\/\//i.test(url)) return url;
   if (url.startsWith('//')) return `${window.location.protocol}${url}`;
-  const normalized = url.startsWith('/') ? url : `/${url}`;
-  return `${server_ip}${normalized}`;
+  // 相对路径补全
+  const normalized = url.startsWith('/') ? `http://154.8.192.208:8080${url}` : `http://154.8.192.208:8080/${url}`;
+  return normalized;
 };
 
 // 获取会话列表

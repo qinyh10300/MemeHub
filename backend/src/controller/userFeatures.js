@@ -1,3 +1,4 @@
+import * as Const  from '../configs/const.js';
 import { User } from '../models/user.js';
 import { Meme } from '../models/meme.js';
 import { Token } from '../models/token.js';
@@ -595,7 +596,7 @@ export const getRecommendations = async (req, res) => {
         changeRate = ((token.price - Const.TOKEN_INIT_PRICE) / Const.TOKEN_INIT_PRICE);
       } else
       {
-        const historyAfter5h = priceHistoryWithNickname.filter(item => new Date(item.time) < fiveHoursAgo);
+        const historyAfter5h = token.priceHistory.filter(item => new Date(item.time) < fiveHoursAgo);
         if (historyAfter5h.length > 0) {
           const priceAt5h = historyAfter5h[0].newPrice;
           changeRate = ((token.price - priceAt5h) / priceAt5h);

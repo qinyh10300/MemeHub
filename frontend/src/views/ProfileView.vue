@@ -43,7 +43,7 @@ const server_ip = authStore.server_ip // 后端服务器地址
 const user_token = authStore.user_token // user token
 
 // 默认头像URL
-const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
+const defaultAvatar = ''
 
 const createDefaultMemesData = () => ({
   '我创作的模因': [],

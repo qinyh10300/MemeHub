@@ -14,7 +14,7 @@
     <div v-if="comments.length" class="comment-list" ref="commentListRef">
       <div v-for="(c, i) in comments" :key="c.id" class="comment-item" :ref="el => commentRefs[c._id] = el">
         <img
-          :src="c.user.avatar"
+          :src="resolveAssetUrl(c.user.avatar)"
           alt="头像"
           class="comment-avatar"
           @click="goToProfile(c.user.username)" 
@@ -131,6 +131,22 @@ const setSort = (mode) => {
     sortMode.value = mode;     // 更新 UI
     fetchComments();           // 重新加载
   }
+};
+
+const resolveAssetUrl = (url = '') => {
+  if (!url) return '';
+  // 如果是 http://ip/api/xxx 这种格式，      换为 http://ip:8080/api/xxx
+  const apiPattern = /^http:\/\/(\d+\.\d+\.\d+\.\d+)(:\d+)?(\/api\/.*)$/i;
+  const match = url.match(apiPattern);
+  if (match) {
+    return `http://${match[1]}:8080${match[3]}`;
+  }
+  // 其他 http(s) 链接直接返回
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith('//')) return `${window.location.protocol}${url}`;
+  // 相对路径补全
+  const normalized = url.startsWith('/') ? `http://154.8.192.208:8080${url}` : `http://154.8.192.208:8080/${url}`;
+  return normalized;
 };
 
 // 获取引用评论的用户名

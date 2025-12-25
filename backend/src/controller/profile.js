@@ -14,7 +14,7 @@ const { verify } = pkg;
 
 // 统一构建外部可访问的基础 URL（在反向代理场景下可通过环境变量覆盖端口/域名）
 function getBaseUrl(req) {
-  return getPublicBaseUrl(req);
+  return '';
 }
 
 // 获取用户个人主页数据

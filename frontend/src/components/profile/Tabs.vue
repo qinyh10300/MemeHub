@@ -440,7 +440,7 @@ const deleteMeme = async (id) => {
 }
 
 // 默认头像URL
-const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
+const defaultAvatar = ''
 
 // 获取头像URL，如果为空则使用默认头像
 const getAvatarUrl = (avatar, id) => {
