@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -134,9 +136,6 @@
   }
 }
 
-/**
- * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
- */
 @layer base {
   :where(:not(:has([class*=' text-']), :not(:has([class^='text-'])))) {
     h1 {
@@ -157,19 +156,7 @@
       line-height: 1.5;
     }
 
-    h4 {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
-
-    label {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
-
-    button {
+    h4, label, button {
       font-size: var(--text-base);
       font-weight: var(--font-weight-medium);
       line-height: 1.5;
@@ -215,6 +202,28 @@ html {
   }
 }
 
+@keyframes fade-in-zoom {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in-top {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-gradient {
   background-size: 200% 200%;
   animation: gradient 15s ease infinite;
@@ -226,6 +235,14 @@ html {
 
 .animate-glow {
   animation: glow 2s ease-in-out infinite;
+}
+
+.animate-fade-in-zoom {
+  animation: fade-in-zoom 0.3s ease;
+}
+
+.animate-slide-in-top {
+  animation: slide-in-top 0.3s ease;
 }
 
 /* Glass morphism effect */
