@@ -62,7 +62,13 @@ async function handleWalletConnect(method) {
       <router-view />
     </main>
 
-    <!-- ...existing code... -->
+    <WalletConnectModal
+      :is-open="showConnectModal"
+      :is-loading="isLoading"
+      @close="closeConnectModal"
+      @connect="handleWalletConnect"
+    />
+    <Toaster />
   </div>
 </template>
 
