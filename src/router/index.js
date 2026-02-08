@@ -10,6 +10,8 @@ import PredictionDetailPage from '@/components/PredictionDetailPage.vue'
 import VaultPage from '@/components/VaultPage.vue'
 import CommunityPage from '@/components/CommunityPage.vue'
 import GamePage from '@/components/game/GamePage.vue'
+import DexHomePage from '@/components/DexHomePage.vue'
+import DexTokenPage from '@/components/DexTokenPage.vue'
 
 const routes = [
   { path: '/', name: 'landing', component: LandingPage },
@@ -22,6 +24,8 @@ const routes = [
   { path: '/vault', name: 'vault', component: VaultPage },
   { path: '/community', name: 'community', component: CommunityPage },
   { path: '/game', name: 'game', component: GamePage },
+  { path: '/dex', name: 'dex-home', component: DexHomePage },
+  { path: '/dex/token/:address', name: 'dex-token', component: DexTokenPage, props: true },
 ]
 
 const router = createRouter({

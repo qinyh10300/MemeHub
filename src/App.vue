@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Home, ListTodo, TrendingUp, Vault, Users } from 'lucide-vue-next'
+import { Home, ListTodo, TrendingUp, Vault, Users, BarChart3 } from 'lucide-vue-next'
 import { Toaster, toast } from 'vue-sonner'
 import WalletConnectModal from './components/WalletConnectModal.vue'
 import { useWallet } from './composables/useWallet'
@@ -21,6 +21,7 @@ const currentSection = computed(() => {
   if (name?.startsWith('prediction')) return 'predictions'
   if (name === 'vault') return 'vault'
   if (name === 'community') return 'community'
+  if (name?.startsWith('dex')) return 'dex'
   return ''
 })
 
@@ -43,7 +44,7 @@ async function handleWalletConnect(method) {
 
     <!-- Mobile Bottom Navigation -->
     <nav v-if="showBottomNav" class="lg:hidden fixed bottom-0 left-0 right-0 glass border-t border-white/10 z-40">
-      <div class="grid grid-cols-5 gap-1 px-2 py-3">
+      <div class="grid grid-cols-6 gap-1 px-2 py-3">
         <button
           @click="router.push('/dashboard')"
           :class="[
@@ -103,6 +104,18 @@ async function handleWalletConnect(method) {
         >
           <Users class="w-5 h-5" />
           <span class="text-xs">Social</span>
+        </button>
+        <button
+          @click="router.push('/dex')"
+          :class="[
+            'flex flex-col items-center gap-1 py-2 rounded-lg transition-colors',
+            currentSection === 'dex'
+              ? 'text-[#00D1FF] bg-[#00D1FF]/10'
+              : 'text-muted-foreground hover:text-foreground',
+          ]"
+        >
+          <BarChart3 class="w-5 h-5" />
+          <span class="text-xs">DEX</span>
         </button>
       </div>
     </nav>

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Home, ListTodo, TrendingUp, Vault, Users, Wallet, LogOut, Menu, X } from 'lucide-vue-next'
+import { Home, ListTodo, TrendingUp, Vault, Users, Wallet, LogOut, Menu, X, BarChart3 } from 'lucide-vue-next'
 import { Line, Pie } from 'vue-chartjs'
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,
@@ -95,6 +95,7 @@ const navItems = [
   { icon: TrendingUp, label: 'Predictions', path: '/predictions' },
   { icon: Vault, label: 'Vault', path: '/vault' },
   { icon: Users, label: 'Community', path: '/community' },
+  { icon: BarChart3, label: 'DEX', path: '/dex' },
   { icon: Wallet, label: 'Wallet', path: '/dashboard' },
 ]
 </script>
