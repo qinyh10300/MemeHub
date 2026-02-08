@@ -181,7 +181,7 @@ function handleConnect() {
           v-for="task in mockTasks.slice(0, 3)"
           :key="task.id"
           :task="task"
-          @click="router.push('/tasks')"
+          @click="task.isGameTask ? router.push('/game') : router.push('/tasks')"
         />
       </div>
     </section>

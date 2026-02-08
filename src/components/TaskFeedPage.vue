@@ -170,7 +170,7 @@ function clearFilters() {
         v-for="task in sortedTasks"
         :key="task.id"
         :task="task"
-        @click="router.push(`/tasks/${task.id}`)"
+        @click="task.isGameTask ? router.push('/game') : router.push(`/tasks/${task.id}`)"
       />
     </div>
     <GlassCard v-else>

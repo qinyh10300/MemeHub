@@ -176,7 +176,7 @@ const tabs = [
                     <p class="text-sm text-muted-foreground mb-4">
                       Launch the interactive Web3 University game. Navigate the campus, collect knowledge tokens, and complete challenges to earn your reward!
                     </p>
-                    <NeonButton @click="window.open(task.gameUrl, '_blank')">
+                    <NeonButton @click="router.push('/game')">
                       🚀 Launch Game
                     </NeonButton>
                   </div>
