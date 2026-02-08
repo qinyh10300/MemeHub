@@ -47,7 +47,7 @@ async function handleWalletConnect(method) {
     <!-- 新增：悬浮 Dex 按钮（不占布局） -->
     <button type="button" class="dex-fab" @click="goToDex" aria-label="切换到Dex">
       <span class="dex-fab__shine" aria-hidden="true"></span>
-      <span class="dex-fab__text">DardHorse Dex</span>
+      <span class="dex-fab__text">DarkHorse Dex</span>
       <!-- <span class="dex-fab__tag">DEX</span> -->
     </button>
 
