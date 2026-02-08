@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Home, ListTodo, TrendingUp, Vault, Users } from 'lucide-vue-next'
@@ -15,7 +15,7 @@ const showBottomNav = computed(() => {
 })
 
 const currentSection = computed(() => {
-  const name = route.name as string
+  const name = route.name
   if (name === 'dashboard') return 'dashboard'
   if (name?.startsWith('task')) return 'tasks'
   if (name?.startsWith('prediction')) return 'predictions'
@@ -24,7 +24,7 @@ const currentSection = computed(() => {
   return ''
 })
 
-async function handleWalletConnect(method: 'metamask' | 'email' | 'walletconnect') {
+async function handleWalletConnect(method) {
   await connect(method)
   closeConnectModal()
   router.push('/dashboard')

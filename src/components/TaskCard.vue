@@ -1,19 +1,16 @@
-<script setup lang="ts">
+<script setup>
 import { Users, Trophy } from 'lucide-vue-next'
 import GlassCard from './GlassCard.vue'
 import ReputationBadge from './ReputationBadge.vue'
 import CountdownTimer from './CountdownTimer.vue'
-import type { Task } from '@/lib/mockData'
 
-defineProps<{
-  task: Task
-}>()
+defineProps({
+  task: Object
+})
 
-const emit = defineEmits<{
-  click: []
-}>()
+const emit = defineEmits(['click'])
 
-function getCategoryColor(category: string) {
+function getCategoryColor(category) {
   switch (category) {
     case 'Interest': return 'bg-[#00D1FF]/20 text-[#00D1FF]'
     case 'Emotional': return 'bg-[#7C3AED]/20 text-[#7C3AED]'

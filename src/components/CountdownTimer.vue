@@ -1,12 +1,10 @@
-<script setup lang="ts">
+<script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { Clock } from 'lucide-vue-next'
 
-const props = withDefaults(defineProps<{
-  endTime: Date
-  compact?: boolean
-}>(), {
-  compact: false,
+const props = defineProps({
+  endTime: { type: Date, required: true },
+  compact: { type: Boolean, default: false },
 })
 
 const timeLeft = ref('')
@@ -37,7 +35,7 @@ function updateTimer() {
   }
 }
 
-let interval: ReturnType<typeof setInterval>
+let interval
 
 onMounted(() => {
   updateTimer()

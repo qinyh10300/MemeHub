@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { useRouter } from 'vue-router'
 import { Sparkles, TrendingUp, Users, Zap, ArrowRight, Trophy, Target, Rocket } from 'lucide-vue-next'
 import NeonButton from './NeonButton.vue'

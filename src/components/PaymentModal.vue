@@ -1,19 +1,16 @@
-<script setup lang="ts">
+<script setup>
 import { ref } from 'vue'
 import { X, DollarSign, Shield, Zap } from 'lucide-vue-next'
 import NeonButton from './NeonButton.vue'
 
-const props = defineProps<{
-  isOpen: boolean
-  amount: number
-  currency: 'USDC' | 'USDT' | 'DHC'
-  purpose: string
-}>()
+const props = defineProps({
+  isOpen: Boolean,
+  amount: Number,
+  currency: String,
+  purpose: String
+})
 
-const emit = defineEmits<{
-  close: []
-  confirm: []
-}>()
+const emit = defineEmits(['close', 'confirm'])
 
 const isProcessing = ref(false)
 

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { ref } from 'vue'
 import { Heart, MessageCircle, Share2, Users, Trophy, TrendingUp } from 'lucide-vue-next'
 import GlassCard from './GlassCard.vue'
@@ -29,11 +29,11 @@ const trendingTopics = [
   { tag: '#Bitcoin100k', posts: 98 },
 ]
 
-function hoursAgo(timestamp: Date) {
+function hoursAgo(timestamp) {
   return Math.floor((Date.now() - timestamp.getTime()) / (1000 * 60 * 60))
 }
 
-function rankClass(rank: number) {
+function rankClass(rank) {
   if (rank === 1) return 'bg-[#FFA500]/20 text-[#FFA500]'
   if (rank === 2) return 'bg-[#C0C0C0]/20 text-[#C0C0C0]'
   if (rank === 3) return 'bg-[#CD7F32]/20 text-[#CD7F32]'

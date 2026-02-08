@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Plus } from 'lucide-vue-next'
@@ -14,7 +14,7 @@ const formData = ref({
   description: '',
   reward: 100,
   entryFee: 5,
-  category: 'Interest' as 'Interest' | 'Emotional' | 'Academic-Industry',
+  category: 'Interest',
   maxParticipants: 20,
   deadline: '',
   proofRequired: true,
@@ -28,7 +28,7 @@ const previewTask = computed(() => ({
     ? new Date(formData.value.deadline)
     : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   creator: { name: 'You', avatar: '👤', reputation: 85 },
-  status: 'active' as const,
+  status: 'active',
 }))
 
 const todayStr = new Date().toISOString().split('T')[0]
@@ -89,7 +89,7 @@ function handleSubmit() {
                 <label class="block text-sm mb-2">Category *</label>
                 <div class="grid grid-cols-3 gap-3">
                   <button
-                    v-for="cat in (['Interest', 'Emotional', 'Academic-Industry'] as const)"
+                    v-for="cat in ['Interest', 'Emotional', 'Academic-Industry']"
                     :key="cat"
                     type="button"
                     @click="formData.category = cat"

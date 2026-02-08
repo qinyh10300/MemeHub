@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Users, Trophy, Clock, CheckCircle, Upload, MessageSquare, Shield } from 'lucide-vue-next'
@@ -9,10 +9,12 @@ import CountdownTimer from './CountdownTimer.vue'
 import PaymentModal from './PaymentModal.vue'
 import { mockTasks } from '@/lib/mockData'
 
-const props = defineProps<{ id: string }>()
+const props = defineProps({
+  id: String
+})
 const router = useRouter()
 
-const activeTab = ref<'description' | 'participants' | 'proof' | 'chat'>('description')
+const activeTab = ref('description')
 const showPaymentModal = ref(false)
 const hasJoined = ref(false)
 const showSuccess = ref(false)
@@ -146,7 +148,7 @@ const tabs = [
             <button
               v-for="tab in tabs"
               :key="tab.id"
-              @click="activeTab = tab.id as any"
+              @click="activeTab = tab.id"
               :class="[
                 'flex-1 px-6 py-4 transition-colors',
                 activeTab === tab.id

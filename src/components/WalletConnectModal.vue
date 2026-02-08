@@ -1,16 +1,13 @@
-<script setup lang="ts">
+<script setup>
 import { X, Wallet, Mail, Link2 } from 'lucide-vue-next'
 import NeonButton from './NeonButton.vue'
 
-defineProps<{
-  isOpen: boolean
-  isLoading: boolean
-}>()
+defineProps({
+  isOpen: Boolean,
+  isLoading: Boolean
+})
 
-const emit = defineEmits<{
-  close: []
-  connect: [method: 'metamask' | 'email' | 'walletconnect']
-}>()
+const emit = defineEmits(['close', 'connect'])
 </script>
 
 <template>

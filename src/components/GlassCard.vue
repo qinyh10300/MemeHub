@@ -1,8 +1,6 @@
-<script setup lang="ts">
-withDefaults(defineProps<{
-  hover?: boolean
-}>(), {
-  hover: false,
+<script setup>
+defineProps({
+  hover: { type: Boolean, default: false },
 })
 </script>
 

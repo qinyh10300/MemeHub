@@ -1,16 +1,13 @@
-<script setup lang="ts">
+<script setup>
 import { TrendingUp, DollarSign } from 'lucide-vue-next'
 import GlassCard from './GlassCard.vue'
 import CountdownTimer from './CountdownTimer.vue'
-import type { PredictionMarket } from '@/lib/mockData'
 
-defineProps<{
-  market: PredictionMarket
-}>()
+defineProps({
+  market: Object
+})
 
-const emit = defineEmits<{
-  click: []
-}>()
+const emit = defineEmits(['click'])
 </script>
 
 <template>

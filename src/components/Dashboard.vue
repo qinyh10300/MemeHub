@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Home, ListTodo, TrendingUp, Vault, Users, Wallet, LogOut, Menu, X } from 'lucide-vue-next'

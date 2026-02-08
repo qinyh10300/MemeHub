@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, TrendingUp, DollarSign, Users, Clock, CheckCircle } from 'lucide-vue-next'
@@ -14,11 +14,13 @@ import { mockPredictionMarkets } from '@/lib/mockData'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend)
 
-const props = defineProps<{ id: string }>()
+const props = defineProps({
+  id: String
+})
 const router = useRouter()
 
-const orderType = ref<'market' | 'limit'>('market')
-const betType = ref<'yes' | 'no'>('yes')
+const orderType = ref('market')
+const betType = ref('yes')
 const betAmount = ref('10')
 const showPaymentModal = ref(false)
 const showSuccess = ref(false)

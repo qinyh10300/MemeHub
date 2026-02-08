@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, Filter, Plus, TrendingUp, Clock, Users as UsersIcon } from 'lucide-vue-next'
@@ -11,7 +11,7 @@ const router = useRouter()
 
 const searchQuery = ref('')
 const selectedCategory = ref('All')
-const sortBy = ref<'hot' | 'new' | 'ending'>('hot')
+const sortBy = ref('hot')
 
 const categories = ['All', 'Interest', 'Emotional', 'Academic-Industry']
 

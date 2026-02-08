@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, Filter, TrendingUp, DollarSign } from 'lucide-vue-next'

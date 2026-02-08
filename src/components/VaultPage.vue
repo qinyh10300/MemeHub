@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { ref, computed } from 'vue'
 import { Vault, TrendingUp, DollarSign, Download, Upload, Info } from 'lucide-vue-next'
 import { Line, Pie } from 'vue-chartjs'
@@ -12,7 +12,7 @@ import { mockVaultData } from '@/lib/mockData'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Tooltip, Legend)
 
-const activeTab = ref<'deposit' | 'withdraw'>('deposit')
+const activeTab = ref('deposit')
 const amount = ref('')
 
 const { totalDeposited, currentAPY, claimableRewards, assetComposition, historicalAPY } = mockVaultData
@@ -38,7 +38,7 @@ const lineChartOptions = {
     legend: { display: false },
     tooltip: {
       backgroundColor: '#1a1f2e',
-      callbacks: { label: (ctx: any) => `${ctx.parsed.y}% APY` },
+      callbacks: { label: (ctx) => `${ctx.parsed.y}% APY` },
     },
   },
   scales: {

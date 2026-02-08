@@ -1,12 +1,10 @@
-<script setup lang="ts">
+<script setup>
 import { computed } from 'vue'
 import { Award } from 'lucide-vue-next'
 
-const props = withDefaults(defineProps<{
-  score: number
-  size?: 'sm' | 'md' | 'lg'
-}>(), {
-  size: 'md',
+const props = defineProps({
+  score: { type: Number, required: true },
+  size: { type: String, default: 'md' },
 })
 
 const colorClass = computed(() => {
@@ -16,13 +14,13 @@ const colorClass = computed(() => {
   return 'from-gray-400 to-gray-600'
 })
 
-const sizeClasses: Record<string, string> = {
+const sizeClasses = {
   sm: 'px-2 py-1 text-xs',
   md: 'px-3 py-1.5 text-sm',
   lg: 'px-4 py-2 text-base',
 }
 
-const iconSizes: Record<string, string> = {
+const iconSizes = {
   sm: 'w-3 h-3',
   md: 'w-4 h-4',
   lg: 'w-5 h-5',
