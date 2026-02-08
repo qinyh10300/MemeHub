@@ -44,14 +44,6 @@ async function handleWalletConnect(method) {
 
 <template>
   <div class="dark min-h-screen bg-background text-foreground">
-    <!-- Top Bar -->
-    <header class="sticky top-0 z-50 border-b border-white/10 bg-background/70 backdrop-blur">
-      <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-end">
-        <!-- 改：移除这里的按钮，避免占位影响排布 -->
-        <!-- ...existing code... -->
-      </div>
-    </header>
-
     <!-- 新增：悬浮 Dex 按钮（不占布局） -->
     <button type="button" class="dex-fab" @click="goToDex" aria-label="切换到Dex">
       <span class="dex-fab__shine" aria-hidden="true"></span>
