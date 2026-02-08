@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import { Sparkles, TrendingUp, Users, Zap, ArrowRight, Trophy, Target, Rocket } from 'lucide-vue-next'
+import { Sparkles, TrendingUp, Users, Zap, ArrowRight, Trophy, Target, Rocket, BarChart3, Gamepad2, Shield } from 'lucide-vue-next'
 import NeonButton from './NeonButton.vue'
 import GlassCard from './GlassCard.vue'
 import TaskCard from './TaskCard.vue'
@@ -30,6 +30,7 @@ function handleConnect() {
       <div class="absolute inset-0 opacity-30">
         <div class="absolute top-20 left-20 w-72 h-72 bg-[#00D1FF] rounded-full blur-[120px] animate-float"></div>
         <div class="absolute bottom-20 right-20 w-96 h-96 bg-[#7C3AED] rounded-full blur-[120px] animate-float" style="animation-delay: 3s"></div>
+        <div class="absolute top-1/2 left-1/2 w-64 h-64 bg-[#00D084] rounded-full blur-[100px] animate-float" style="animation-delay: 1.5s"></div>
       </div>
 
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-32">
@@ -53,20 +54,21 @@ function handleConnect() {
           </p>
 
           <p class="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Publish tasks, earn DHC tokens, predict outcomes, and grow together in a decentralized community
+            Trade on-chain, complete quests, predict markets, and grow together in a decentralized community
           </p>
 
+          <!-- Hero CTA — Trade is primary -->
           <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <NeonButton size="lg" @click="handleConnect">
+            <NeonButton size="lg" @click="router.push('/dex')">
               <span class="flex items-center gap-2">
-                Connect Wallet (Gasless)
-                <Zap class="w-5 h-5" />
+                Start Trading
+                <BarChart3 class="w-5 h-5" />
               </span>
             </NeonButton>
-            <NeonButton size="lg" variant="outline" @click="router.push('/tasks')">
+            <NeonButton size="lg" variant="outline" @click="handleConnect">
               <span class="flex items-center gap-2">
-                Explore Tasks
-                <ArrowRight class="w-5 h-5" />
+                Connect Wallet
+                <Zap class="w-5 h-5" />
               </span>
             </NeonButton>
           </div>
@@ -75,15 +77,15 @@ function handleConnect() {
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16">
             <GlassCard>
               <div class="text-3xl mb-2">{{ communityStats.totalUsers.toLocaleString() }}</div>
-              <div class="text-sm text-muted-foreground">Active Users</div>
+              <div class="text-sm text-muted-foreground">Active Traders</div>
             </GlassCard>
             <GlassCard>
               <div class="text-3xl mb-2">{{ communityStats.tasksCompleted.toLocaleString() }}</div>
-              <div class="text-sm text-muted-foreground">Tasks Completed</div>
+              <div class="text-sm text-muted-foreground">Quests Completed</div>
             </GlassCard>
             <GlassCard>
               <div class="text-3xl mb-2">{{ (communityStats.dhcVolume / 1000000).toFixed(1) }}M</div>
-              <div class="text-sm text-muted-foreground">DHC Volume</div>
+              <div class="text-sm text-muted-foreground">Trading Volume</div>
             </GlassCard>
             <GlassCard>
               <div class="text-3xl mb-2">{{ communityStats.activeMarkets }}</div>
@@ -94,21 +96,79 @@ function handleConnect() {
       </div>
     </section>
 
-    <!-- Features Section -->
+    <!-- DEX Trading Section — NEW, prominent -->
+    <section class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      <div class="absolute inset-0 bg-gradient-to-b from-[#00D084]/5 via-transparent to-transparent rounded-3xl pointer-events-none"></div>
+      <div class="relative">
+        <div class="text-center mb-16">
+          <div class="inline-flex items-center gap-2 bg-[#00D084]/10 border border-[#00D084]/20 px-4 py-2 rounded-full mb-6">
+            <BarChart3 class="w-4 h-4 text-[#00D084]" />
+            <span class="text-sm text-[#00D084] font-semibold">On-Chain DEX</span>
+          </div>
+          <h2 class="text-4xl md:text-5xl mb-4">Trade Any Token</h2>
+          <p class="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Real-time order book, K-line charts, limit & market orders — all fully on-chain with zero intermediaries
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6 mb-12">
+          <GlassCard hover class="border border-[#00D084]/10">
+            <div class="w-14 h-14 bg-gradient-to-br from-[#00D084]/20 to-[#00D1FF]/20 rounded-2xl flex items-center justify-center mb-5">
+              <BarChart3 class="w-7 h-7 text-[#00D084]" />
+            </div>
+            <h3 class="text-xl mb-3 font-bold">Live K-Line Charts</h3>
+            <p class="text-muted-foreground text-sm leading-relaxed">
+              Real-time candlestick charts with multiple timeframes. Watch the market pulse as trades happen on-chain.
+            </p>
+          </GlassCard>
+
+          <GlassCard hover class="border border-[#00D084]/10">
+            <div class="w-14 h-14 bg-gradient-to-br from-[#7C3AED]/20 to-[#FF6B6B]/20 rounded-2xl flex items-center justify-center mb-5">
+              <TrendingUp class="w-7 h-7 text-[#7C3AED]" />
+            </div>
+            <h3 class="text-xl mb-3 font-bold">Order Book Trading</h3>
+            <p class="text-muted-foreground text-sm leading-relaxed">
+              Place market or limit orders with full depth visibility. See bid/ask spread, volume, and trade history.
+            </p>
+          </GlassCard>
+
+          <GlassCard hover class="border border-[#00D084]/10">
+            <div class="w-14 h-14 bg-gradient-to-br from-[#00D1FF]/20 to-[#00D084]/20 rounded-2xl flex items-center justify-center mb-5">
+              <Shield class="w-7 h-7 text-[#00D1FF]" />
+            </div>
+            <h3 class="text-xl mb-3 font-bold">Vault & Deposits</h3>
+            <p class="text-muted-foreground text-sm leading-relaxed">
+              Deposit tokens into the DEX vault for seamless trading. Withdraw anytime — your keys, your funds.
+            </p>
+          </GlassCard>
+        </div>
+
+        <div class="text-center">
+          <NeonButton size="lg" @click="router.push('/dex')">
+            <span class="flex items-center gap-2">
+              Open DEX
+              <ArrowRight class="w-5 h-5" />
+            </span>
+          </NeonButton>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section — Reorganized as ecosystem pillars -->
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
       <div class="text-center mb-16">
-        <h2 class="text-4xl mb-4">Why Black Horse Guild?</h2>
-        <p class="text-muted-foreground text-lg">Empower yourself with Web3 technology</p>
+        <h2 class="text-4xl mb-4">The DarkHorse Ecosystem</h2>
+        <p class="text-muted-foreground text-lg">Trade, earn, learn, and build — all in one platform</p>
       </div>
 
-      <div class="grid md:grid-cols-3 gap-8">
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         <GlassCard hover>
-          <div class="w-12 h-12 bg-[#00D1FF]/20 rounded-lg flex items-center justify-center mb-4">
-            <Target class="w-6 h-6 text-[#00D1FF]" />
+          <div class="w-12 h-12 bg-[#FFA500]/20 rounded-lg flex items-center justify-center mb-4">
+            <Target class="w-6 h-6 text-[#FFA500]" />
           </div>
-          <h3 class="text-xl mb-3">Personalized Tasks</h3>
+          <h3 class="text-xl mb-3">Quests & Challenges</h3>
           <p class="text-muted-foreground">
-            Create and join tasks tailored to your interests, emotional growth, or academic pursuits. Earn DHC rewards for completion.
+            Join community quests, prove skills, and earn DHC tokens. From Web3 courses to daily habits.
           </p>
         </GlassCard>
 
@@ -118,7 +178,7 @@ function handleConnect() {
           </div>
           <h3 class="text-xl mb-3">Prediction Markets</h3>
           <p class="text-muted-foreground">
-            Bet on task outcomes, crypto trends, and community events. Put your knowledge to the test and earn from accurate predictions.
+            Bet on crypto trends, task outcomes, and community events. Earn from your market insights.
           </p>
         </GlassCard>
 
@@ -126,19 +186,9 @@ function handleConnect() {
           <div class="w-12 h-12 bg-[#00FF9D]/20 rounded-lg flex items-center justify-center mb-4">
             <Trophy class="w-6 h-6 text-[#00FF9D]" />
           </div>
-          <h3 class="text-xl mb-3">Reputation System</h3>
+          <h3 class="text-xl mb-3">Reputation Score</h3>
           <p class="text-muted-foreground">
-            Build your Black Horse Score through task completion and community participation. Higher reputation unlocks better opportunities.
-          </p>
-        </GlassCard>
-
-        <GlassCard hover>
-          <div class="w-12 h-12 bg-[#FFA500]/20 rounded-lg flex items-center justify-center mb-4">
-            <Zap class="w-6 h-6 text-[#FFA500]" />
-          </div>
-          <h3 class="text-xl mb-3">Gasless Transactions</h3>
-          <p class="text-muted-foreground">
-            Powered by Conflux EIP-7702, enjoy gasless logins and transactions. No CFX needed to get started.
+            Build your on-chain reputation through activity. Higher scores unlock exclusive access and better rates.
           </p>
         </GlassCard>
 
@@ -148,17 +198,27 @@ function handleConnect() {
           </div>
           <h3 class="text-xl mb-3">Yield Vault</h3>
           <p class="text-muted-foreground">
-            Stake your tokens in our RWA-backed vault and earn passive income. Current APY: 8.2%
+            Stake tokens in our RWA-backed vault for passive income. Current APY: 8.2%.
           </p>
         </GlassCard>
 
         <GlassCard hover>
           <div class="w-12 h-12 bg-[#00D1FF]/20 rounded-lg flex items-center justify-center mb-4">
-            <Users class="w-6 h-6 text-[#00D1FF]" />
+            <Gamepad2 class="w-6 h-6 text-[#00D1FF]" />
           </div>
-          <h3 class="text-xl mb-3">Community First</h3>
+          <h3 class="text-xl mb-3">Web3 Games</h3>
           <p class="text-muted-foreground">
-            Connect with like-minded individuals, share experiences, and grow together in a supportive Web3 community.
+            Play interactive Web3 games on campus, collect tokens, and complete challenges to earn rewards.
+          </p>
+        </GlassCard>
+
+        <GlassCard hover>
+          <div class="w-12 h-12 bg-[#00D084]/20 rounded-lg flex items-center justify-center mb-4">
+            <Users class="w-6 h-6 text-[#00D084]" />
+          </div>
+          <h3 class="text-xl mb-3">Community Hub</h3>
+          <p class="text-muted-foreground">
+            Share wins, discuss strategies, and climb the leaderboard in a vibrant Web3 community.
           </p>
         </GlassCard>
       </div>
@@ -168,7 +228,7 @@ function handleConnect() {
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 bg-gradient-to-b from-transparent via-[#1a1f2e]/30 to-transparent">
       <div class="flex justify-between items-center mb-12">
         <div>
-          <h2 class="text-4xl mb-2">🔥 Hot Tasks</h2>
+          <h2 class="text-4xl mb-2">🔥 Hot Quests</h2>
           <p class="text-muted-foreground">Join popular challenges and earn rewards</p>
         </div>
         <NeonButton variant="outline" @click="router.push('/tasks')">
@@ -211,18 +271,18 @@ function handleConnect() {
     <!-- CTA Section -->
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
       <GlassCard class="text-center py-16 relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-r from-[#00D1FF]/10 to-[#7C3AED]/10"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-[#00D084]/10 via-[#00D1FF]/10 to-[#7C3AED]/10"></div>
         <div class="relative">
-          <h2 class="text-4xl mb-4">Ready to become a Black Horse?</h2>
+          <h2 class="text-4xl mb-4">Ready to ride the Dark Horse?</h2>
           <p class="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
-            Join thousands of students and alumni achieving their goals together
+            Join thousands of traders and builders shaping the future of decentralized finance
           </p>
           <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <NeonButton size="lg" @click="handleConnect">
-              Get Started Now
+            <NeonButton size="lg" @click="router.push('/dex')">
+              Launch DEX
             </NeonButton>
-            <NeonButton size="lg" variant="secondary" @click="router.push('/tasks')">
-              Create Your First Task
+            <NeonButton size="lg" variant="secondary" @click="handleConnect">
+              Connect & Explore
             </NeonButton>
           </div>
         </div>
@@ -234,41 +294,39 @@ function handleConnect() {
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="grid md:grid-cols-4 gap-8">
           <div>
-            <h4 class="mb-4">Black Horse Guild</h4>
+            <h4 class="mb-4">DarkHorse Community</h4>
             <p class="text-sm text-muted-foreground">
-              Empowering communities through Web3 technology and decentralized collaboration.
+              A full-stack Web3 platform combining on-chain trading, gamified quests, prediction markets, and community governance.
             </p>
           </div>
           <div>
-            <h4 class="mb-4">Platform</h4>
+            <h4 class="mb-4">Trading</h4>
             <ul class="space-y-2 text-sm text-muted-foreground">
-              <li><button @click="router.push('/tasks')" class="hover:text-foreground">Tasks</button></li>
+              <li><button @click="router.push('/dex')" class="hover:text-foreground">DEX Exchange</button></li>
               <li><button @click="router.push('/predictions')" class="hover:text-foreground">Predictions</button></li>
-              <li><button @click="router.push('/vault')" class="hover:text-foreground">Vault</button></li>
+              <li><button @click="router.push('/vault')" class="hover:text-foreground">Yield Vault</button></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="mb-4">Explore</h4>
+            <ul class="space-y-2 text-sm text-muted-foreground">
+              <li><button @click="router.push('/tasks')" class="hover:text-foreground">Quests</button></li>
+              <li><button @click="router.push('/game')" class="hover:text-foreground">Web3 Game</button></li>
               <li><button @click="router.push('/community')" class="hover:text-foreground">Community</button></li>
             </ul>
           </div>
           <div>
-            <h4 class="mb-4">Resources</h4>
-            <ul class="space-y-2 text-sm text-muted-foreground">
-              <li><a href="#" class="hover:text-foreground">Documentation</a></li>
-              <li><a href="#" class="hover:text-foreground">API</a></li>
-              <li><a href="#" class="hover:text-foreground">Whitepaper</a></li>
-              <li><a href="#" class="hover:text-foreground">Brand Assets</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 class="mb-4">Community</h4>
+            <h4 class="mb-4">Connect</h4>
             <ul class="space-y-2 text-sm text-muted-foreground">
               <li><a href="#" class="hover:text-foreground">Discord</a></li>
               <li><a href="#" class="hover:text-foreground">Twitter</a></li>
-              <li><a href="#" class="hover:text-foreground">WeChat Group</a></li>
               <li><a href="#" class="hover:text-foreground">GitHub</a></li>
+              <li><a href="#" class="hover:text-foreground">Docs</a></li>
             </ul>
           </div>
         </div>
         <div class="border-t border-white/10 mt-12 pt-8 text-center text-sm text-muted-foreground">
-          <p>© 2026 Black Horse Guild. All rights reserved.</p>
+          <p>© 2026 DarkHorse Community. All rights reserved.</p>
         </div>
       </div>
     </footer>

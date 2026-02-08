@@ -1,13 +1,14 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Home, ListTodo, TrendingUp, Vault, Users, Wallet, LogOut, Menu, X, BarChart3 } from 'lucide-vue-next'
+import { Home, BarChart3, Target, TrendingUp, Vault, Users, Wallet, LogOut, Menu, X, Gamepad2, ArrowRight } from 'lucide-vue-next'
 import { Line, Pie } from 'vue-chartjs'
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,
   ArcElement, Tooltip, Legend, Filler
 } from 'chart.js'
 import GlassCard from './GlassCard.vue'
+import NeonButton from './NeonButton.vue'
 import ReputationBadge from './ReputationBadge.vue'
 import TaskCard from './TaskCard.vue'
 import PredictionCard from './PredictionCard.vue'
@@ -89,29 +90,30 @@ function handleDisconnect() {
   toast.info('Disconnected from wallet')
 }
 
+// Sidebar: Trade is the 2nd item, right after Dashboard
 const navItems = [
-  { icon: Home, label: 'Dashboard', path: '/dashboard' },
-  { icon: ListTodo, label: 'Tasks', path: '/tasks' },
-  { icon: TrendingUp, label: 'Predictions', path: '/predictions' },
-  { icon: Vault, label: 'Vault', path: '/vault' },
-  { icon: Users, label: 'Community', path: '/community' },
-  { icon: BarChart3, label: 'DEX', path: '/dex' },
-  { icon: Wallet, label: 'Wallet', path: '/dashboard' },
+  { icon: Home, label: 'Dashboard', path: '/dashboard', color: '' },
+  { icon: BarChart3, label: 'Trade', path: '/dex', color: 'text-[#00D084]' },
+  { icon: Target, label: 'Quests', path: '/tasks', color: '' },
+  { icon: TrendingUp, label: 'Predict', path: '/predictions', color: '' },
+  { icon: Vault, label: 'Vault', path: '/vault', color: '' },
+  { icon: Users, label: 'Community', path: '/community', color: '' },
+  { icon: Gamepad2, label: 'Game', path: '/game', color: '' },
 ]
 </script>
 
 <template>
   <div v-if="user" class="min-h-screen flex">
     <!-- Desktop Sidebar -->
-    <aside class="hidden lg:block glass border-r border-white/10">
-      <div class="w-64 flex flex-col p-6 space-y-6">
+    <aside class="hidden lg:block border-r border-white/10" style="background: rgba(10, 14, 23, 0.95);">
+      <div class="w-64 flex flex-col p-6 space-y-6 h-screen sticky top-0">
         <div class="flex items-center gap-3">
-          <div class="w-12 h-12 bg-gradient-to-br from-[#00D1FF] to-[#7C3AED] rounded-full flex items-center justify-center text-2xl">
+          <div class="w-12 h-12 bg-gradient-to-br from-[#00D084] to-[#00D1FF] rounded-full flex items-center justify-center text-2xl">
             {{ user.avatar }}
           </div>
           <div>
-            <div>{{ user.name }}</div>
-            <div class="text-xs text-muted-foreground">{{ user.address.slice(0, 6) }}...{{ user.address.slice(-4) }}</div>
+            <div class="font-bold">{{ user.name }}</div>
+            <div class="text-xs text-muted-foreground font-mono">{{ user.address.slice(0, 6) }}...{{ user.address.slice(-4) }}</div>
           </div>
         </div>
 
@@ -122,16 +124,19 @@ const navItems = [
             v-for="item in navItems"
             :key="item.label"
             @click="router.push(item.path)"
-            class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-left"
+            :class="[
+              'w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all text-left',
+              item.color,
+            ]"
           >
             <component :is="item.icon" class="w-5 h-5" />
-            <span>{{ item.label }}</span>
+            <span class="font-medium">{{ item.label }}</span>
           </button>
         </nav>
 
         <button
           @click="handleDisconnect"
-          class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors"
+          class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 text-red-400 transition-colors"
         >
           <LogOut class="w-5 h-5" />
           <span>Disconnect</span>
@@ -141,18 +146,18 @@ const navItems = [
 
     <!-- Mobile Sidebar Overlay -->
     <div v-if="sidebarOpen" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm lg:hidden" @click="sidebarOpen = false">
-      <div class="fixed top-0 left-0 h-full w-64 glass flex flex-col p-6 space-y-6" @click.stop>
+      <div class="fixed top-0 left-0 h-full w-64 flex flex-col p-6 space-y-6" style="background: rgba(10, 14, 23, 0.98);" @click.stop>
         <button @click="sidebarOpen = false" class="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
           <X class="w-6 h-6" />
         </button>
 
         <div class="flex items-center gap-3">
-          <div class="w-12 h-12 bg-gradient-to-br from-[#00D1FF] to-[#7C3AED] rounded-full flex items-center justify-center text-2xl">
+          <div class="w-12 h-12 bg-gradient-to-br from-[#00D084] to-[#00D1FF] rounded-full flex items-center justify-center text-2xl">
             {{ user.avatar }}
           </div>
           <div>
-            <div>{{ user.name }}</div>
-            <div class="text-xs text-muted-foreground">{{ user.address.slice(0, 6) }}...{{ user.address.slice(-4) }}</div>
+            <div class="font-bold">{{ user.name }}</div>
+            <div class="text-xs text-muted-foreground font-mono">{{ user.address.slice(0, 6) }}...{{ user.address.slice(-4) }}</div>
           </div>
         </div>
 
@@ -163,16 +168,19 @@ const navItems = [
             v-for="item in navItems"
             :key="item.label"
             @click="router.push(item.path); sidebarOpen = false"
-            class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-left"
+            :class="[
+              'w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-all text-left',
+              item.color,
+            ]"
           >
             <component :is="item.icon" class="w-5 h-5" />
-            <span>{{ item.label }}</span>
+            <span class="font-medium">{{ item.label }}</span>
           </button>
         </nav>
 
         <button
           @click="handleDisconnect"
-          class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors"
+          class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 text-red-400 transition-colors"
         >
           <LogOut class="w-5 h-5" />
           <span>Disconnect</span>
@@ -183,11 +191,11 @@ const navItems = [
     <!-- Main Content -->
     <main class="flex-1">
       <!-- Mobile Header -->
-      <div class="lg:hidden glass border-b border-white/10 p-4 flex items-center justify-between">
+      <div class="lg:hidden border-b border-white/10 p-4 flex items-center justify-between" style="background: rgba(10, 14, 23, 0.95);">
         <button @click="sidebarOpen = true">
           <Menu class="w-6 h-6" />
         </button>
-        <h2>Dashboard</h2>
+        <h2 class="font-bold">Dashboard</h2>
         <div class="w-6" />
       </div>
 
@@ -195,6 +203,27 @@ const navItems = [
         <div class="mb-8">
           <h1 class="text-3xl mb-2">Welcome back, {{ user.name }}!</h1>
           <p class="text-muted-foreground">Here's your activity overview</p>
+        </div>
+
+        <!-- Quick Trade Banner -->
+        <div class="mb-8 relative overflow-hidden rounded-2xl border border-[#00D084]/20" style="background: radial-gradient(900px 400px at 20% 30%, rgba(0, 208, 132, 0.12), transparent 55%), radial-gradient(600px 400px at 90% 10%, rgba(0, 209, 255, 0.08), transparent 60%), #0b0f14;">
+          <div class="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-5">
+              <div class="w-14 h-14 bg-gradient-to-br from-[#00D084]/20 to-[#00D1FF]/20 rounded-2xl flex items-center justify-center">
+                <BarChart3 class="w-7 h-7 text-[#00D084]" />
+              </div>
+              <div>
+                <h3 class="text-lg font-bold">DarkHorse DEX</h3>
+                <p class="text-sm text-muted-foreground">Trade tokens with real-time charts, order book depth, and on-chain settlement</p>
+              </div>
+            </div>
+            <NeonButton @click="router.push('/dex')">
+              <span class="flex items-center gap-2">
+                Open Exchange
+                <ArrowRight class="w-4 h-4" />
+              </span>
+            </NeonButton>
+          </div>
         </div>
 
         <!-- Stats Grid -->
@@ -205,7 +234,7 @@ const navItems = [
             <div class="text-xs text-muted-foreground mt-1">+12.5% this month</div>
           </GlassCard>
           <GlassCard>
-            <div class="text-sm text-muted-foreground mb-2">Tasks Completed</div>
+            <div class="text-sm text-muted-foreground mb-2">Quests Completed</div>
             <div class="text-2xl">{{ user.tasksCompleted }}</div>
             <div class="text-xs text-[#00FF9D] mt-1">+5 this week</div>
           </GlassCard>
@@ -247,7 +276,7 @@ const navItems = [
         <!-- Active Tasks -->
         <div class="mb-8">
           <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl">My Active Tasks</h2>
+            <h2 class="text-2xl">My Active Quests</h2>
             <button @click="router.push('/tasks')" class="text-[#00D1FF] hover:text-[#00B8E6] transition-colors">
               View All →
             </button>
@@ -257,10 +286,10 @@ const navItems = [
           </div>
           <GlassCard v-else>
             <div class="text-center py-8 text-muted-foreground">
-              <ListTodo class="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No active tasks yet. Start by joining a task!</p>
+              <Target class="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No active quests yet. Start by joining a quest!</p>
               <button @click="router.push('/tasks')" class="mt-4 text-[#00D1FF] hover:text-[#00B8E6]">
-                Browse Tasks
+                Browse Quests
               </button>
             </div>
           </GlassCard>
