@@ -6,16 +6,22 @@ import { Toaster, toast } from 'vue-sonner'
 import WalletConnectModal from './components/WalletConnectModal.vue'
 import { useWallet } from './composables/useWallet'
 
+// 让其它应用通过 window.open(name) 复用该标签页
+if (typeof window !== 'undefined') {
+  window.name = 'darkhorse-app'
+}
+
 const route = useRoute()
 const router = useRouter()
 const { isConnected, isLoading, showConnectModal, connect, closeConnectModal } = useWallet()
 
 // 新增：Dex 链接（把这里换成你的指定网页）
 const DEX_URL = 'http://localhost:5173/'
+const DEX_WINDOW_NAME = 'darkhorse-dex'
 
 function goToDex() {
-  // 新标签页打开，避免影响当前 SPA 状态；noopener 更安全
-  window.open(DEX_URL, '_blank', 'noopener,noreferrer')
+  const dexWindow = window.open(DEX_URL, DEX_WINDOW_NAME, 'noopener,noreferrer')
+  if (dexWindow) dexWindow.focus()
 }
 
 const showBottomNav = computed(() => {
