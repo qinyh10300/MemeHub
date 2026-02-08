@@ -41,7 +41,7 @@ function handleConnect() {
 
           <div class="inline-flex items-center gap-2 glass px-4 py-2 rounded-full mb-8">
             <Sparkles class="w-4 h-4 text-[#00D1FF]" />
-            <span class="text-sm">Powered by Web3</span>
+            <span class="text-sm">Powered by Web3 Civilization</span>
           </div>
 
           <h1 class="text-5xl md:text-7xl mb-6 bg-gradient-to-r from-white via-[#00D1FF] to-[#7C3AED] bg-clip-text text-transparent">
