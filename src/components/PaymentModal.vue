@@ -58,7 +58,7 @@ async function handleConfirm() {
             <Zap class="w-5 h-5 text-[#00D1FF] mt-0.5 flex-shrink-0" />
             <div class="text-sm">
               <div class="text-[#00D1FF] mb-1">Powered by x402 Micro-Payments</div>
-              <div class="text-muted-foreground">Instant, secure, gasless transactions on Conflux eSpace</div>
+              <div class="text-muted-foreground">Instant, secure, gasless transactions</div>
             </div>
           </div>
 
