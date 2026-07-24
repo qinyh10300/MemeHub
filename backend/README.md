@@ -14,17 +14,17 @@ npm install
 
 **Windows PowerShell:**
 ```powershell
-Copy-Item .env_exmaple .env
+Copy-Item .env.example .env
 ```
 
 **Windows CMD:**
 ```cmd
-copy .env_exmaple .env
+copy .env.example .env
 ```
 
 **macOS/Linux:**
 ```bash
-cp .env_exmaple .env
+cp .env.example .env
 ```
 
 或者手动创建 `.env` 文件，内容如下：
@@ -62,7 +62,7 @@ npm run dev
 
 - `POST /api/register` - 用户注册
 - `POST /api/reviewer/register` - 审核员注册（Body: username、password、reviewerCode，reviewerCode 必须与 `REVIEWER_REGISTER_SECRET` 一致）
-- `POST /api/login` - 用户登录  
+- `POST /api/login` - 用户登录
 - `POST /api/reset-password` - 重置密码
 - `POST /api/upload-avatar` - 上传头像（FormData: avatar，Headers: token）
 - `GET /api/avatars/default` - 获取默认头像列表
@@ -76,4 +76,3 @@ npm run dev
 - jsonwebtoken - JWT 认证
 - cors - 跨域支持
 - dotenv - 环境变量管理
-

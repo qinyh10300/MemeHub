@@ -38,7 +38,7 @@ tokenSchema.statics.unlockCheck = function (tokenId) {
 
 
 tokenSchema.methods = {
-  /** 
+  /**
    * 根据购买的Token数量计算USDT数量，包含手续费
    * @param {number} tokenAmount - 购买的Token数量，正数表示买入，负数表示卖出
    * @param {number} expectedPrice - 用户期望的单价，若合法（>0.1）则按照该价格计算，否则按照当前价格计算
@@ -79,12 +79,13 @@ tokenSchema.methods = {
   /**
    * 更新Token价格及价格历史记录
    * @param {ObjectId} userId 交易用户
-   * @param {Number} amount 交易数量 
+   * @param {Number} amount 交易数量
    * @param {Number} price  交易USDT金额
    */
   async updatePrice(userId=null, amount=0, price=0) {
     // 币价计算公式为 RUsdt / RToken = (k/RToken)/RToken
     const newPrice = this.k / (this.RToken * this.RToken);
+
     this.price = newPrice;
     this.priceHistory.push({
       time: new Date(),

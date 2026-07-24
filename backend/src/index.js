@@ -1,4 +1,4 @@
-import 'dotenv/config'; // 必须在最顶部，以确保所有地方都能用到环境变量
+import 'dotenv/config'; // Must be at the top to ensure environment variables are available everywhere
 
 import express, { json } from 'express';
 import cors from 'cors';
@@ -64,7 +64,7 @@ const avatarStorage = multer.diskStorage({
     cb(null, `avatar-${uniqueSuffix}${ext}`);
   }
 });
-const uploadAvatar = multer({ 
+const uploadAvatar = multer({
   storage: avatarStorage,
   limits: {
     fileSize: 5 * 1024 * 1024 // 限制文件大小为5MB
@@ -74,7 +74,7 @@ const uploadAvatar = multer({
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
-    
+
     if (extname && mimetype) {
       return cb(null, true);
     } else {
@@ -120,9 +120,9 @@ app.put('/api/update-nickname', Auth.updateNickname);
 app.patch('/api/update-nickname', Auth.updateNickname); // 也支持 PATCH 方法
 // 临时添加 GET 方法用于测试（仅测试用，生产环境应移除）
 app.get('/api/update-nickname', (req, res) => {
-  res.status(405).json({ 
-    code: 1007, 
-    message: '请使用 PUT 或 PATCH 方法更新昵称，GET 方法不支持。请在 Postman 中使用 PUT 方法，并设置 Body 为 JSON 格式。' 
+  res.status(405).json({
+    code: 1007,
+    message: '请使用 PUT 或 PATCH 方法更新昵称，GET 方法不支持。请在 Postman 中使用 PUT 方法，并设置 Body 为 JSON 格式。'
   });
 });
 // 获取用户个人主页数据（支持通过用户名或用户ID查询）
@@ -252,10 +252,10 @@ app.post('/api/message/sticker/generate', MessageController.generateSticker);
 app.get('/api/review/pending-meme-list', Review.getPendingMemeList);
 // 审核模因（通过或拒绝）
 app.post('/api/review/meme/:id', Review.reviewMeme);
-// AI 审核
+// AI review
 app.post('/api/review/meme/:id/ai', Review.aiReviewMeme);
 
-// C2C 交易
+// C2C trading
 app.post('/api/c2c/create', C2CController.createC2CTrade);
 app.get('/api/c2c/outgoing', C2CController.getOutgoingTrades);
 app.get('/api/c2c/incoming', C2CController.getIncomingTrades);
@@ -264,11 +264,11 @@ app.post('/api/c2c/:id/accept', C2CController.acceptTrade);
 app.post('/api/c2c/:id/reject', C2CController.rejectTrade);
 app.post('/api/c2c/:id/cancel', C2CController.cancelTrade);
 
-// 消息推送
+// Message push
 
-// 获取用户的全部消息
+// Get all user notifications
 app.get('/api/notifications', Profile.getNotifications);
-// 标记消息为已读
+// Mark notifications as read
 app.post('/api/mark-notification-read', Profile.markNotificationListRead);
 
 // 2. 连接到MongoDB数据库

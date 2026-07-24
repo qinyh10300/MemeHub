@@ -1,18 +1,18 @@
 <template>
     <div class="meme-card">
         <img class="meme-image" :src="meme.image" alt="meme" />
-    
+
         <div>
             <h2 class="meme-title">{{ meme.title }}</h2>
-    
-            <span class="code"> 模因币代号：{{ meme.code }}</span>
-    
+
+            <span class="code"> Meme Coin Code：{{ meme.code }}</span>
+
     <div class="meme-meta">
         <span class="author">
             <img
                 class="author-avatar"
                 :src="getAvatarUrl(meme.author?.avatar)"
-                alt="作者头像"
+                alt="Author Avatar"
                 @click="goToProfile(meme.author?.username)"
             />
             <span class="author-nickname" @click="goToProfile(meme.author?.username)">
@@ -26,25 +26,25 @@
         <span class="dot"></span>
         <span class="time">{{ meme.time }}</span>
     </div>
-    
+
             <p class="meme-desc">{{ meme.desc }}</p>
-    
-            <!-- 点赞和收藏 -->
+
+            <!-- Like and collect -->
             <div class="meme-actions">
                 <button
                     class="like-button"
                     :class="{ liked: isLiked }"
                     @click="toggleLike"
                 >
-                    ❤ 点赞 <span>{{ likes }}</span>
+                    ❤ Like <span>{{ likes }}</span>
                 </button>
-    
+
                 <button
                     class="collect-button"
                     :class="{ collected: isCollected  }"
                     @click="toggleCollect"
                 >
-                    ★ 收藏 <span>{{ collections }}</span>
+                    ★ Collect <span>{{ collections }}</span>
                 </button>
             </div>
         </div>
@@ -70,7 +70,7 @@ const authStore = useAuthStore();
 const server_ip = authStore.server_ip;
 const user_token = authStore.user_token;
 
-// 本地状态初始化
+// Local state initialization
 const likes = ref(props.meme.likes || 0);
 const collections = ref(props.meme.favorites || 0);
 const isLiked = ref(props.meme.is_liked || false)
@@ -78,7 +78,7 @@ const isLiked = ref(props.meme.is_liked || false)
 const isCollected = ref(props.meme.is_favorited || false)
 // console.log(isCollected.value)
 
-// 使用 watchEffect 或 watch 监听 props，保证异步加载也能正常显示是否已经进行了 点赞 收藏
+// Use watchEffect or watch to monitor props, ensuring async loading can properly display like and collect status
 watchEffect(() => {
     if (props.meme) {
         likes.value = props.meme.likes || 0
@@ -90,7 +90,7 @@ watchEffect(() => {
 
 const router = useRouter();
 
-// 跳转到用户主页
+// Navigate to user profile page
 const goToProfile = (authorId) => {
     router.push(`/profile/${authorId}`);
 };
@@ -101,12 +101,12 @@ const getAvatarUrl = (url) => {
     return `${server_ip}/${url.replace(/^\/+/, '')}`;
 };
 
-/* ----------------- 点赞 / 取消点赞 ----------------- */
+/* ----------------- Like / Unlike ----------------- */
 const toggleLike = async () => {
     const oldLiked = isLiked.value;
     const oldLikes = likes.value;
 
-    // 乐观更新
+    // Optimistic update
     isLiked.value = !isLiked.value;
     likes.value += isLiked.value ? 1 : -1;
 
@@ -123,28 +123,28 @@ const toggleLike = async () => {
         const data = await response.json();
 
         if (!response.ok) {
-            // 回滚
+            // Rollback
             isLiked.value = oldLiked;
             likes.value = oldLikes;
-            alert(data.message || "点赞失败");
+            alert(data.message || "Like failed");
         } else if (!oldLiked && isLiked.value) {
             emitTaskProgress('daily-like', 1, { username: authStore.username || 'guest' });
         }
     } catch (err) {
-        console.error("点赞失败:", err);
+        console.error("Like failed:", err);
         isLiked.value = oldLiked;
         likes.value = oldLikes;
-        alert("网络错误，稍后重试");
+        alert("Network error, please try again later");
     }
 };
 
 
-/* ----------------- 收藏 / 取消收藏 ----------------- */
+/* ----------------- Collect / Uncollect ----------------- */
 const toggleCollect = async () => {
     const oldCollected = isCollected.value;
     const oldCollections = collections.value;
 
-    // 乐观更新
+    // Optimistic update
     isCollected.value = !isCollected.value;
     collections.value += isCollected.value ? 1 : -1;
 
@@ -160,16 +160,16 @@ const toggleCollect = async () => {
         const data = await response.json();
 
         if (!response.ok) {
-            // 回滚
+            // Rollback
             isCollected.value = oldCollected;
             collections.value = oldCollections;
-            alert(data.message || "收藏失败");
+            alert(data.message || "Collect failed");
         }
     } catch (err) {
-        console.error("收藏失败:", err);
+        console.error("Collect failed:", err);
         isCollected.value = oldCollected;
         collections.value = oldCollections;
-        alert("网络错误，稍后重试");
+        alert("Network error, please try again later");
     }
 };
 </script>

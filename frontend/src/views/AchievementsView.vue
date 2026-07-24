@@ -1,8 +1,8 @@
 <template>
   <div class="achievements-page">
     <header class="page-header">
-      <h1 class="title">🏅 成就中心</h1>
-      <p class="subtitle">完成挑战，解锁徽章，展示你的模因实力</p>
+      <h1 class="title">🏅 Achievements Center</h1>
+      <p class="subtitle">Complete challenges, unlock badges, and showcase your meme prowess</p>
     </header>
 
     <!-- 用户等级卡片 -->
@@ -23,11 +23,11 @@
         </div>
         <div class="exp-text">
           <span>{{ currentExp }} / {{ nextLevelExp }} EXP</span>
-          <span>距离下一级还需 {{ nextLevelExp - currentExp }} EXP</span>
+          <span>{{ nextLevelExp - currentExp }} EXP to next level</span>
         </div>
       </div>
       <div class="level-perks">
-        <h4>当前等级特权</h4>
+        <h4>Current Level Perks</h4>
         <ul class="perks-list">
           <li v-for="perk in currentPerks" :key="perk">{{ perk }}</li>
         </ul>
@@ -40,28 +40,28 @@
         <span class="stat-icon">🏆</span>
         <div class="stat-content">
           <span class="stat-value">{{ unlockedCount }}/{{ totalAchievements }}</span>
-          <span class="stat-label">已解锁成就</span>
+          <span class="stat-label">Achievements Unlocked</span>
         </div>
       </div>
       <div class="stat-card">
         <span class="stat-icon">⭐</span>
         <div class="stat-content">
           <span class="stat-value">{{ totalPoints }}</span>
-          <span class="stat-label">成就点数</span>
+          <span class="stat-label">Achievement Points</span>
         </div>
       </div>
       <div class="stat-card">
         <span class="stat-icon">🔥</span>
         <div class="stat-content">
           <span class="stat-value">{{ rareCount }}</span>
-          <span class="stat-label">稀有成就</span>
+          <span class="stat-label">Rare Achievements</span>
         </div>
       </div>
       <div class="stat-card">
         <span class="stat-icon">📈</span>
         <div class="stat-content">
           <span class="stat-value">{{ completionRate }}%</span>
-          <span class="stat-label">完成率</span>
+          <span class="stat-label">Completion Rate</span>
         </div>
       </div>
     </div>
@@ -102,7 +102,7 @@
           </div>
           <div class="achievement-meta">
             <span :class="['rarity-badge', achievement.rarity]">{{ getRarityText(achievement.rarity) }}</span>
-            <span class="points">+{{ achievement.points }} 点</span>
+            <span class="points">+{{ achievement.points }} pts</span>
           </div>
         </div>
         <div v-if="achievement.unlocked" class="unlock-time">
@@ -113,7 +113,7 @@
 
     <!-- 称号系统 -->
     <div class="titles-section">
-      <h2 class="section-title">🎖️ 我的称号</h2>
+      <h2 class="section-title">🎖️ My Titles</h2>
       <div class="titles-grid">
         <div
           v-for="title in userTitles"
@@ -123,15 +123,15 @@
         >
           <span class="title-text" :style="{ color: title.color }">{{ title.name }}</span>
           <p class="title-desc">{{ title.description }}</p>
-          <span v-if="title.isActive" class="active-badge">使用中</span>
-          <span v-else-if="!title.unlocked" class="locked-badge">未解锁</span>
+          <span v-if="title.isActive" class="active-badge">Active</span>
+          <span v-else-if="!title.unlocked" class="locked-badge">Locked</span>
         </div>
       </div>
     </div>
 
     <!-- 最近解锁 -->
     <div class="recent-section">
-      <h2 class="section-title">🆕 最近解锁</h2>
+      <h2 class="section-title">🆕 Recently Unlocked</h2>
       <div class="recent-list">
         <div v-for="item in recentUnlocks" :key="item.id" class="recent-item">
           <span class="recent-icon">{{ item.icon }}</span>
@@ -166,12 +166,12 @@ const userTitles = ref([])
 
 // 成就分类
 const categories = [
-  { id: 'all', name: '全部', icon: '🎯' },
-  { id: 'trading', name: '交易', icon: '💰' },
-  { id: 'social', name: '社交', icon: '👥' },
-  { id: 'creation', name: '创作', icon: '🎨' },
-  { id: 'collection', name: '收藏', icon: '📦' },
-  { id: 'special', name: '特殊', icon: '⭐' }
+  { id: 'all', name: 'All', icon: '🎯' },
+  { id: 'trading', name: 'Trading', icon: '💰' },
+  { id: 'social', name: 'Social', icon: '👥' },
+  { id: 'creation', name: 'Creation', icon: '🎨' },
+  { id: 'collection', name: 'Collection', icon: '📦' },
+  { id: 'special', name: 'Special', icon: '⭐' }
 ]
 
 // 计算属性
@@ -182,17 +182,17 @@ const filteredAchievements = computed(() => {
 
 const unlockedCount = computed(() => achievements.value.filter(a => a.unlocked).length)
 const totalAchievements = computed(() => achievements.value.length)
-const totalPoints = computed(() => 
+const totalPoints = computed(() =>
   achievements.value.filter(a => a.unlocked).reduce((sum, a) => sum + a.points, 0)
 )
-const rareCount = computed(() => 
+const rareCount = computed(() =>
   achievements.value.filter(a => a.unlocked && (a.rarity === 'rare' || a.rarity === 'legendary')).length
 )
-const completionRate = computed(() => 
+const completionRate = computed(() =>
   totalAchievements.value > 0 ? Math.round((unlockedCount.value / totalAchievements.value) * 100) : 0
 )
 
-const recentUnlocks = computed(() => 
+const recentUnlocks = computed(() =>
   achievements.value
     .filter(a => a.unlocked)
     .sort((a, b) => new Date(b.unlockedAt) - new Date(a.unlockedAt))
@@ -201,11 +201,11 @@ const recentUnlocks = computed(() =>
 
 const currentPerks = computed(() => {
   const perks = []
-  if (userLevel.value >= 1) perks.push('🎁 每日签到奖励 +10%')
-  if (userLevel.value >= 3) perks.push('💬 评论区专属标识')
-  if (userLevel.value >= 5) perks.push('🎨 自定义个人主页背景')
-  if (userLevel.value >= 8) perks.push('⚡ 交易手续费 -5%')
-  if (userLevel.value >= 10) perks.push('👑 VIP专属称号')
+  if (userLevel.value >= 1) perks.push('🎁 Daily check-in bonus +10%')
+  if (userLevel.value >= 3) perks.push('💬 Comment section badge')
+  if (userLevel.value >= 5) perks.push('🎨 Custom profile background')
+  if (userLevel.value >= 8) perks.push('⚡ Trading fee -5%')
+  if (userLevel.value >= 10) perks.push('👑 VIP exclusive title')
   return perks
 })
 
@@ -219,29 +219,29 @@ const getLevelIcon = (level) => {
 }
 
 const getLevelTitle = (level) => {
-  if (level >= 10) return '模因大师'
-  if (level >= 8) return '资深玩家'
-  if (level >= 5) return '进阶玩家'
-  if (level >= 3) return '活跃用户'
-  return '新手玩家'
+  if (level >= 10) return 'Meme Master'
+  if (level >= 8) return 'Veteran Player'
+  if (level >= 5) return 'Advanced Player'
+  if (level >= 3) return 'Active User'
+  return 'Newcomer'
 }
 
 const getLevelDescription = (level) => {
-  if (level >= 10) return '你已经是模因社区的传奇人物！'
-  if (level >= 8) return '你的模因眼光独到，令人敬佩'
-  if (level >= 5) return '你正在成为模因高手的路上'
-  if (level >= 3) return '继续努力，你会变得更强'
-  return '欢迎来到模因世界，开始你的冒险吧！'
+  if (level >= 10) return 'You are a legend in the meme community!'
+  if (level >= 8) return 'Your meme instincts are impressive.'
+  if (level >= 5) return 'You are on the path to becoming a meme pro.'
+  if (level >= 3) return 'Keep going — you are getting stronger.'
+  return 'Welcome to the meme world. Start your adventure!'
 }
 
 const getRarityText = (rarity) => {
   const map = {
-    common: '普通',
-    uncommon: '稀有',
-    rare: '史诗',
-    legendary: '传说'
+    common: 'Common',
+    uncommon: 'Uncommon',
+    rare: 'Epic',
+    legendary: 'Legendary'
   }
-  return map[rarity] || '普通'
+  return map[rarity] || 'Common'
 }
 
 const getCategoryCount = (catId) => {
@@ -259,10 +259,10 @@ const formatUnlockTime = (dateStr) => {
   const now = new Date()
   const diff = now - date
   const days = Math.floor(diff / 86400000)
-  if (days === 0) return '今天'
-  if (days === 1) return '昨天'
-  if (days < 7) return `${days}天前`
-  return date.toLocaleDateString('zh-CN')
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  if (days < 7) return `${days} days ago`
+  return date.toLocaleDateString('en-US')
 }
 
 const setActiveTitle = async (titleId) => {
@@ -277,46 +277,46 @@ const setActiveTitle = async (titleId) => {
 const initAchievements = () => {
   achievements.value = [
     // 交易类
-    { id: 'first_trade', title: '初次交易', description: '完成第一笔交易', icon: '🎉', category: 'trading', rarity: 'common', points: 10, unlocked: true, unlockedAt: '2024-01-15' },
-    { id: 'trade_10', title: '交易新手', description: '完成10笔交易', icon: '📊', category: 'trading', rarity: 'common', points: 20, unlocked: true, unlockedAt: '2024-01-20', progress: 100, current: 10, target: 10 },
-    { id: 'trade_100', title: '交易达人', description: '完成100笔交易', icon: '💹', category: 'trading', rarity: 'uncommon', points: 50, unlocked: false, progress: 45, current: 45, target: 100 },
-    { id: 'trade_1000', title: '交易大师', description: '完成1000笔交易', icon: '🏆', category: 'trading', rarity: 'rare', points: 200, unlocked: false, progress: 4.5, current: 45, target: 1000 },
-    { id: 'profit_100', title: '小赚一笔', description: '单笔交易盈利超过100 USDT', icon: '💰', category: 'trading', rarity: 'uncommon', points: 30, unlocked: true, unlockedAt: '2024-02-01' },
-    { id: 'profit_1000', title: '大赚特赚', description: '单笔交易盈利超过1000 USDT', icon: '💎', category: 'trading', rarity: 'rare', points: 100, unlocked: false },
-    
+    { id: 'first_trade', title: 'First Trade', description: 'Complete your first trade', icon: '🎉', category: 'trading', rarity: 'common', points: 10, unlocked: true, unlockedAt: '2024-01-15' },
+    { id: 'trade_10', title: 'Trading Novice', description: 'Complete 10 trades', icon: '📊', category: 'trading', rarity: 'common', points: 20, unlocked: true, unlockedAt: '2024-01-20', progress: 100, current: 10, target: 10 },
+    { id: 'trade_100', title: 'Trading Enthusiast', description: 'Complete 100 trades', icon: '💹', category: 'trading', rarity: 'uncommon', points: 50, unlocked: false, progress: 45, current: 45, target: 100 },
+    { id: 'trade_1000', title: 'Trading Master', description: 'Complete 1000 trades', icon: '🏆', category: 'trading', rarity: 'rare', points: 200, unlocked: false, progress: 4.5, current: 45, target: 1000 },
+    { id: 'profit_100', title: 'Nice Profit', description: 'Earn over 100 USDT in a single trade', icon: '💰', category: 'trading', rarity: 'uncommon', points: 30, unlocked: true, unlockedAt: '2024-02-01' },
+    { id: 'profit_1000', title: 'Big Winner', description: 'Earn over 1000 USDT in a single trade', icon: '💎', category: 'trading', rarity: 'rare', points: 100, unlocked: false },
+
     // 社交类
-    { id: 'first_follow', title: '结交好友', description: '关注第一个用户', icon: '👋', category: 'social', rarity: 'common', points: 10, unlocked: true, unlockedAt: '2024-01-10' },
-    { id: 'followers_10', title: '小有名气', description: '获得10个粉丝', icon: '👥', category: 'social', rarity: 'common', points: 20, unlocked: true, unlockedAt: '2024-01-25', progress: 100, current: 10, target: 10 },
-    { id: 'followers_100', title: '社区明星', description: '获得100个粉丝', icon: '⭐', category: 'social', rarity: 'uncommon', points: 50, unlocked: false, progress: 35, current: 35, target: 100 },
-    { id: 'followers_1000', title: '模因网红', description: '获得1000个粉丝', icon: '🌟', category: 'social', rarity: 'rare', points: 200, unlocked: false, progress: 3.5, current: 35, target: 1000 },
-    { id: 'comment_king', title: '评论之王', description: '发表100条评论', icon: '💬', category: 'social', rarity: 'uncommon', points: 40, unlocked: false, progress: 62, current: 62, target: 100 },
-    
+    { id: 'first_follow', title: 'Make a Friend', description: 'Follow your first user', icon: '👋', category: 'social', rarity: 'common', points: 10, unlocked: true, unlockedAt: '2024-01-10' },
+    { id: 'followers_10', title: 'Rising Star', description: 'Reach 10 followers', icon: '👥', category: 'social', rarity: 'common', points: 20, unlocked: true, unlockedAt: '2024-01-25', progress: 100, current: 10, target: 10 },
+    { id: 'followers_100', title: 'Community Star', description: 'Reach 100 followers', icon: '⭐', category: 'social', rarity: 'uncommon', points: 50, unlocked: false, progress: 35, current: 35, target: 100 },
+    { id: 'followers_1000', title: 'Meme Influencer', description: 'Reach 1000 followers', icon: '🌟', category: 'social', rarity: 'rare', points: 200, unlocked: false, progress: 3.5, current: 35, target: 1000 },
+    { id: 'comment_king', title: 'Comment King', description: 'Post 100 comments', icon: '💬', category: 'social', rarity: 'uncommon', points: 40, unlocked: false, progress: 62, current: 62, target: 100 },
+
     // 创作类
-    { id: 'first_meme', title: '创作者', description: '创建第一个模因', icon: '🎨', category: 'creation', rarity: 'common', points: 15, unlocked: true, unlockedAt: '2024-01-12' },
-    { id: 'meme_approved', title: '审核通过', description: '模因通过官方审核', icon: '✅', category: 'creation', rarity: 'common', points: 20, unlocked: true, unlockedAt: '2024-01-13' },
-    { id: 'meme_popular', title: '人气模因', description: '单个模因获得100个点赞', icon: '❤️', category: 'creation', rarity: 'uncommon', points: 50, unlocked: false, progress: 78, current: 78, target: 100 },
-    { id: 'meme_viral', title: '病毒传播', description: '单个模因获得1000个点赞', icon: '🔥', category: 'creation', rarity: 'rare', points: 150, unlocked: false, progress: 7.8, current: 78, target: 1000 },
-    
+    { id: 'first_meme', title: 'Creator', description: 'Create your first meme', icon: '🎨', category: 'creation', rarity: 'common', points: 15, unlocked: true, unlockedAt: '2024-01-12' },
+    { id: 'meme_approved', title: 'Approved', description: 'A meme passes official review', icon: '✅', category: 'creation', rarity: 'common', points: 20, unlocked: true, unlockedAt: '2024-01-13' },
+    { id: 'meme_popular', title: 'Popular Meme', description: 'One meme reaches 100 likes', icon: '❤️', category: 'creation', rarity: 'uncommon', points: 50, unlocked: false, progress: 78, current: 78, target: 100 },
+    { id: 'meme_viral', title: 'Goes Viral', description: 'One meme reaches 1000 likes', icon: '🔥', category: 'creation', rarity: 'rare', points: 150, unlocked: false, progress: 7.8, current: 78, target: 1000 },
+
     // 收藏类
-    { id: 'collector_start', title: '收藏家', description: '收藏10个模因', icon: '📦', category: 'collection', rarity: 'common', points: 15, unlocked: true, unlockedAt: '2024-01-18', progress: 100, current: 10, target: 10 },
-    { id: 'collector_pro', title: '专业收藏家', description: '收藏50个模因', icon: '🗃️', category: 'collection', rarity: 'uncommon', points: 40, unlocked: false, progress: 56, current: 28, target: 50 },
-    { id: 'diverse_holder', title: '多元持有', description: '同时持有10种不同模因币', icon: '🌈', category: 'collection', rarity: 'uncommon', points: 35, unlocked: false, progress: 70, current: 7, target: 10 },
-    
+    { id: 'collector_start', title: 'Collector', description: 'Collect 10 memes', icon: '📦', category: 'collection', rarity: 'common', points: 15, unlocked: true, unlockedAt: '2024-01-18', progress: 100, current: 10, target: 10 },
+    { id: 'collector_pro', title: 'Pro Collector', description: 'Collect 50 memes', icon: '🗃️', category: 'collection', rarity: 'uncommon', points: 40, unlocked: false, progress: 56, current: 28, target: 50 },
+    { id: 'diverse_holder', title: 'Diverse Holder', description: 'Hold 10 different meme coins', icon: '🌈', category: 'collection', rarity: 'uncommon', points: 35, unlocked: false, progress: 70, current: 7, target: 10 },
+
     // 特殊类
-    { id: 'early_bird', title: '早期用户', description: '在平台上线首月注册', icon: '🐦', category: 'special', rarity: 'rare', points: 100, unlocked: true, unlockedAt: '2024-01-01' },
-    { id: 'lucky_draw', title: '幸运儿', description: '在抽奖中获得传说奖励', icon: '🍀', category: 'special', rarity: 'legendary', points: 300, unlocked: false },
-    { id: 'whale', title: '巨鲸', description: '持有价值超过10000 USDT的模因币', icon: '🐋', category: 'special', rarity: 'legendary', points: 500, unlocked: false },
-    { id: 'diamond_hands', title: '钻石手', description: '持有同一模因币超过30天', icon: '💎', category: 'special', rarity: 'rare', points: 100, unlocked: false, progress: 60, current: 18, target: 30 }
+    { id: 'early_bird', title: 'Early Bird', description: 'Register in the first month after launch', icon: '🐦', category: 'special', rarity: 'rare', points: 100, unlocked: true, unlockedAt: '2024-01-01' },
+    { id: 'lucky_draw', title: 'Lucky One', description: 'Win a legendary reward in a draw', icon: '🍀', category: 'special', rarity: 'legendary', points: 300, unlocked: false },
+    { id: 'whale', title: 'Whale', description: 'Hold over 10,000 USDT worth of meme coins', icon: '🐋', category: 'special', rarity: 'legendary', points: 500, unlocked: false },
+    { id: 'diamond_hands', title: 'Diamond Hands', description: 'Hold the same meme coin for 30+ days', icon: '💎', category: 'special', rarity: 'rare', points: 100, unlocked: false, progress: 60, current: 18, target: 30 }
   ]
-  
+
   userTitles.value = [
-    { id: 'default', name: '模因玩家', description: '默认称号', color: '#888', unlocked: true, isActive: false },
-    { id: 'trader', name: '交易达人', description: '完成100笔交易解锁', color: '#00d084', unlocked: false, isActive: false },
-    { id: 'creator', name: '创作大师', description: '创建10个模因解锁', color: '#7f5af0', unlocked: true, isActive: true },
-    { id: 'collector', name: '收藏大亨', description: '收藏100个模因解锁', color: '#ffd700', unlocked: false, isActive: false },
-    { id: 'influencer', name: '社区领袖', description: '获得1000粉丝解锁', color: '#ff6b35', unlocked: false, isActive: false },
-    { id: 'whale', name: '模因巨鲸', description: '持有价值超过10000 USDT解锁', color: '#00bfff', unlocked: false, isActive: false },
-    { id: 'legend', name: '传奇玩家', description: '解锁所有传说成就', color: '#ff3b69', unlocked: false, isActive: false }
+    { id: 'default', name: 'Meme Player', description: 'Default title', color: '#888', unlocked: true, isActive: false },
+    { id: 'trader', name: 'Trading Expert', description: 'Unlock by completing 100 trades', color: '#00d084', unlocked: false, isActive: false },
+    { id: 'creator', name: 'Creation Master', description: 'Unlock by creating 10 memes', color: '#7f5af0', unlocked: true, isActive: true },
+    { id: 'collector', name: 'Collector Tycoon', description: 'Unlock by collecting 100 memes', color: '#ffd700', unlocked: false, isActive: false },
+    { id: 'influencer', name: 'Community Leader', description: 'Unlock by reaching 1000 followers', color: '#ff6b35', unlocked: false, isActive: false },
+    { id: 'whale', name: 'Meme Whale', description: 'Unlock by holding over 10,000 USDT value', color: '#00bfff', unlocked: false, isActive: false },
+    { id: 'legend', name: 'Legendary Player', description: 'Unlock all legendary achievements', color: '#ff3b69', unlocked: false, isActive: false }
   ]
 }
 
@@ -797,11 +797,11 @@ onMounted(() => {
   .stats-row {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .achievements-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .level-info {
     flex-direction: column;
     text-align: center;

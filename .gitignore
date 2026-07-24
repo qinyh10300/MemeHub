@@ -4,6 +4,7 @@ node_modules/
 # Build output
 build
 dist
+coverage
 
 # Vite
 *.local
@@ -26,3 +27,13 @@ npm-debug.log*
 .env.*
 !.env.example
 
+# Runtime data and generated media
+backend/avatars/
+backend/memefiles/
+backend/memesGen/
+backend/stickers/
+outputs/
+testGen/outputs/
+
+# Local agent configuration
+.claude/settings.local.json

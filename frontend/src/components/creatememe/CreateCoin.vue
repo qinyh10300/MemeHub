@@ -1,6 +1,6 @@
 <template>
     <div class="create-coin-card">
-        <coin-details-form 
+        <coin-details-form
             :key="formKey"
             v-model="coinForm"
             @update:modelValue="onFormUpdate"
@@ -35,7 +35,7 @@ const coinForm = ref({
 
 const file = ref(null)
 
-// 监听表单变化并通知父组件
+// Watch form changes and notify parent component
 watch(coinForm, (newVal) => {
     emit('form-data', newVal)
 }, { deep: true })
@@ -54,7 +54,7 @@ function onFileChange(file) {
     emit('file-selected', file)
 }
 
-// 重置表单的方法
+// Reset form method
 function resetForm() {
     coinForm.value = {
         coinname: '',
@@ -64,14 +64,14 @@ function resetForm() {
     }
 }
 
-// 设置表单数据（用于回显）
+// Set form data (for data echo)
 function setForm(data) {
-    coinForm.value = { 
-        ...coinForm.value, 
+    coinForm.value = {
+        ...coinForm.value,
         ...data,
         social: { ...coinForm.value.social, ...(data.social || {}) }
     }
-    formKey.value++ // 强制重新渲染子组件以回显数据
+    formKey.value++ // Force re-render child components for data echo
 }
 
 defineExpose({

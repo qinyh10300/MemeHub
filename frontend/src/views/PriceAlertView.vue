@@ -1,17 +1,17 @@
 <template>
   <div class="price-alert-page">
     <header class="page-header">
-      <h1 class="title">🔔 价格预警</h1>
-      <p class="subtitle">设置目标价格，第一时间获取市场变动通知</p>
+      <h1 class="title">🔔 Price Alerts</h1>
+      <p class="subtitle">Set target prices and get notified about market moves instantly</p>
     </header>
 
     <!-- 快速添加预警 -->
     <div class="add-alert-section">
-      <h2 class="section-title">➕ 添加新预警</h2>
+      <h2 class="section-title">➕ Add New Alert</h2>
       <div class="add-alert-form">
         <div class="form-row">
           <div class="form-group">
-            <label>选择模因币</label>
+            <label>Select Meme Coin</label>
             <div class="meme-selector" @click="openMemeSelector">
               <template v-if="selectedMeme">
                 <img :src="getImageUrl(selectedMeme.imageUrl)" class="selected-meme-img" />
@@ -19,17 +19,17 @@
                 <span class="selected-meme-title">{{ selectedMeme.title }}</span>
               </template>
               <template v-else>
-                <span class="placeholder-text">点击选择模因币</span>
+                <span class="placeholder-text">Click to select a meme coin</span>
               </template>
               <span class="selector-arrow">▼</span>
             </div>
           </div>
-          
+
           <!-- 模因选择弹窗 -->
           <div v-if="showMemeSelector" class="meme-selector-modal" @click.self="showMemeSelector = false">
             <div class="modal-content">
               <div class="modal-header">
-                <h3>选择模因币</h3>
+                <h3>Select Meme Coin</h3>
                 <button class="close-btn" @click="showMemeSelector = false">×</button>
               </div>
               <div class="search-box">
@@ -37,7 +37,7 @@
                 <input
                   v-model="memeSearchQuery"
                   type="text"
-                  placeholder="搜索模因名称或代号..."
+                  placeholder="Search meme name or ticker..."
                   class="search-input"
                 />
                 <span v-if="searchingMemes" class="search-loading">⏳</span>
@@ -45,11 +45,11 @@
               <div class="meme-list">
                 <div v-if="searchingMemes" class="search-status">
                   <span class="loading-spinner">⏳</span>
-                  <span>搜索中...</span>
+                  <span>Searching...</span>
                 </div>
                 <div v-else-if="filteredMemeList.length === 0" class="search-status">
                   <span class="empty-icon">📭</span>
-                  <span>{{ memeSearchQuery ? '未找到相关模因' : '暂无可选模因' }}</span>
+                  <span>{{ memeSearchQuery ? 'No related memes found' : 'No memes available' }}</span>
                 </div>
                 <div
                   v-else
@@ -70,28 +70,28 @@
             </div>
           </div>
           <div class="form-group">
-            <label>预警类型</label>
+            <label>Alert Type</label>
             <div class="type-buttons">
               <button
                 :class="['type-btn', { active: newAlert.type === 'above' }]"
                 @click="newAlert.type = 'above'"
               >
                 <span class="type-icon">📈</span>
-                涨到
+                Above
               </button>
               <button
                 :class="['type-btn', { active: newAlert.type === 'below' }]"
                 @click="newAlert.type = 'below'"
               >
                 <span class="type-icon">📉</span>
-                跌到
+                Below
               </button>
             </div>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>目标价格 (USDT)</label>
+            <label>Target Price (USDT)</label>
             <div class="price-input-group">
               <span class="input-prefix">$</span>
               <input
@@ -103,37 +103,37 @@
               />
             </div>
             <p v-if="selectedMemePrice" class="current-price-hint">
-              当前价格: ${{ selectedMemePrice.toFixed(6) }}
+              Current price: ${{ selectedMemePrice.toFixed(6) }}
               <span v-if="priceChangePercent !== 0" :class="priceChangePercent > 0 ? 'positive' : 'negative'">
                 ({{ priceChangePercent > 0 ? '+' : '' }}{{ priceChangePercent.toFixed(2) }}%)
               </span>
             </p>
           </div>
           <div class="form-group">
-            <label>通知方式</label>
+            <label>Notification Method</label>
             <div class="notify-options">
               <label class="checkbox-label">
                 <input type="checkbox" v-model="newAlert.notifyInApp" />
                 <span class="checkbox-custom"></span>
-                站内通知
+                In-app notification
               </label>
             </div>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group full-width">
-            <label>备注（可选）</label>
+            <label>Note (optional)</label>
             <input
               v-model="newAlert.note"
               type="text"
-              placeholder="添加备注，如：抄底信号、止盈点位..."
+              placeholder="Add a note, e.g., buy-the-dip or take-profit..."
               class="form-input"
             />
           </div>
         </div>
         <button class="add-btn" @click="addAlert" :disabled="!canAddAlert">
           <span class="btn-icon">🔔</span>
-          创建预警
+          Create Alert
         </button>
       </div>
     </div>
@@ -141,33 +141,33 @@
     <!-- 活跃预警列表 -->
     <div class="alerts-section">
       <div class="section-header">
-        <h2 class="section-title">📋 我的预警 ({{ activeAlerts.length }})</h2>
+        <h2 class="section-title">📋 My Alerts ({{ activeAlerts.length }})</h2>
         <div class="filter-buttons">
           <button
             :class="['filter-btn', { active: alertFilter === 'all' }]"
             @click="alertFilter = 'all'"
           >
-            全部
+            All
           </button>
           <button
             :class="['filter-btn', { active: alertFilter === 'active' }]"
             @click="alertFilter = 'active'"
           >
-            进行中
+            Active
           </button>
           <button
             :class="['filter-btn', { active: alertFilter === 'triggered' }]"
             @click="alertFilter = 'triggered'"
           >
-            已触发
+            Triggered
           </button>
         </div>
       </div>
 
       <div v-if="filteredAlerts.length === 0" class="empty-state">
         <span class="empty-icon">🔕</span>
-        <p>暂无预警</p>
-        <p class="empty-hint">添加你的第一个价格预警吧！</p>
+        <p>No alerts yet</p>
+        <p class="empty-hint">Create your first price alert!</p>
       </div>
 
       <div v-else class="alerts-list">
@@ -182,12 +182,12 @@
               <div class="alert-header">
                 <span class="meme-ticker">${{ alert.memeTicker }}</span>
                 <span :class="['alert-type', alert.type]">
-                  {{ alert.type === 'above' ? '涨到' : '跌到' }}
+                  {{ alert.type === 'above' ? 'Above' : 'Below' }}
                 </span>
                 <span class="target-price">${{ alert.targetPrice.toFixed(6) }}</span>
               </div>
               <div class="alert-meta">
-                <span class="current">当前: ${{ alert.currentPrice.toFixed(6) }}</span>
+                <span class="current">Current: ${{ alert.currentPrice.toFixed(6) }}</span>
                 <span class="distance" :class="getDistanceClass(alert)">
                   {{ formatDistance(alert) }}
                 </span>
@@ -199,13 +199,13 @@
             <div class="alert-status">
               <span v-if="alert.status === 'active'" class="status-badge active">
                 <span class="pulse"></span>
-                监控中
+                Monitoring
               </span>
               <span v-else-if="alert.status === 'triggered'" class="status-badge triggered">
-                ✅ 已触发
+                ✅ Triggered
               </span>
               <span v-else class="status-badge expired">
-                ⏰ 已过期
+                ⏰ Expired
               </span>
             </div>
             <div class="alert-actions">
@@ -213,7 +213,7 @@
                 v-if="alert.status === 'active'"
                 class="action-btn pause"
                 @click="toggleAlert(alert.id)"
-                title="暂停"
+                title="Pause"
               >
                 ⏸️
               </button>
@@ -221,14 +221,14 @@
                 v-if="alert.status === 'triggered'"
                 class="action-btn reset"
                 @click="resetAlert(alert.id)"
-                title="重新启用"
+                title="Re-enable"
               >
                 🔄
               </button>
               <button
                 class="action-btn delete"
                 @click="deleteAlert(alert.id)"
-                title="删除"
+                title="Delete"
               >
                 🗑️
               </button>
@@ -241,14 +241,14 @@
 
     <!-- 预警历史 -->
     <div class="history-section">
-      <h2 class="section-title">📜 触发历史</h2>
+      <h2 class="section-title">📜 Trigger History</h2>
       <div class="history-list">
         <div v-for="record in alertHistory" :key="record.id" class="history-item">
           <div class="history-icon">{{ record.type === 'above' ? '📈' : '📉' }}</div>
           <div class="history-content">
             <span class="history-ticker">${{ record.memeTicker }}</span>
             <span class="history-text">
-              {{ record.type === 'above' ? '涨到' : '跌到' }} ${{ record.triggeredPrice.toFixed(6) }}
+              {{ record.type === 'above' ? 'Above' : 'Below' }} ${{ record.triggeredPrice.toFixed(6) }}
             </span>
           </div>
           <span class="history-time">{{ formatTime(record.triggeredAt) }}</span>
@@ -337,7 +337,7 @@ const alertStats = computed(() => {
 })
 
 // 计算属性
-const selectedMeme = computed(() => 
+const selectedMeme = computed(() =>
   availableMemes.value.find(m => m.id === newAlert.value.memeId) || selectedMemeData.value
 )
 
@@ -350,8 +350,8 @@ const priceChangePercent = computed(() => {
 })
 
 const canAddAlert = computed(() => {
-  return newAlert.value.memeId && 
-         newAlert.value.targetPrice > 0 && 
+  return newAlert.value.memeId &&
+         newAlert.value.targetPrice > 0 &&
          (newAlert.value.notifyInApp || newAlert.value.notifyEmail)
 })
 
@@ -470,7 +470,7 @@ const fetchAlerts = async () => {
 // 添加预警
 const addAlert = async () => {
   if (!canAddAlert.value) return
-  
+
   try {
     const response = await fetch(`${serverIp}/api/price-alerts`, {
       method: 'POST',
@@ -487,7 +487,7 @@ const addAlert = async () => {
         note: newAlert.value.note
       })
     })
-    
+
     const data = await response.json()
     if (data.code === 0) {
       // 重置表单
@@ -529,20 +529,20 @@ const deleteAlert = async (alertId) => {
       await fetchAlerts()
     }
   } catch (error) {
-    console.error('删除预警失败:', error)
+    console.error('Failed to delete alert:', error)
   }
 }
 
 const formatDistance = (alert) => {
   const current = alert.currentPrice || 0
   const target = alert.targetPrice || 0
-  if (current === 0) return '加载中...'
+  if (current === 0) return 'Loading...'
   const diff = target - current
   const percent = (diff / current) * 100
   if (alert.type === 'above') {
-    return percent > 0 ? `还差 ${percent.toFixed(2)}%` : '已达到'
+    return percent > 0 ? `${percent.toFixed(2)}% to go` : 'Reached'
   } else {
-    return percent < 0 ? `还差 ${Math.abs(percent).toFixed(2)}%` : '已达到'
+    return percent < 0 ? `${Math.abs(percent).toFixed(2)}% to go` : 'Reached'
   }
 }
 
@@ -563,11 +563,11 @@ const formatTime = (dateStr) => {
   const now = new Date()
   const diff = now - date
   const hours = Math.floor(diff / 3600000)
-  if (hours < 1) return '刚刚'
-  if (hours < 24) return `${hours}小时前`
+  if (hours < 1) return 'Just now'
+  if (hours < 24) return `${hours}h ago`
   const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}天前`
-  return date.toLocaleDateString('zh-CN')
+  if (days < 7) return `${days}d ago`
+  return date.toLocaleDateString('en-US')
 }
 
 const openMemeSelector = () => {
@@ -606,7 +606,7 @@ watch(memeSearchQuery, () => {
 onMounted(async () => {
   await fetchAvailableMemes()
   await fetchAlerts()
-  
+
   if (route.query.meme && !selectedMemeData.value) {
     await fetchMemeById(route.query.meme)
   }
@@ -1362,20 +1362,20 @@ onMounted(async () => {
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .alert-card {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
   }
-  
+
   .alert-right {
     width: 100%;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
   }
-  
+
   .stats-section {
     grid-template-columns: repeat(2, 1fr);
   }

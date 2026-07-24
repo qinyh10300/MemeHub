@@ -6,6 +6,7 @@ import SearchView from '../views/SearchView.vue';
 import AuditView from '../views/AuditMeme.vue';
 import NotificationView from '../views/NotificationView.vue'
 import ChatView from '../views/ChatView.vue'
+import DexTokenView from '../views/DexTokenView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -106,6 +107,13 @@ const router = createRouter({
       name: 'Watchlist',
       component: () => import('../views/WatchlistView.vue'),
       meta: { requiresAuth: true, title: '我的自选' },
+    },
+    {
+      path: '/dex/token/:address',
+      name: 'token',
+      component: DexTokenView,
+      props: true,
+      meta: { title: 'DEX 交易' },
     },
   ],
 })

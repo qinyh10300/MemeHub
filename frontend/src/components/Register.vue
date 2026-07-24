@@ -1,20 +1,20 @@
 <template>
   <div>
-    <h1>用户注册</h1>
+    <h1>User Registration</h1>
     <form @submit.prevent="registerUser">
       <div>
-        <label for="username">用户名：</label>
+        <label for="username">Username:</label>
         <input type="text" id="username" v-model="form.username" required />
       </div>
       <div>
-        <label for="phoneNumber">手机号：</label>
+        <label for="phoneNumber">Phone Number:</label>
         <input type="text" id="phoneNumber" v-model="form.phoneNumber" required />
       </div>
       <div>
-        <label for="password">密码：</label>
+        <label for="password">Password:</label>
         <input type="password" id="password" v-model="form.password" required />
       </div>
-      <button type="submit">注册</button>
+      <button type="submit">Register</button>
     </form>
     <p v-if="message">{{ message }}</p>
   </div>
@@ -46,13 +46,13 @@ export default {
         const data = await response.json();
 
         if (response.ok) {
-          this.message = data.message; // 注册成功
+          this.message = data.message; // Registration successful
         } else {
-          this.message = data.message; // 错误信息
+          this.message = data.message; // Error message
         }
       } catch (error) {
-        console.error('调用后端 API 时出错:', error);
-        this.message = '服务器连接失败，请稍后再试。';
+        console.error('Error calling backend API:', error);
+        this.message = 'Server connection failed, please try again later.';
       }
     }
   }
@@ -60,7 +60,7 @@ export default {
 </script>
 
 <style>
-/* 添加一些简单的样式 */
+/* Add some simple styles */
 form {
   max-width: 400px;
   margin: 0 auto;

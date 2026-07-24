@@ -14,6 +14,10 @@ export default defineConfig({
   //   host: '127.0.0.1', // 强制使用 IPv4 地址
   //   port: 5174 // 指定端口
   // },
+//   server: {
+//   host: true,
+//   port: 5173
+// },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

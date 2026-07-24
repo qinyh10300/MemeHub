@@ -1,27 +1,27 @@
 <template>
   <div class="watchlist-page">
     <header class="page-header">
-      <h1 class="title">📌 我的自选</h1>
-      <p class="subtitle">一站式管理你关注的模因币</p>
+      <h1 class="title">📌 My Watchlist</h1>
+      <p class="subtitle">Manage all your followed meme coins in one place</p>
     </header>
 
     <!-- 快捷统计 -->
     <div class="quick-stats">
       <div class="stat-item">
         <span class="stat-value">{{ watchlist.length }}</span>
-        <span class="stat-label">关注数量</span>
+        <span class="stat-label">Followed</span>
       </div>
       <div class="stat-item positive">
         <span class="stat-value">{{ gainersCount }}</span>
-        <span class="stat-label">今日上涨</span>
+        <span class="stat-label">Up Today</span>
       </div>
       <div class="stat-item negative">
         <span class="stat-value">{{ losersCount }}</span>
-        <span class="stat-label">今日下跌</span>
+        <span class="stat-label">Down Today</span>
       </div>
       <div class="stat-item">
         <span class="stat-value">{{ formatVolume(totalVolume) }}</span>
-        <span class="stat-label">总交易量</span>
+        <span class="stat-label">Total Volume</span>
       </div>
     </div>
 
@@ -32,23 +32,23 @@
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="搜索自选..."
+          placeholder="Search watchlist..."
           class="search-input"
         />
       </div>
       <div class="toolbar-actions">
         <select v-model="sortBy" class="sort-select">
-          <option value="name">按名称</option>
-          <option value="price">按价格</option>
-          <option value="change">按涨跌幅</option>
-          <option value="volume">按交易量</option>
-          <option value="addedAt">按添加时间</option>
+          <option value="name">Sort by name</option>
+          <option value="price">Sort by price</option>
+          <option value="change">Sort by change</option>
+          <option value="volume">Sort by volume</option>
+          <option value="addedAt">Sort by date added</option>
         </select>
         <button class="view-btn" @click="toggleViewMode">
           {{ viewMode === 'list' ? '🔲' : '📋' }}
         </button>
         <button class="add-btn" @click="showAddModal = true">
-          + 添加
+          + Add
         </button>
       </div>
     </div>
@@ -57,18 +57,18 @@
     <div v-if="viewMode === 'list'" class="watchlist-table">
       <div class="table-header">
         <span class="col check"></span>
-        <span class="col name">名称</span>
-        <span class="col price">价格</span>
-        <span class="col change">24h涨跌</span>
-        <span class="col volume">24h交易量</span>
-        <span class="col holders">持有人</span>
-        <span class="col chart">走势</span>
-        <span class="col actions">操作</span>
+        <span class="col name">Name</span>
+        <span class="col price">Price</span>
+        <span class="col change">24h Change</span>
+        <span class="col volume">24h Volume</span>
+        <span class="col holders">Holders</span>
+        <span class="col chart">Trend</span>
+        <span class="col actions">Actions</span>
       </div>
       <div v-if="filteredWatchlist.length === 0" class="empty-state">
         <span class="empty-icon">📭</span>
-        <p>暂无自选</p>
-        <button class="add-first-btn" @click="showAddModal = true">添加第一个</button>
+        <p>No items yet</p>
+        <button class="add-first-btn" @click="showAddModal = true">Add your first</button>
       </div>
       <div
         v-for="item in filteredWatchlist"
@@ -105,13 +105,13 @@
           </div>
         </div>
         <div class="col actions" @click.stop>
-          <button class="action-btn trade" @click="quickTrade(item)" title="快捷交易">
+          <button class="action-btn trade" @click="quickTrade(item)" title="Quick trade">
             💱
           </button>
-          <button class="action-btn alert" @click="setAlert(item)" title="设置提醒">
+          <button class="action-btn alert" @click="setAlert(item)" title="Set alert">
             🔔
           </button>
-          <button class="action-btn remove" @click="removeFromWatchlist(item.id)" title="移除">
+          <button class="action-btn remove" @click="removeFromWatchlist(item.id)" title="Remove">
             ✕
           </button>
         </div>
@@ -122,8 +122,8 @@
     <div v-if="viewMode === 'grid'" class="watchlist-grid">
       <div v-if="filteredWatchlist.length === 0" class="empty-state">
         <span class="empty-icon">📭</span>
-        <p>暂无自选</p>
-        <button class="add-first-btn" @click="showAddModal = true">添加第一个</button>
+        <p>No items yet</p>
+        <button class="add-first-btn" @click="showAddModal = true">Add your first</button>
       </div>
       <div
         v-for="item in filteredWatchlist"
@@ -155,8 +155,8 @@
             </svg>
           </div>
           <div class="card-actions">
-            <button class="card-btn trade" @click.stop="quickTrade(item)">交易</button>
-            <button class="card-btn alert" @click.stop="setAlert(item)">提醒</button>
+            <button class="card-btn trade" @click.stop="quickTrade(item)">Trade</button>
+            <button class="card-btn alert" @click.stop="setAlert(item)">Alert</button>
           </div>
         </div>
       </div>
@@ -164,23 +164,23 @@
 
     <!-- 批量操作栏 -->
     <div v-if="selectedItems.length > 0" class="batch-actions">
-      <span class="selected-count">已选择 {{ selectedItems.length }} 项</span>
-      <button class="batch-btn" @click="batchSetAlert">批量设置提醒</button>
-      <button class="batch-btn remove" @click="batchRemove">批量移除</button>
-      <button class="batch-btn cancel" @click="selectedItems = []">取消选择</button>
+      <span class="selected-count">Selected {{ selectedItems.length }} items</span>
+      <button class="batch-btn" @click="batchSetAlert">Set alerts in bulk</button>
+      <button class="batch-btn remove" @click="batchRemove">Remove in bulk</button>
+      <button class="batch-btn cancel" @click="selectedItems = []">Clear selection</button>
     </div>
 
     <!-- 添加自选弹窗 -->
     <div v-if="showAddModal" class="modal-overlay" @click.self="showAddModal = false">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>添加自选</h3>
+          <h3>Add to Watchlist</h3>
           <button class="close-btn" @click="showAddModal = false">×</button>
         </div>
         <input
           v-model="addSearchQuery"
           type="text"
-          placeholder="搜索模因名称或代号..."
+          placeholder="Search meme name or ticker..."
           class="modal-search"
         />
         <div class="meme-options">
@@ -196,7 +196,7 @@
               <span class="option-ticker">${{ meme.ticker }}</span>
             </div>
             <span class="option-price">${{ formatPrice(meme.price) }}</span>
-            <span v-if="isInWatchlist(meme.id)" class="added-badge">已添加</span>
+            <span v-if="isInWatchlist(meme.id)" class="added-badge">Added</span>
           </div>
         </div>
       </div>
@@ -227,16 +227,16 @@ const loading = ref(false)
 // 计算属性
 const filteredWatchlist = computed(() => {
   let list = [...watchlist.value]
-  
+
   // 搜索过滤
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    list = list.filter(item => 
+    list = list.filter(item =>
       item.title?.toLowerCase().includes(query) ||
       item.ticker?.toLowerCase().includes(query)
     )
   }
-  
+
   // 排序
   switch (sortBy.value) {
     case 'name':
@@ -255,7 +255,7 @@ const filteredWatchlist = computed(() => {
       list.sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt))
       break
   }
-  
+
   return list
 })
 
@@ -266,7 +266,7 @@ const totalVolume = computed(() => watchlist.value.reduce((sum, item) => sum + (
 const searchResults = computed(() => {
   if (!addSearchQuery.value) return availableMemes.value.slice(0, 10)
   const query = addSearchQuery.value.toLowerCase()
-  return availableMemes.value.filter(m => 
+  return availableMemes.value.filter(m =>
     m.title?.toLowerCase().includes(query) ||
     m.ticker?.toLowerCase().includes(query)
   ).slice(0, 10)
@@ -1000,7 +1000,7 @@ onMounted(() => {
   .table-row {
     grid-template-columns: 40px 2fr 1fr 1fr 100px;
   }
-  
+
   .col.volume,
   .col.holders,
   .col.chart {
@@ -1013,16 +1013,16 @@ onMounted(() => {
     flex-wrap: wrap;
     gap: 20px;
   }
-  
+
   .toolbar {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .search-box {
     max-width: none;
   }
-  
+
   .toolbar-actions {
     justify-content: flex-end;
   }

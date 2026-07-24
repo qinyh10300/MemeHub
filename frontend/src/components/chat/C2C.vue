@@ -1,21 +1,21 @@
 <template>
   <div class="c2c-container">
-    <!-- ========== 发起交易区域 ========== -->
-    <h2 class="title">发起 C2C 交易</h2>
+    <!-- ========== Create Trade Section ========== -->
+    <h2 class="title">Create C2C Trade</h2>
 
     <div class="form">
-      <input v-model="targetUser" placeholder="对方用户名" />
+      <input v-model="targetUser" placeholder="Recipient's username" />
 
       <div class="row">
-        <input v-model="myToken" placeholder="我付出的币种，如 USDT 或 DOGE" />
+        <input v-model="myToken" placeholder="Token I offer (e.g., USDT or DOGE)" />
         <input
           v-model.number="myAmount"
           type="number"
-          placeholder="数量"
+          placeholder="Amount"
         />
       </div>
       <div class="token-suggestions">
-        <span class="hint">常用币种：</span>
+        <span class="hint">Common tokens:</span>
         <button
           v-for="token in commonTokens"
           :key="token.value"
@@ -28,15 +28,15 @@
       </div>
 
       <div class="row">
-        <input v-model="theirToken" placeholder="对方付出的币种，如 USDT 或 CAT" />
+        <input v-model="theirToken" placeholder="Token they offer (e.g., USDT or CAT)" />
         <input
           v-model.number="theirAmount"
           type="number"
-          placeholder="数量"
+          placeholder="Amount"
         />
       </div>
       <div class="token-suggestions">
-        <span class="hint">常用币种：</span>
+        <span class="hint">Common tokens:</span>
         <button
           v-for="token in commonTokens"
           :key="`${token.value}-their`"
@@ -49,31 +49,31 @@
       </div>
 
       <button class="submit-btn" @click="createTrade" :disabled="loading">
-        {{ loading ? '发送中...' : '发起交易' }}
+        {{ loading ? 'Sending...' : 'Create Trade' }}
       </button>
     </div>
 
-    <!-- ========== Tabs 切换 ========== -->
+    <!-- ========== Tabs Toggle ========== -->
     <div class="tabs-wrapper">
       <div class="tabs-slider">
-        <div 
-          class="slider-indicator" 
+        <div
+          class="slider-indicator"
           :style="{ transform: `translateX(${activeTab === 'outgoing' ? '0' : '100%'})` }"
         ></div>
-        <button 
-          class="tab-btn" 
+        <button
+          class="tab-btn"
           :class="{ active: activeTab === 'outgoing' }"
           @click="activeTab = 'outgoing'"
         >
-          我发起的
+          Sent
           <span v-if="outgoingTrades.length" class="badge">{{ outgoingTrades.length }}</span>
         </button>
-        <button 
-          class="tab-btn" 
+        <button
+          class="tab-btn"
           :class="{ active: activeTab === 'incoming' }"
           @click="activeTab = 'incoming'"
         >
-          我收到的
+          Received
           <span v-if="pendingIncomingCount" class="badge pending">{{ pendingIncomingCount }}</span>
         </button>
       </div>
@@ -82,10 +82,10 @@
       </button>
     </div>
 
-    <!-- ========== 我发起的交易 ========== -->
+    <!-- ========== Sent Trades ========== -->
     <div v-show="activeTab === 'outgoing'" class="trade-list">
       <div v-if="outgoingTrades.length === 0" class="empty">
-        暂无发起的交易
+        No sent trades yet
       </div>
 
       <div
@@ -95,46 +95,46 @@
       >
         <div class="trade-info">
           <p>
-            <strong>对方:</strong> @{{ trade.to }}
+            <strong>To:</strong> @{{ trade.to }}
           </p>
           <p>
-            <strong>我付出:</strong> {{ trade.myToken }} ×
+            <strong>I Offer:</strong> {{ trade.myToken }} ×
             {{ trade.myAmount }}
-            <span v-if="trade.status === 'pending'" class="frozen-tip">（已冻结）</span>
+            <span v-if="trade.status === 'pending'" class="frozen-tip">(Frozen)</span>
           </p>
           <p>
-            <strong>对方付出:</strong> {{ trade.theirToken }} ×
+            <strong>They Offer:</strong> {{ trade.theirToken }} ×
             {{ trade.theirAmount }}
           </p>
           <p>
-            <strong>状态:</strong>
+            <strong>Status:</strong>
             <span :class="'status-' + trade.status">{{ statusText(trade.status) }}</span>
           </p>
           <div class="trade-times">
             <span class="time-item">
-              <span class="time-label">发起:</span> {{ formatTime(trade.createdAt) }}
+              <span class="time-label">Created:</span> {{ formatTime(trade.createdAt) }}
             </span>
             <span v-if="trade.status === 'accepted'" class="time-item">
-              <span class="time-label">完成:</span> {{ formatTime(trade.completedAt || trade.updatedAt) }}
+              <span class="time-label">Completed:</span> {{ formatTime(trade.completedAt || trade.updatedAt) }}
             </span>
             <span v-else-if="trade.status === 'rejected'" class="time-item">
-              <span class="time-label">拒绝:</span> {{ formatTime(trade.updatedAt) }}
+              <span class="time-label">Rejected:</span> {{ formatTime(trade.updatedAt) }}
             </span>
             <span v-else-if="trade.status === 'cancelled'" class="time-item">
-              <span class="time-label">取消:</span> {{ formatTime(trade.updatedAt) }}
+              <span class="time-label">Cancelled:</span> {{ formatTime(trade.updatedAt) }}
             </span>
           </div>
         </div>
         <div class="actions" v-if="trade.status === 'pending'">
-          <button class="btn cancel" @click="cancelTrade(trade.id)">取消</button>
+          <button class="btn cancel" @click="cancelTrade(trade.id)">Cancel</button>
         </div>
       </div>
     </div>
 
-    <!-- ========== 我收到的交易 ========== -->
+    <!-- ========== Received Trades ========== -->
     <div v-show="activeTab === 'incoming'" class="trade-list">
       <div v-if="incomingTrades.length === 0" class="empty">
-        暂无收到的交易
+        No received trades yet
       </div>
 
       <div
@@ -144,42 +144,42 @@
       >
         <div class="trade-info">
           <p>
-            <strong>来自:</strong> @{{ trade.from }}
+            <strong>From:</strong> @{{ trade.from }}
           </p>
           <p>
-            <strong>对方付出:</strong> {{ trade.theirToken }} ×
+            <strong>They Offer:</strong> {{ trade.theirToken }} ×
             {{ trade.theirAmount }}
           </p>
           <p>
-            <strong>我需付出:</strong> {{ trade.myToken }} ×
+            <strong>I Need to Offer:</strong> {{ trade.myToken }} ×
             {{ trade.myAmount }}
           </p>
           <p>
-            <strong>状态:</strong>
+            <strong>Status:</strong>
             <span :class="'status-' + trade.status">{{ statusText(trade.status) }}</span>
           </p>
           <div class="trade-times">
             <span class="time-item">
-              <span class="time-label">发起:</span> {{ formatTime(trade.createdAt) }}
+              <span class="time-label">Created:</span> {{ formatTime(trade.createdAt) }}
             </span>
             <span v-if="trade.status === 'accepted'" class="time-item">
-              <span class="time-label">完成:</span> {{ formatTime(trade.completedAt || trade.updatedAt) }}
+              <span class="time-label">Completed:</span> {{ formatTime(trade.completedAt || trade.updatedAt) }}
             </span>
             <span v-else-if="trade.status === 'rejected'" class="time-item">
-              <span class="time-label">拒绝:</span> {{ formatTime(trade.updatedAt) }}
+              <span class="time-label">Rejected:</span> {{ formatTime(trade.updatedAt) }}
             </span>
             <span v-else-if="trade.status === 'cancelled'" class="time-item">
-              <span class="time-label">取消:</span> {{ formatTime(trade.updatedAt) }}
+              <span class="time-label">Cancelled:</span> {{ formatTime(trade.updatedAt) }}
             </span>
           </div>
         </div>
 
         <div class="actions" v-if="trade.status === 'pending'">
           <button class="btn accept" @click="acceptTrade(trade.id)">
-            接受
+            Accept
           </button>
           <button class="btn reject" @click="rejectTrade(trade.id)">
-            拒绝
+            Reject
           </button>
         </div>
       </div>
@@ -192,7 +192,7 @@ import { ref, computed, onMounted, inject } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { emitTaskProgress } from '@/utils/gamificationEvents';
 
-// 获取全局刷新提醒方法
+// Get global refresh alerts method
 const refreshAlerts = inject('refreshAlerts', () => {});
 
 const authStore = useAuthStore();
@@ -201,40 +201,40 @@ const commonTokens = [
   { label: 'USDT', value: 'USDT' }
 ];
 
-// 当前 Tab
+// Current tab
 const activeTab = ref('outgoing');
 
-// 表单字段
+// Form fields
 const targetUser = ref("");
 const myToken = ref("");
 const myAmount = ref(null);
 const theirToken = ref("");
 const theirAmount = ref(null);
 
-// 交易列表
+// Trade lists
 const outgoingTrades = ref([]);
 const incomingTrades = ref([]);
 
-// 状态
+// Status
 const loading = ref(false);
 
-// 待处理的收到交易数量
+// Number of pending received trades
 const pendingIncomingCount = computed(() => {
   return incomingTrades.value.filter(t => t.status === 'pending').length;
 });
 
-// 获取 token
+// Get token
 function getToken() {
   return authStore.username || authStore.token;
 }
 
-// 状态文本
+// Status text
 function statusText(status) {
   const map = {
-    pending: '待确认',
-    accepted: '已完成',
-    rejected: '已拒绝',
-    cancelled: '已取消'
+    pending: 'Pending',
+    accepted: 'Completed',
+    rejected: 'Rejected',
+    cancelled: 'Cancelled'
   };
   return map[status] || status;
 }
@@ -253,36 +253,36 @@ const trackCompletedTrades = (trades = []) => {
   });
 };
 
-// 格式化时间
+// Format time
 function formatTime(dateStr) {
   if (!dateStr) return '';
   const date = new Date(dateStr);
   const now = new Date();
   const diff = now - date;
-  
-  // 1分钟内
+
+  // Within 1 minute
   if (diff < 60 * 1000) {
-    return '刚刚';
+    return 'Just now';
   }
-  // 1小时内
+  // Within 1 hour
   if (diff < 60 * 60 * 1000) {
-    return `${Math.floor(diff / 60000)} 分钟前`;
+    return `${Math.floor(diff / 60000)} min ago`;
   }
-  // 今天
+  // Today
   if (date.toDateString() === now.toDateString()) {
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   }
-  // 昨天
+  // Yesterday
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
   if (date.toDateString() === yesterday.toDateString()) {
-    return `昨天 ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+    return `Yesterday ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
   }
-  // 更早
-  return date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  // Earlier
+  return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-// 获取服务器地址
+// Get server URL
 function getServerUrl() {
   return authStore.serverIp || 'http://localhost:3000';
 }
@@ -295,7 +295,7 @@ const applyCommonToken = (target, tokenValue) => {
   }
 };
 
-// 刷新当前 Tab
+// Refresh current tab
 function refreshCurrentTab() {
   if (activeTab.value === 'outgoing') {
     fetchOutgoing();
@@ -304,18 +304,18 @@ function refreshCurrentTab() {
   }
 }
 
-// 发起交易
+// Create trade
 async function createTrade() {
   if (!targetUser.value) {
-    return alert("请输入对方用户名");
+    return alert("Please enter recipient's username");
   }
   if (!myToken.value || myAmount.value === null || myAmount.value < 0) {
-    return alert("请输入您付出的币种和数量，且数量必须大于等于 0");
+    return alert("Please enter the token and amount you offer, amount must be >= 0");
   }
   if (!theirToken.value || theirAmount.value === null || theirAmount.value < 0) {
-    return alert("请输入对方付出的币种和数量，且数量必须大于等于 0");
+    return alert("Please enter the token and amount they offer, amount must be >= 0");
   }
-  
+
   loading.value = true;
   try {
     const res = await fetch(`${getServerUrl()}/api/c2c/create`, {
@@ -332,30 +332,30 @@ async function createTrade() {
         theirAmount: theirAmount.value
       })
     });
-    
+
     const data = await res.json();
     if (data.code === 0) {
-      alert('交易已发起，等待对方确认');
-      // 清空表单
+      alert('Trade created, waiting for confirmation');
+      // Clear form
       targetUser.value = "";
       myToken.value = "";
       myAmount.value = null;
       theirToken.value = "";
       theirAmount.value = null;
-      // 刷新列表
+      // Refresh list
       fetchOutgoing();
     } else {
-      alert(data.message || '发起交易失败');
+      alert(data.message || 'Failed to create trade');
     }
   } catch (error) {
     console.error('Create trade error:', error);
-    alert('网络错误，请稍后重试');
+    alert('Network error, please try again later');
   } finally {
     loading.value = false;
   }
 }
 
-// 获取我发起的交易
+// Fetch outgoing trades
 async function fetchOutgoing() {
   try {
     const res = await fetch(`${getServerUrl()}/api/c2c/outgoing`, {
@@ -371,7 +371,7 @@ async function fetchOutgoing() {
   }
 }
 
-// 获取我收到的交易
+// Fetch incoming trades
 async function fetchIncoming() {
   try {
     const res = await fetch(`${getServerUrl()}/api/c2c/incoming`, {
@@ -387,10 +387,10 @@ async function fetchIncoming() {
   }
 }
 
-// 接受交易
+// Accept trade
 async function acceptTrade(id) {
-  if (!confirm('确定接受这笔交易吗？')) return;
-  
+  if (!confirm('Are you sure you want to accept this trade?')) return;
+
   try {
     const res = await fetch(`${getServerUrl()}/api/c2c/${id}/accept`, {
       method: 'POST',
@@ -398,24 +398,24 @@ async function acceptTrade(id) {
     });
     const data = await res.json();
     if (data.code === 0) {
-      alert('交易已接受');
+      alert('Trade accepted');
       markTradeCompleted(id);
       fetchIncoming();
       fetchOutgoing();
-      refreshAlerts(); // 刷新侧边栏提醒
+      refreshAlerts(); // Refresh sidebar alerts
     } else {
-      alert(data.message || '操作失败');
+      alert(data.message || 'Operation failed');
     }
   } catch (error) {
     console.error('Accept trade error:', error);
-    alert('网络错误');
+    alert('Network error');
   }
 }
 
-// 拒绝交易
+// Reject trade
 async function rejectTrade(id) {
-  if (!confirm('确定拒绝这笔交易吗？')) return;
-  
+  if (!confirm('Are you sure you want to reject this trade?')) return;
+
   try {
     const res = await fetch(`${getServerUrl()}/api/c2c/${id}/reject`, {
       method: 'POST',
@@ -423,22 +423,22 @@ async function rejectTrade(id) {
     });
     const data = await res.json();
     if (data.code === 0) {
-      alert('交易已拒绝');
+      alert('Trade rejected');
       fetchIncoming();
-      refreshAlerts(); // 刷新侧边栏提醒
+      refreshAlerts(); // Refresh sidebar alerts
     } else {
-      alert(data.message || '操作失败');
+      alert(data.message || 'Operation failed');
     }
   } catch (error) {
     console.error('Reject trade error:', error);
-    alert('网络错误');
+    alert('Network error');
   }
 }
 
-// 取消交易
+// Cancel trade
 async function cancelTrade(id) {
-  if (!confirm('确定取消这笔交易吗？')) return;
-  
+  if (!confirm('Are you sure you want to cancel this trade?')) return;
+
   try {
     const res = await fetch(`${getServerUrl()}/api/c2c/${id}/cancel`, {
       method: 'POST',
@@ -446,18 +446,18 @@ async function cancelTrade(id) {
     });
     const data = await res.json();
     if (data.code === 0) {
-      alert('交易已取消');
+      alert('Trade cancelled');
       fetchOutgoing();
     } else {
-      alert(data.message || '操作失败');
+      alert(data.message || 'Operation failed');
     }
   } catch (error) {
     console.error('Cancel trade error:', error);
-    alert('网络错误');
+    alert('Network error');
   }
 }
 
-// 页面加载时获取交易列表
+// Fetch trades on page load
 onMounted(() => {
   fetchOutgoing();
   fetchIncoming();
@@ -552,7 +552,7 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* Tabs 样式 */
+/* Tabs styling */
 .tabs-wrapper {
   display: flex;
   align-items: center;
@@ -670,7 +670,7 @@ onMounted(() => {
   color: #fff;
 }
 
-/* 交易列表 */
+/* Trade list */
 .trade-list {
   min-height: 200px;
 }
@@ -767,14 +767,14 @@ onMounted(() => {
   padding: 40px 20px;
 }
 
-/* 冻结提示 */
+/* Frozen tip */
 .frozen-tip {
   color: #ffaa00;
   font-size: 12px;
   margin-left: 4px;
 }
 
-/* 交易时间 */
+/* Trade times */
 .trade-times {
   display: flex;
   flex-wrap: wrap;

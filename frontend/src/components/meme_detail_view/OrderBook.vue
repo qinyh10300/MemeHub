@@ -1,38 +1,38 @@
 <template>
   <div class="order-book">
-    <!-- 订单簿标题 -->
+    <!-- Order book header -->
     <div class="orderbook-header">
-      <h3 class="title">订单簿</h3>
+      <h3 class="title">Order Book</h3>
       <div class="depth-toggle">
         <button
           :class="['depth-btn', { active: depth === 0 }]"
           @click="depth = 0"
         >
-          全部
+          All
         </button>
         <button
           :class="['depth-btn', { active: depth === 10 }]"
           @click="depth = 10"
         >
-          10档
+          10 Levels
         </button>
         <button
           :class="['depth-btn', { active: depth === 20 }]"
           @click="depth = 20"
         >
-          20档
+          20 Levels
         </button>
       </div>
     </div>
 
-    <!-- 订单簿表格头部 -->
+    <!-- Order book table header -->
     <div class="orderbook-table-header">
-      <div class="header-cell price">价格</div>
-      <div class="header-cell amount">数量</div>
-      <div class="header-cell total">总额</div>
+      <div class="header-cell price">Price</div>
+      <div class="header-cell amount">Amount</div>
+      <div class="header-cell total">Total</div>
     </div>
 
-    <!-- 卖单 (红色，从高到低) -->
+    <!-- Sell orders (red, high to low) -->
     <div class="sell-orders">
       <div
         v-for="(order, index) in limitedSellOrders"
@@ -49,7 +49,7 @@
         <div class="order-cell total">
           ${{ (order.price * order.amount).toFixed(4) }}
         </div>
-        <!-- 深度条 -->
+        <!-- Depth bar -->
         <div
           class="depth-bar sell-depth"
           :style="{ width: order.depthPercent + '%' }"
@@ -57,11 +57,11 @@
       </div>
     </div>
 
-    <!-- 当前市场价格分隔线 -->
+    <!-- Current market price divider -->
     <div class="current-price-line">
       <div class="current-info">
         <div class="price-info">
-          <span class="price-label">最新价格</span>
+          <span class="price-label">Latest Price</span>
           <span :class="['current-price', priceChange >= 0 ? 'positive' : 'negative']">
             ${{ currentPrice.toFixed(6) }}
           </span>
@@ -70,13 +70,13 @@
           </span>
         </div>
         <div class="volume-info">
-          <span class="volume-label">成交量</span>
+          <span class="volume-label">Volume</span>
           <span class="volume-value">{{ formatVolume(totalVolume) }}</span>
         </div>
       </div>
     </div>
 
-    <!-- 买单 (绿色，从低到高) -->
+    <!-- Buy orders (green, low to high) -->
     <div class="buy-orders">
       <div
         v-for="(order, index) in limitedBuyOrders"
@@ -101,18 +101,18 @@
       </div>
     </div>
 
-    <!-- 汇总统计 -->
+    <!-- Summary statistics -->
     <div class="orderbook-summary">
       <div class="summary-item">
-        <span class="label">买量</span>
+        <span class="label">Buy Vol</span>
         <span class="value buy-color">{{ totalBuyVolume.toFixed(2) }}</span>
       </div>
       <div class="summary-item">
-        <span class="label">卖量</span>
+        <span class="label">Sell Vol</span>
         <span class="value sell-color">{{ totalSellVolume.toFixed(2) }}</span>
       </div>
       <div class="summary-item">
-        <span class="label">价差</span>
+        <span class="label">Spread</span>
         <span class="value">{{ spread.toFixed(6) }}</span>
       </div>
     </div>

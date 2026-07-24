@@ -1,44 +1,44 @@
-<template> 
+<template>
   <div class="coin-details">
-    <h2>模因币详情</h2>
-    <p class="sub">请谨慎选择，这些在创建币种后无法更改</p>
+    <h2>Meme Coin Details</h2>
+    <p class="sub">Please choose carefully, these cannot be changed after creating the coin</p>
 
     <div class="row">
-      <field-input 
-        label="名称" 
-        placeholder="命名你的币种"
+      <field-input
+        label="Name"
+        placeholder="Name your coin"
         class="half"
         v-model="localForm.name"
       />
-      <field-input 
-        label="代号" 
-        placeholder="添加币种代号（例如：DOGE）"
+      <field-input
+        label="Symbol"
+        placeholder="Add coin symbol (e.g., DOGE)"
         class="half"
         v-model="localForm.symbol"
       />
     </div>
 
-    <text-area 
-      label="描述（可选）" 
-      placeholder="写一个简短的描述"
+    <text-area
+      label="Description (Optional)"
+      placeholder="Write a brief description"
       v-model="localForm.description"
     />
 
-    <expandable-section title="添加社交链接">
+    <expandable-section title="Add Social Links">
       <div class="social-grid">
-        <field-input 
-          label="个人网站" 
-          placeholder="添加网址"
+        <field-input
+          label="Website"
+          placeholder="Add URL"
           v-model="localForm.social.website"
         />
-        <field-input 
-          label="微博" 
-          placeholder="添加网址"
+        <field-input
+          label="Weibo"
+          placeholder="Add URL"
           v-model="localForm.social.weibo"
         />
-        <field-input 
-          label="小红书" 
-          placeholder="添加网址"
+        <field-input
+          label="Xiaohongshu"
+          placeholder="Add URL"
           v-model="localForm.social.xiaohongshu"
         />
       </div>
@@ -61,7 +61,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-// 本地表单数据
+// Local form data
 const localForm = reactive({
   name: '',
   symbol: '',
@@ -73,11 +73,11 @@ const localForm = reactive({
   }
 })
 
-// 监听 props 变化，回显数据
+// Watch props changes for data echo
 watch(() => props.modelValue, (newVal) => {
   // console.log('CoinDetailsForm props changed:', newVal)
   if (newVal) {
-    // 只有当新值与当前值不同时才更新，防止光标跳动或死循环
+    // Only update if new value is different from current, prevents cursor jump or infinite loop
     if (newVal.coinname !== undefined && newVal.coinname !== localForm.name) {
       localForm.name = newVal.coinname
     }
@@ -101,7 +101,7 @@ watch(() => props.modelValue, (newVal) => {
   }
 }, { immediate: true, deep: true })
 
-// 监听本地数据变化，通知父组件
+// Watch local data changes, notify parent component
 watch(localForm, () => {
   emit("update:modelValue", {
     coinname: localForm.name,

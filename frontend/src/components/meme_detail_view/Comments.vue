@@ -2,10 +2,10 @@
   <div class="comment-section">
     <!-- <h3>评论</h3> -->
     <h3 class="comment-title">
-      评论
+      Comments
       <div class="sort-toggle">
-        <span :class="{ active: sortMode === 'time' }" @click="setSort('time')">时间</span>
-        <span :class="{ active: sortMode === 'hot' }" @click="setSort('hot')">热度</span>
+        <span :class="{ active: sortMode === 'time' }" @click="setSort('time')">Time</span>
+        <span :class="{ active: sortMode === 'hot' }" @click="setSort('hot')">Hot</span>
         <div class="slider" :class="sortMode"></div>
       </div>
     </h3>
@@ -15,9 +15,9 @@
       <div v-for="(c, i) in comments" :key="c.id" class="comment-item" :ref="el => commentRefs[c._id] = el">
         <img
           :src="c.user.avatar"
-          alt="头像"
+          alt="Avatar"
           class="comment-avatar"
-          @click="goToProfile(c.user.username)" 
+          @click="goToProfile(c.user.username)"
         />
         <div class="comment-content">
           <p class="comment-author">
@@ -32,17 +32,17 @@
           <p class="comment-text">
             <template v-if="c.reference">
               <template v-if="replyComment = getReplyComment(c.reference)">
-                回复
-                <!-- 如果不是未知用户 → 可点击 -->
+                Reply to
+                <!-- If not unknown user → clickable -->
                 <span
-                  v-if="replyComment.user.username !== '未知用户'"
+                  v-if="replyComment.user.username !== 'Unknown User'"
                   class="reply-to"
                   @click="goToProfile(getReplyComment(c.reference).user.username)"
                 >
                   @{{ replyComment.user.username }}
                 </span>
 
-                <!-- 如果是未知用户 → 不可点击 -->
+                <!-- If unknown user → not clickable -->
                 <span
                   v-else
                   class="reply-to"
@@ -69,31 +69,31 @@
               ❤ <span>{{ c.likes }}</span>
             </button>
             <button class="reply-button" @click="startReply(c)">
-              回复
+              Reply
             </button>
-            <button 
-              v-if="c.userinfo.is_author" 
-              class="delete-button" 
+            <button
+              v-if="c.userinfo.is_author"
+              class="delete-button"
               @click="deleteComment(c)"
             >
-              删除
+              Delete
             </button>
           </div>
         </div>
       </div>
     </div>
-    <p v-else class="no-comment">暂无评论</p>
+    <p v-else class="no-comment">No comments yet</p>
 
-    <!-- 回复提示区域 -->
+    <!-- Reply notification area -->
     <div v-if="replyTarget" class="reply-banner">
       回复 @{{ replyTarget.username }} : {{ truncatedContent }}
       <button class="cancel-reply" @click="cancelReply">取消</button>
     </div>
 
-    <!-- 输入框 -->
+    <!-- Input box -->
     <div class="comment-input">
-      <textarea v-model="newComment" placeholder="写下你的评论..."></textarea>
-      <button @click="handleSubmit">发表</button>
+      <textarea v-model="newComment" placeholder="Write your comment..."></textarea>
+      <button @click="handleSubmit">Post</button>
     </div>
   </div>
 </template>
@@ -108,47 +108,47 @@ const props = defineProps({
   meme_id: String,
 });
 
-const comments = reactive([]); // 初始化为空数组
+const comments = reactive([]); // Initialize as empty array
 const newComment = ref('');
-const loading = ref(true); // 加载状态
-const error = ref(null); // 错误信息
+const loading = ref(true); // Loading state
+const error = ref(null); // Error message
 
 const replyTarget = ref(null);
 const router = useRouter();
 
 import { useAuthStore } from '@/stores/auth';
 const authStore = useAuthStore();
-const server_ip = authStore.server_ip // 后端服务器地址
+const server_ip = authStore.server_ip // Backend server address
 const user_token = authStore.user_token // user token
 
-const commentListRef = ref(null); // 定义 ref
+const commentListRef = ref(null); // Define ref
 
-// 默认按时间排序
+// Default sort by time
 const sortMode = ref('time');
 
 const setSort = (mode) => {
   if (sortMode.value !== mode) {
-    sortMode.value = mode;     // 更新 UI
-    fetchComments();           // 重新加载
+    sortMode.value = mode;     // Update UI
+    fetchComments();           // Reload
   }
 };
 
-// 获取引用评论的用户名
+// Get referenced comment's username
 const getReplyComment = (reference) => {
   // console.log("reference: ", reference);
   const replyComment = comments.find((c) => c._id === reference);
-  // console.log("replyComment: ", replyComment || { user: {username: '未知用户'}, content: '' });
-  // return replyComment || { user: {username: '未知用户'}, content: '' }; // 如果找不到引用的评论，返回默认值
-  return replyComment || { user: {username: '未知用户'}, content: '' };
+  // console.log("replyComment: ", replyComment || { user: {username: 'Unknown User'}, content: '' });
+  // return replyComment || { user: {username: 'Unknown User'}, content: '' }; // If referenced comment not found, return default value
+  return replyComment || { user: {username: 'Unknown User'}, content: '' };
 };
 
 const commentRefs = reactive({});
 const scrollToComment = async (id) => {
-  await nextTick(); // 确保 DOM 已更新
+  await nextTick(); // Ensure DOM is updated
 
   const el = commentRefs[id];
   if (el && commentListRef.value) {
-    // 让该评论滚动到可视区域
+    // Scroll the comment into view
     el.scrollIntoView({
       behavior: "smooth",
       block: "center"
@@ -156,12 +156,12 @@ const scrollToComment = async (id) => {
   }
 };
 
-// 点赞 / 取消点赞
+// Like / Unlike
 const toggleLike = async (comment) => {
   const oldLiked = comment.userinfo.is_liked;
   const oldLikes = comment.likes;
 
-  // 乐观更新
+  // Optimistic update
   comment.userinfo.is_liked = !comment.userinfo.is_liked;
   comment.likes += comment.userinfo.is_liked ? 1 : -1;
 
@@ -177,24 +177,24 @@ const toggleLike = async (comment) => {
     const data = await response.json();
 
     if (!response.ok) {
-      // 撤回
+      // Rollback
       comment.userinfo.is_liked = oldLiked;
       comment.likes = oldLikes;
-      alert(data.message || '点赞失败');
+      alert(data.message || 'Like failed');
       return;
     }
 
   } catch (err) {
-    console.error('点赞失败:', err);
+    console.error('Like failed:', err);
     comment.userinfo.is_liked = oldLiked;
     comment.likes = oldLikes;
-    alert('网络错误，稍后重试');
+    alert('Network error, please try again later');
   }
   // console.log("comment.is_liked: ", comment.is_liked)
   // console.log("comment.likes: ", comment.likes)
 };
 
-// 跳转到用户个人主页
+// Navigate to user profile page
 const goToProfile = (userId) => {
   console.log("userId: ", userId)
   router.push(`/profile/${userId}`);
@@ -346,7 +346,7 @@ const fetchComments = async () => {
     commentData.comments.forEach(c => {
       c.reference = refMap[c._id] ?? null;
     });
-    
+
     comments.splice(0, comments.length, ...commentData.comments); // 更新评论数据
     // console.log('评论数据:', commentData.comments);
   } catch (err) {
@@ -578,7 +578,7 @@ watch(() => props.meme_id, fetchComments);
   font-size: 13px;
   cursor: pointer;
   /* transform: translateX(-10px);  */
-  transform: translateY(-2px); 
+  transform: translateY(-2px);
 }
 
 .sort-toggle span {

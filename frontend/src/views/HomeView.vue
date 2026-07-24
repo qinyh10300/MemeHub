@@ -2,24 +2,35 @@
 import Search from '../components/Search.vue'
 import FeaturedProjects from '../components/FeaturedProject.vue'
 import SmartRecommend from '../components/home/SmartRecommend.vue'
+import DexHomeView from '../dex_frontend/src/views/HomeView.vue'
+import DexFrontierBar from '../dex_frontend/src/components/FrontierBar.vue'
+import DexWallet from '../dex_frontend/src/components/Wallet.vue'
 </script>
 
 <template>
   <main>
     <header class="content-header">
-      <h1 class="fancy-title">欢迎来到MemeHub🤗🤗🤗</h1>
-      <p class="fancy-subtitle">进行愉快的模因创作和模因币交易吧！</p>
+      <h1 class="fancy-title">Welcome to MemeHub 🤗🤗🤗</h1>
+      <p class="fancy-subtitle">Create memes and trade meme coins with ease!</p>
     </header>
-      <div class="search-wrapper">
+      <!-- <div class="search-wrapper">
         <Search />
-      </div>
-      <div class="recommend-section">
+      </div> -->
+      <!-- <div class="recommend-section">
         <SmartRecommend />
-      </div>
-      <div class="content-card">
+      </div> -->
+      <!-- <div class="content-card">
         <FeaturedProjects />
-      </div>
+      </div> -->
   </main>
+  <section class="dex-embed">
+    <!-- <DexFrontierBar> -->
+      <!-- <div class="dex-top-actions">
+        <DexWallet />
+      </div> -->
+    <!-- </DexFrontierBar> -->
+    <DexHomeView />
+  </section>
 </template>
 
 <style scoped>
@@ -57,7 +68,7 @@ import SmartRecommend from '../components/home/SmartRecommend.vue'
 
 .content-card {
   width: 1250px;
-  margin: 0 auto;    
+  margin: 0 auto;
   box-sizing: border-box;
   background-color: #000000;
   color: white;
@@ -92,5 +103,23 @@ import SmartRecommend from '../components/home/SmartRecommend.vue'
   font-family: 'Arial', sans-serif; /* 改为无衬线字体 */
   font-style: italic; /* 添加斜体 */
   margin-top: 5px;
+}
+
+.dex-embed {
+  width: 100%;
+  max-width: 1280px;
+  /* margin: 32px auto 0; */
+  padding: 0px 16px 40px;
+  background: #070b10;
+  color: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  position: relative;
+}
+
+.dex-top-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 </style>

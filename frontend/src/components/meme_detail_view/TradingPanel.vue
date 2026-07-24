@@ -1,48 +1,48 @@
 <template>
   <div class="trading-panel">
-    <!-- 交易类型选择 -->
+    <!-- Trade type selection -->
     <div class="trade-tabs">
       <button
         :class="['tab-btn', { active: tradeType === 'buy' }]"
         @click="tradeType = 'buy'"
       >
-        买入
+        Buy
       </button>
       <button
         :class="['tab-btn', { active: tradeType === 'sell' }]"
         @click="tradeType = 'sell'"
       >
-        卖出
+        Sell
       </button>
     </div>
 
-    <!-- 订单类型选择 -->
+    <!-- Order type selection -->
     <div class="order-type-selector">
       <button
         :class="['order-type-btn', { active: orderType === 'market' }]"
         @click="orderType = 'market'"
       >
-        市价单
+        Market Order
       </button>
       <button
         :class="['order-type-btn', { active: orderType === 'limit' }]"
         @click="orderType = 'limit'"
       >
-        限价单
+        Limit Order
       </button>
     </div>
 
-    <!-- 当前价格显示 -->
+    <!-- Current price display -->
     <div class="current-price">
-      <span class="price-label">当前价格</span>
+      <span class="price-label">Current Price</span>
       <span class="price-value">${{ currentPrice.toFixed(6) }}</span>
     </div>
 
-    <!-- 交易表单 -->
+    <!-- Trading form -->
     <div class="trade-form">
-      <!-- 价格输入 (仅限价单显示) -->
+      <!-- Price input (limit orders only) -->
       <div v-if="orderType === 'limit'" class="form-group">
-        <label class="form-label">期望价格</label>
+        <label class="form-label">Expected Price</label>
         <div class="input-group">
           <span class="input-prefix">$</span>
           <input
@@ -54,31 +54,31 @@
           />
         </div>
         <p class="form-hint">
-          {{ tradeType === 'buy' ? '当市价 ≤ 此价格时自动买入' : '当市价 ≥ 此价格时自动卖出' }}
+          {{ tradeType === 'buy' ? 'Auto buy when market price ≤ this price' : 'Auto sell when market price ≥ this price' }}
         </p>
       </div>
 
-      <!-- 数量输入 -->
+      <!-- Amount input -->
       <div class="form-group">
-        <label class="form-label">数量</label>
+        <label class="form-label">Amount</label>
         <div class="input-group">
           <input
             v-model.number="amount"
             type="number"
             step="0.0001"
             min="0.0001"
-            placeholder="输入数量"
+            placeholder="Enter amount"
             class="form-input"
           />
           <span class="input-suffix">{{ tokenSymbol }}</span>
         </div>
       </div>
 
-      <!-- 预估总额 -->
+      <!-- Estimated total -->
       <div class="form-group">
         <label class="form-label">
-          {{ orderType === 'market' ? '预估总额' : '总额' }}
-          <span v-if="orderType === 'market'" class="hint">(含手续费)</span>
+          {{ orderType === 'market' ? 'Est. Total' : 'Total' }}
+          <span v-if="orderType === 'market'" class="hint">(incl. fees)</span>
         </label>
         <div class="input-group">
           <span class="input-prefix">$</span>
@@ -90,13 +90,13 @@
           />
         </div>
         <p class="quote-hint">
-          <span v-if="quoteLoading">根据池子实时计算中...</span>
+          <span v-if="quoteLoading">Calculating from pool...</span>
           <!-- <span v-else-if="quoteError" class="error-text">{{ quoteError }}</span> -->
-          <span v-else>以恒定乘积分布估算，实际下单时可能有滑点</span>
+          <span v-else>Estimated using constant product formula, actual order may have slippage</span>
         </p>
       </div>
 
-      <!-- 快速选择按钮 -->
+      <!-- Quick select buttons -->
       <!-- <div class="quick-select">
         <button
           v-for="percent in [25, 50, 75, 100]"
@@ -108,19 +108,19 @@
         </button>
       </div> -->
 
-      <!-- 可用余额显示 -->
+      <!-- Available balance display -->
       <div class="balance-info">
         <div class="balance-item">
-          <span class="balance-label">可用余额</span>
+          <span class="balance-label">Available Balance</span>
           <span class="balance-value">${{ availableBalance.toFixed(2) }} USDT</span>
         </div>
         <div class="balance-item">
-          <span class="balance-label">持有代币</span>
+          <span class="balance-label">Token Holdings</span>
           <span class="balance-value">{{ availableToken.toFixed(0) }} {{ tokenSymbol }}</span>
         </div>
       </div>
 
-      <!-- 交易按钮 -->
+      <!-- Trade button -->
       <button
         :class="['trade-btn', tradeType]"
         @click="executeTrade"
@@ -128,11 +128,11 @@
       >
         <span v-if="isLoading" class="loading-spinner"></span>
         <span v-else>
-          {{ orderType === 'limit' ? '预约' : '' }}{{ tradeType === 'buy' ? '买入' : '卖出' }} {{ tokenSymbol }}
+          {{ orderType === 'limit' ? 'Reserve' : '' }}{{ tradeType === 'buy' ? 'Buy' : 'Sell' }} {{ tokenSymbol }}
         </span>
       </button>
 
-      <!-- 交易提示 -->
+      <!-- Trade notification -->
       <div v-if="errorMessage" class="error-message">
         {{ errorMessage }}
       </div>
@@ -141,44 +141,44 @@
       </div>
     </div>
 
-    <!-- 我的挂单 -->
+    <!-- My pending orders -->
     <div v-if="myOrders.length > 0" class="my-orders">
-      <h3 class="section-title">我的挂单</h3>
+      <h3 class="section-title">My Pending Orders</h3>
       <div class="order-list">
         <div v-for="order in myOrders" :key="order._id" class="order-item">
           <div class="order-info">
             <span :class="['order-type', order.side.toLowerCase()]">
-              {{ order.side === 'BUY' ? '买入' : '卖出' }}
+              {{ order.side === 'BUY' ? 'Buy' : 'Sell' }}
             </span>
             <span class="order-amount">{{ order.amount }} {{ tokenSymbol }}</span>
             <span class="order-price">@ ${{ order.expectedPrice.toFixed(6) }}</span>
           </div>
           <div class="order-actions">
             <span class="order-status">{{ orderStatusText(order.status) }}</span>
-            <button 
-              v-if="order.status === 'pending'" 
+            <button
+              v-if="order.status === 'pending'"
               class="cancel-btn"
               @click="cancelOrder(order._id)"
               :disabled="cancellingOrder === order._id"
             >
-              {{ cancellingOrder === order._id ? '取消中...' : '取消' }}
+              {{ cancellingOrder === order._id ? 'Cancelling...' : 'Cancel' }}
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 最近交易记录 -->
+    <!-- Recent trade history -->
     <!-- <div class="recent-trades">
-      <h3 class="section-title">交易历史</h3>
+      <h3 class="section-title">Trade History</h3>
       <div class="trade-history">
         <div v-if="priceHistory.length === 0" class="empty-history">
-          暂无交易记录
+          No trade records yet
         </div>
         <div v-for="(trade, index) in priceHistory.slice(0, 8)" :key="index" class="trade-item">
           <div class="trade-info">
             <span :class="['trade-type', trade.side?.toLowerCase()]">
-              {{ trade.side === 'BUY' ? '买入' : '卖出' }}
+              {{ trade.side === 'BUY' ? 'Buy' : 'Sell' }}
             </span>
             <span class="trade-amount">{{ trade.amount }} {{ tokenSymbol }}</span>
           </div>
@@ -215,13 +215,13 @@ const authStore = useAuthStore();
 const server_ip = authStore.server_ip;
 const memeId = computed(() => props.memeId || route.params.id);
 
-// 交易表单状态
+// Trading form state
 const tradeType = ref('buy'); // 'buy' | 'sell'
 const orderType = ref('market'); // 'market' | 'limit'
 const price = ref(0);
 const amount = ref(0);
-const availableBalance = ref(0); // USDT 余额
-const availableToken = ref(0); // 代币余额
+const availableBalance = ref(0); // USDT balance
+const availableToken = ref(0); // Token balance
 const tokenSymbol = ref('MEME');
 const currentPrice = ref(0.0001);
 const errorMessage = ref('');
@@ -234,11 +234,11 @@ const quoteError = ref('');
 let quoteTimer = null;
 let quoteRequestId = 0;
 
-// 交易历史和挂单
+// Trade history and pending orders
 const priceHistory = ref([]);
 const myOrders = ref([]);
 
-// 获取 token
+// Get token
 function getToken() {
   return authStore.username || authStore.token;
 }
@@ -469,7 +469,7 @@ const executeTrade = async () => {
 
     if (orderType.value === 'market') {
       // 市价单
-      endpoint = tradeType.value === 'buy' 
+      endpoint = tradeType.value === 'buy'
         ? `${server_ip}/api/meme/${memeId.value}/token/buy`
         : `${server_ip}/api/meme/${memeId.value}/token/sell`;
       body = { amount: Number(amount.value) };
@@ -478,7 +478,7 @@ const executeTrade = async () => {
       endpoint = tradeType.value === 'buy'
         ? `${server_ip}/api/meme/${memeId.value}/token/buy-reservation`
         : `${server_ip}/api/meme/${memeId.value}/token/sell-reservation`;
-      body = { 
+      body = {
         amount: Number(amount.value),
         expectedPrice: price.value
       };

@@ -4,13 +4,13 @@
       <div class="login-container">
         <button class="close-button" @click="closeModal">×</button>
 
-        <!-- 登录表单 -->
+        <!-- Login Form -->
         <div class="form-header">
-          <h2>退出登录</h2>
-          <p>您确认要退出当前的登录账号吗？</p>
+          <h2>Logout</h2>
+          <p>Are you sure you want to logout from your current account?</p>
         </div>
-        
-        <button class="submit-btn" @click="logout">确认</button>
+
+        <button class="submit-btn" @click="logout">Confirm</button>
       </div>
     </div>
   </div>
@@ -25,23 +25,23 @@ const router = useRouter();
 
 const emit = defineEmits(['close']);
 
-// 关闭弹窗
+// Close modal
 const closeModal = () => emit('close');
 
-// 手动退出登录
+// Manual logout
 const logout = () => {
-  authStore.clearAuth(); // 清除 Pinia 中的登录状态
-  localStorage.removeItem('auth_token'); // 清除本地存储的 token
+  authStore.clearAuth(); // Clear login state in Pinia
+  localStorage.removeItem('auth_token'); // Clear token from local storage
   localStorage.removeItem('auth_username');
   localStorage.removeItem('login_time');
-  alert('已退出登录');
+  alert('Logged out successfully');
   emit('close');
-  router.push('/'); // 跳转到首页或登录页
+  router.push('/'); // Redirect to homepage or login page
 };
 </script>
 
 <style scoped>
-/* 背景遮罩 */
+/* Background overlay */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -53,7 +53,7 @@ const logout = () => {
   z-index: 2000;
 }
 
-/* 模态框容器 */
+/* Modal container */
 .modal-container {
   animation: fadeIn 0.35s ease;
   transform: scale(1);
@@ -63,21 +63,21 @@ const logout = () => {
 .login-container {
   width: 400px;
   background: linear-gradient(180deg, #0f0f0f 0%, #1a1a1a 100%);
-  /* 深黑渐变 */
+  /* Deep black gradient */
   border-radius: 20px;
   padding: 40px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
   border: 1px solid rgba(0, 255, 0, 0.4);
-  /* 绿色边框 */
+  /* Green border */
   color: #00ff00;
-  /* 默认字体绿色 */
+  /* Default green font */
   font-family: 'Arial', sans-serif;
-  /* 可换成你喜欢的字体 */
+  /* Can change to your preferred font */
   border: 1px solid rgba(255, 255, 255, 0.5);
-  /* 白色半透明边框 */
+  /* White semi-transparent border */
 }
 
-/* ✨ 右上角关闭按钮 */
+/* ✨ Top-right close button */
 .close-button {
   position: absolute;
   top: 16px;
@@ -97,7 +97,7 @@ const logout = () => {
   transform: rotate(90deg);
 }
 
-/* 标题 */
+/* Title */
 .form-header {
   text-align: center;
   margin-bottom: 40px;
@@ -115,7 +115,7 @@ const logout = () => {
   font-size: 16px;
 }
 
-/* 表单输入 */
+/* Form input */
 .floating-form .input-group {
   position: relative;
   margin-bottom: 30px;
@@ -158,7 +158,7 @@ const logout = () => {
   color: #aceab5;
 }
 
-/* 提交按钮 */
+/* Submit button */
 .submit-btn {
   width: 100%;
   padding: 15px;
@@ -181,7 +181,7 @@ const logout = () => {
   box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
 }
 
-/* 箭头图标 */
+/* Arrow icon */
 .arrow-icon {
   border: solid white;
   border-width: 0 2px 2px 0;
@@ -190,7 +190,7 @@ const logout = () => {
   transform: rotate(-45deg);
 }
 
-/* 底部链接 */
+/* Footer links */
 .form-footer {
   text-align: center;
   margin-top: 20px;
@@ -208,16 +208,16 @@ const logout = () => {
   text-decoration: underline;
 }
 
-/* 错误提示 */
+/* Error message */
 .error-message {
-  position: absolute; /* 绝对定位，脱离文档流 */
-  bottom: 10px; /* 错误提示固定在容器底部 */
-  left: 50%; /* 水平居中 */
-  transform: translateX(-50%); /* 修正水平居中偏移 */
-  color: #f56c6c; /* 错误提示颜色 */
-  font-size: 14px; /* 字体大小 */
-  text-align: center; /* 居中对齐 */
-  white-space: nowrap; /* 防止文字换行 */
+  position: absolute; /* Absolute positioning, removed from document flow */
+  bottom: 10px; /* Error message fixed at container bottom */
+  left: 50%; /* Horizontal center */
+  transform: translateX(-50%); /* Correct horizontal center offset */
+  color: #f56c6c; /* Error message color */
+  font-size: 14px; /* Font size */
+  text-align: center; /* Center alignment */
+  white-space: nowrap; /* Prevent text wrapping */
 }
 
 .error-message1 {
@@ -229,11 +229,11 @@ const logout = () => {
   font-size: 17px;
   text-align: center;
   white-space: nowrap;
-  animation: shake 0.3s ease-in-out; /* 震动动画持续 0.3 秒 */
+  animation: shake 0.3s ease-in-out; /* Shake animation lasts 0.3 seconds */
 }
 
 .error-message.shake {
-  animation: shake 0.3s ease-in-out; /* 震动动画持续 0.3 秒 */
+  animation: shake 0.3s ease-in-out; /* Shake animation lasts 0.3 seconds */
 }
 
 @keyframes shake {
@@ -251,7 +251,7 @@ const logout = () => {
   }
 }
 
-/* 动画 */
+/* Animation */
 @keyframes fadeIn {
   from {
     opacity: 0;

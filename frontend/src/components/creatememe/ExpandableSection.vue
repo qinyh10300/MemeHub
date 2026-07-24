@@ -3,7 +3,7 @@
         <button class="header" @click="toggle">
             <span class="icon">🔗</span>
             <span class="title">{{ title }}</span>
-            <span class="optional">（可选）</span>
+            <span class="optional">(Optional)</span>
             <span class="arrow">{{ isOpen ? '▴' : '▾' }}</span>
         </button>
         <transition name="fade">

@@ -2,17 +2,17 @@
   <div class="modal-overlay">
     <div class="modal-container">
       <div class="login-container">
-        <!-- 关闭按钮 -->
+        <!-- Close button -->
         <button class="close-button" @click="$emit('close')">×</button>
 
         <div class="form-header">
-          <h2>编辑资料</h2>
-          <p>修改您的昵称和个人简介</p>
+          <h2>Edit Profile</h2>
+          <p>Modify your nickname and bio</p>
         </div>
 
-        <!-- 编辑表单 -->
+        <!-- Edit form -->
         <form @submit.prevent="handleSave" class="floating-form">
-          <!-- 昵称 -->
+          <!-- Nickname -->
           <div class="input-group">
             <input
               id="editNickname"
@@ -20,36 +20,36 @@
               v-model="form.nickname"
               required
             />
-            <label for="editNickname" :class="{ 'label-up': form.nickname }">昵称</label>
+            <label for="editNickname" :class="{ 'label-up': form.nickname }">Nickname</label>
           </div>
 
-          <!-- 个人简介 -->
+          <!-- Bio -->
           <div class="input-group textarea-group">
             <textarea
               id="editBio"
               v-model="form.bio"
               rows="4"
             ></textarea>
-            <label for="editBio" :class="{ 'label-up': form.bio }">个人简介（可选，最多200字）</label>
+            <label for="editBio" :class="{ 'label-up': form.bio }">Bio (optional, max 200 characters)</label>
           </div>
 
-          <!-- 邮箱 -->
+          <!-- Email -->
           <div class="input-group">
             <input
               id="editEmail"
               type="email"
               v-model="form.email"
-              placeholder="邮箱（用于邮件通知，可选）"
+              placeholder="Email (for notifications, optional)"
             />
-            <label for="editEmail" :class="{ 'label-up': form.email }">邮箱（可选，用于邮件通知）</label>
+            <label for="editEmail" :class="{ 'label-up': form.email }">Email (optional, for notifications)</label>
           </div>
 
           <button type="submit" class="submit-btn" :disabled="saving">
-            {{ saving ? '保存中...' : '保存' }}
+            {{ saving ? 'Saving...' : 'Save' }}
           </button>
         </form>
 
-        <!-- 错误提示 -->
+        <!-- Error message -->
         <div class="error-message1" v-if="errorMsg">
           {{ errorMsg }}
         </div>
@@ -62,7 +62,7 @@
 import { reactive, ref, watch, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 
-// 接收父组件传递的初始值
+// Receive initial values from parent component
 const props = defineProps({
   nickname: String,
   bio: String,
@@ -72,59 +72,59 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save']);
 
 const authStore = useAuthStore();
-const server_ip = authStore.server_ip // 后端服务器地址
+const server_ip = authStore.server_ip // Backend server address
 const user_token = authStore.user_token // user token
 
 const errorMsg = ref('');
 const saving = ref(false);
 
-// 表单数据（使用reactive以便修改）
+// Form data (use reactive for modification)
 const form = reactive({
   nickname: props.nickname || '',
   bio: props.bio || '',
   email: props.email || '',
 });
 
-// 监听props变化，更新表单数据
+// Watch props changes, update form data
 watch(() => [props.nickname, props.bio, props.email], ([newNickname, newBio, newEmail]) => {
   form.nickname = newNickname || '';
   form.bio = newBio || '';
   form.email = newEmail || '';
 }, { immediate: true });
 
-// 验证正则
-const nicknameRegex = /^[\u4e00-\u9fa5\w]{3,10}$/; // 汉字、英文、数字、下划线，3-10个字符
-const bioRegex = /^[\s\S]{0,200}$/; // 允许所有字符（包括换行、空格、标点等），0-200个字符
+// Validation regex
+const nicknameRegex = /^[\u4e00-\u9fa5\w]{3,10}$/; // Chinese, English, numbers, underscore, 3-10 characters
+const bioRegex = /^[\s\S]{0,200}$/; // Allow all characters (including newlines, spaces, punctuation), 0-200 characters
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// 实时清空错误提示
+// Clear error message in real-time
 watch(() => [form.nickname, form.bio, form.email], () => {
   errorMsg.value = '';
 });
 
-// 保存
+// Save
 const handleSave = async () => {
-  // 验证昵称
+  // Validate nickname
   if (!nicknameRegex.test(form.nickname)) {
-    errorMsg.value = '昵称必须为3-10个字符，只能包含汉字、英文、数字或下划线';
+    errorMsg.value = 'Nickname must be 3-10 characters, only Chinese, English, numbers or underscores allowed';
     return;
   }
 
-  // 验证个人简介
+  // Validate bio
   if (!bioRegex.test(form.bio)) {
-    errorMsg.value = '个人简介不能超过200个字符';
+    errorMsg.value = 'Bio cannot exceed 200 characters';
     return;
   }
-  
-  // 验证邮箱（可选）
+
+  // Validate email (optional)
   if (form.email && !emailRegex.test(form.email)) {
-    errorMsg.value = '邮箱格式不正确';
+    errorMsg.value = 'Invalid email format';
     return;
   }
-  
-  // 检查是否只包含空白字符（如果用户只输入空格或换行）
+
+  // Check if only whitespace characters (if user only enters spaces or newlines)
   if (form.bio && form.bio.trim().length === 0) {
-    errorMsg.value = '个人简介不能只包含空格';
+    errorMsg.value = 'Bio cannot contain only spaces';
     return;
   }
 
@@ -149,21 +149,21 @@ const handleSave = async () => {
     const result = await response.json();
 
     if (response.ok && result.code === 0) {
-      // 保存成功，将更新后的数据传递给父组件
+      // Save successful, pass updated data to parent component
       emit('save', {
         nickname: result.nickname || form.nickname,
         bio: result.bio || form.bio,
         email: result.email ?? form.email,
       });
-      // 关闭弹窗
+      // Close modal
       emit('close');
     } else {
-      // 保存失败，显示错误信息
-      errorMsg.value = result.message || '保存失败，请稍后重试';
+      // Save failed, display error message
+      errorMsg.value = result.message || 'Save failed, please try again later';
     }
   } catch (err) {
-    console.error('保存用户信息时发生错误:', err);
-    errorMsg.value = '网络错误，请稍后重试';
+    console.error('Error saving user info:', err);
+    errorMsg.value = 'Network error, please try again later';
   } finally {
     saving.value = false;
   }
@@ -171,7 +171,7 @@ const handleSave = async () => {
 </script>
 
 <style scoped>
-/* 背景遮罩 */
+/* Background overlay */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -183,7 +183,7 @@ const handleSave = async () => {
   z-index: 2000;
 }
 
-/* 模态框容器 */
+/* Modal container */
 .modal-container {
   animation: fadeIn 0.35s ease;
   transform: scale(1);
@@ -193,7 +193,7 @@ const handleSave = async () => {
 .login-container {
   width: 500px;
   background: linear-gradient(180deg, #0f0f0f 0%, #1a1a1a 100%);
-  /* 深黑渐变 */
+  /* Deep black gradient */
   border-radius: 20px;
   padding: 40px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);

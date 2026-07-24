@@ -1,8 +1,8 @@
 <template>
   <div class="discover-page">
     <header class="page-header">
-      <h1 class="title">🔍 发现</h1>
-      <p class="subtitle">探索模因世界，发现投资机会</p>
+      <h1 class="title">🔍 Discover</h1>
+      <p class="subtitle">Explore the meme world and find opportunities</p>
     </header>
 
     <!-- 功能导航 -->
@@ -63,10 +63,10 @@ const authStore = useAuthStore()
 const activeTab = ref('leaderboard')
 
 const tabs = [
-  { id: 'leaderboard', label: '排行榜', icon: '🏆' },
-  { id: 'compare', label: '对比分析', icon: '📊' },
-  { id: 'voting', label: '社区投票', icon: '🗳️' },
-  { id: 'alert', label: '价格预警', icon: '🔔', requiresAuth: true }
+  { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
+  { id: 'compare', label: 'Comparisons', icon: '📊' },
+  { id: 'voting', label: 'Community Voting', icon: '🗳️' },
+  { id: 'alert', label: 'Price Alerts', icon: '🔔', requiresAuth: true }
 ]
 
 // 根据路由参数设置初始标签
@@ -173,7 +173,7 @@ watch(activeTab, (newTab) => {
   .feature-nav {
     flex-wrap: wrap;
   }
-  
+
   .feature-btn {
     flex: 1;
     min-width: 120px;

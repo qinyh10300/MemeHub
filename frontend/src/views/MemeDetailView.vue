@@ -8,9 +8,9 @@
           <KlineChart v-if="meme.id" :meme-id="meme.id" />
         </div>
         <div v-else class="no-token-card">
-          <p class="title">尚未开启行情</p>
-          <p>该模因目前仅发布图文内容，还没有发行代币，因此无法展示 K 线图、MA、VOL、MACD、RSI 等指标。</p>
-          <p class="hint">当作者发布代币后，此处会自动显示完整行情面板。</p>
+          <p class="title">Market Data Not Available</p>
+          <p>This meme currently has only post content and no token issued, so price charts and indicators (K-line, MA, VOL, MACD, RSI) are unavailable.</p>
+          <p class="hint">Once the author issues a token, the full market panel will appear here automatically.</p>
         </div>
         <!-- <div class="orderbook-section">
           <OrderBook @orderSelected="handleOrderSelected" />
@@ -24,8 +24,8 @@
     <div class="right-side">
       <TradingPanel v-if="meme.withToken" :selectedOrder="selectedOrder" :memeId="meme.id" />
       <div v-else class="no-token-panel">
-        <h3>交易功能未开启</h3>
-        <p>作者尚未为该模因创建代币，暂无法下单交易或查看订单簿。</p>
+        <h3>Trading Not Enabled</h3>
+        <p>The author has not created a token for this meme yet, so trading and the order book are unavailable.</p>
       </div>
     </div>
     </div>
@@ -99,7 +99,7 @@ const fetchMemeData = async () => {
       meme.title = result.title
       meme.code = result.ticker
       meme.author = result.author
-      meme.desc = result.description || '暂无描述'
+      meme.desc = result.description || 'No description'
       meme.time = new Date(result.createdAt).toLocaleString()
       meme.likes = result.likes
       meme.favorites = result.favorites
@@ -136,7 +136,7 @@ min-height: 100vh;
 background: var(--bg);
 color: var(--fg);
 font-family: Inter, system-ui, Arial;
-overflow-y: auto;  
+overflow-y: auto;
 }
 
 .container {

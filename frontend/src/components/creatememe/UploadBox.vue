@@ -13,8 +13,8 @@
         @dragleave="onDragLeave"
       >
         <div class="icon" aria-hidden="true">🖼️</div>
-        <div class="title">选择要上传的视频或图片</div>
-        <div class="sub">或将其拖放到此处</div>
+        <div class="title">Select video or image to upload</div>
+        <div class="sub">or drag and drop it here</div>
 
         <input
           ref="fileInput"
@@ -27,7 +27,7 @@
         />
 
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <label class="login" style="cursor:pointer;">选择文件</label>
+          <label class="login" style="cursor:pointer;">Select File</label>
         </div>
       </div>
     </div>
@@ -42,12 +42,12 @@ const previewFile = ref(null)
 const fileInput = ref(null)
 const isDragging = ref(false)
 
-// 触发文件选择
+// Trigger file selection
 function triggerInput() {
   fileInput.value?.click()
 }
 
-// 拖拽相关事件
+// Drag-related events
 function onDragOver(e) {
   e.preventDefault()
   isDragging.value = true
@@ -72,8 +72,8 @@ async function onFileChange(e) {
   emit('file-change', file)
 }
 
-// -------------------- 文件处理 --------------------
-// TODO: 处理过程对吗
+// -------------------- File Processing --------------------
+// TODO: Is the processing correct?
 async function handleFile(file) {
   let processedBlob
   if (file.type.startsWith('video/')) {
@@ -81,7 +81,7 @@ async function handleFile(file) {
   } else if (file.type.startsWith('image/')) {
     processedBlob = await processImage(file)
   } else {
-    alert('不支持的文件类型')
+    alert('Unsupported file type')
     return
   }
   const reader = new FileReader()
@@ -93,7 +93,7 @@ async function handleFile(file) {
   emit('file-change', processedBlob)
 }
 
-// 图片裁剪 1:1 并至少 1000×1000
+// Image crop to 1:1 and at least 1000×1000
 async function processImage(file) {
   const img = await createImageBitmap(file)
   const canvas = document.createElement('canvas')
@@ -108,7 +108,7 @@ async function processImage(file) {
   return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
 }
 
-// 视频转 GIF (首帧示例，可扩展库处理多帧)
+// Video to GIF (first frame example, can extend with library for multiple frames)
 async function videoToGif(file) {
   const video = document.createElement('video')
   video.src = URL.createObjectURL(file)
@@ -129,7 +129,7 @@ async function videoToGif(file) {
 </script>
 
 <style scoped>
-/* 页面占满全屏 */
+/* Fullscreen layout */
 .upload-card{
   padding: 18px;
   width: 100%;
@@ -146,12 +146,12 @@ async function videoToGif(file) {
   border-radius:12px;
   /* max-width: 600px; */
   padding: 18px;
-  max-height: 80vh;        /* 避免超过屏幕高度 */
-  overflow-y: auto;        /* 可滚动 */
+  max-height: 80vh;        /* Avoid exceeding screen height */
+  overflow-y: auto;        /* Scrollable */
   border: 2px dashed rgba(255, 255, 255, 0.15);
 }
 
-/* drop-area 默认样式 */
+/* drop-area default style */
 .drop-area{
   border:2px dashed rgba(255,255,255,0.04);
   border-radius:10px;
@@ -172,7 +172,7 @@ async function videoToGif(file) {
   pointer-events: auto;
 }
 
-/* 拖拽炫酷动画 */
+/* Drag animation effects */
 .drop-area.drag-over {
   animation: pulse-border 1.2s infinite alternate;
   border-color: var(--my-c-button);
@@ -186,7 +186,7 @@ async function videoToGif(file) {
   100% { box-shadow: 0 0 10px rgba(255,255,255,0.2); }
 }
 
-/* 图标动画 */
+/* Icon animation */
 .drop-area.drag-over .icon {
   animation: pop-icon 0.6s ease-in-out infinite alternate;
 }

@@ -1,10 +1,8 @@
-// node example.js 命令来运行javascript代码吗？
-
 import fs from 'fs';
 import path from 'path';
 
 // ====== 配置区 ======
-const API_KEY = 'sk-btigmjrdoudrlhkivnxtvkmaeuwpcyinckkpoqunsjyvaqxn'; // ← 换成你的
+const API_KEY = process.env.STICKER_API_KEY;
 const OUTPUT_DIR = 'testGen/outputs';
 const OUTPUT_NAME = 'result.png';
 
@@ -13,6 +11,10 @@ const API_URL = 'https://api.siliconflow.cn/v1/images/generations';
 
 // ====== 主函数 ======
 async function generateAndSaveImage() {
+  if (!API_KEY) {
+    throw new Error('请先设置 STICKER_API_KEY 环境变量');
+  }
+
   // 1. 调用生成 API
   const res = await fetch(API_URL, {
     method: 'POST',
@@ -22,12 +24,7 @@ async function generateAndSaveImage() {
     },
     body: JSON.stringify({
       model: 'Kwai-Kolors/Kolors',
-      prompt:
-<<<<<<< HEAD
-        '梅西',
-=======
-        'cute sticker of a shiba inu wearing sunglasses and holding a bubble tea, bright cartoon style, clean outlines, transparent background, high contrast, fun and playful',
->>>>>>> origin/ztl
+      prompt: 'cute sticker of a shiba inu wearing sunglasses and holding bubble tea',
       image_size: '1024x1024',
       batch_size: 1,
       num_inference_steps: 20,

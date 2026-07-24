@@ -15,7 +15,7 @@ export const getUserProfile = async (req, res) => {
   try {
     const { username } = req.params;
     const token = req.headers.token || req.headers.authorization?.replace('Bearer ', '');
-    
+
     // 获取当前登录用户（如果有）
     let currentUser = null;
     if (token) {
@@ -24,14 +24,14 @@ export const getUserProfile = async (req, res) => {
     } else {
       console.log('未提供token');
     }
-    
+
     // 支持通过用户名或用户ID查询
     let user;
     // 先尝试作为用户名查询
     user = await User.findOne({ username })
       .populate('workList', 'title ticker imageUrl description likes status _id')
       .populate('favoriteList', 'title ticker imageUrl description likes status _id');
-    
+
     // 如果用户名查询失败，尝试作为用户ID查询
     if (!user) {
       try {
@@ -42,11 +42,11 @@ export const getUserProfile = async (req, res) => {
         // ID格式无效，忽略错误
       }
     }
-    
+
     if (!user) {
-      return res.status(404).json({ 
-        code: 1002, 
-        message: '用户不存在' 
+      return res.status(404).json({
+        code: 1002,
+        message: '用户不存在'
       });
     }
 
@@ -56,7 +56,7 @@ export const getUserProfile = async (req, res) => {
 
     // 获取服务器基础URL（用于构建完整的图片URL）
     const baseUrl = req.protocol + '://' + req.get('host');
-    
+
     // 格式化我创作的模因数据
     const myMemes = (user.workList || []).map(meme => {
       let imageUrl = meme.imageUrl || `https://i.pravatar.cc/150?img=${meme._id}`;
@@ -90,7 +90,7 @@ export const getUserProfile = async (req, res) => {
       };
     });
 
-    // 我的模因币 
+    // 我的模因币
     const myTokenEntries = user.tokenList || [];
     const tokenIds = myTokenEntries.map(entry => entry.token).filter(id => !!id);
     const tokens = await Token.find({ _id: { $in: tokenIds } })
@@ -137,18 +137,18 @@ export const getUserProfile = async (req, res) => {
     const viewerIsFollowing = currentUser && !isOwnProfile
       ? currentUser.following.some((id) => id.toString() === user._id.toString())
       : false;
-    
+
     // 调试日志
     console.log('获取个人主页 - Token:', token);
     console.log('获取个人主页 - 当前用户:', currentUser?.username, '当前用户ID:', currentUser?._id);
     console.log('获取个人主页 - 目标用户:', user.username, '目标用户ID:', user._id);
     console.log('获取个人主页 - 是否自己的主页:', isOwnProfile);
-    
+
     // 查询关注该用户的用户列表（粉丝）
     // 粉丝数应该总是查询并返回，但粉丝列表只在查看自己主页时返回
     const followersCount = await User.countDocuments({ following: user._id });
     console.log('粉丝总数:', followersCount);
-    
+
     // 只有查看自己的主页时才返回粉丝列表详情
     let followers = [];
     if (isOwnProfile) {
@@ -160,7 +160,7 @@ export const getUserProfile = async (req, res) => {
       // 格式化粉丝数据
       followers = followersList.map(follower => {
         const idStr = follower._id.toString();
-        
+
         // 优先使用用户设置的头像，如果没有则生成默认头像
         let followerAvatar = follower.avatar;
         if (!followerAvatar || followerAvatar.trim() === '') {
@@ -173,7 +173,7 @@ export const getUserProfile = async (req, res) => {
           const imgNum = Math.abs(hash % 70) + 1;
           followerAvatar = `https://i.pravatar.cc/150?img=${imgNum}`;
         }
-        
+
         return {
           id: idStr,
           username: `@${follower.username}`,
@@ -195,7 +195,7 @@ export const getUserProfile = async (req, res) => {
     const followingCount = followingDocs.length;
     const followingPreview = followingDocs.slice(0, 100).map(followedUser => {
       const idStr = followedUser._id.toString();
-      
+
       // 优先使用用户设置的头像，如果没有则生成默认头像
       let followedAvatar = followedUser.avatar;
       if (!followedAvatar || followedAvatar.trim() === '') {
@@ -208,7 +208,7 @@ export const getUserProfile = async (req, res) => {
         const imgNum = Math.abs(hash % 70) + 1;
         followedAvatar = `https://i.pravatar.cc/150?img=${imgNum}`;
       }
-      
+
       return {
         id: idStr,
         username: `@${followedUser.username}`,
@@ -246,12 +246,12 @@ export const getUserProfile = async (req, res) => {
       coins: user.coins || 0, // 用户 USDT 余额
       isFollowing: viewerIsFollowing,
       memesData: {
-        '我创作的模因': myMemes,
-        '我的模因币': myTokens,
-        '我的订单': myOrders,
-        '我的收藏': myFavorites,
-        '粉丝': followers,
-        '关注': followingForDisplay,
+        'Created Memes': myMemes,
+        'My Meme Coins': myTokens,
+        'My Orders': myOrders,
+        'My Favorites': myFavorites,
+        'Followers': followers,
+        'Following': followingForDisplay,
       }
     };
 
@@ -278,21 +278,21 @@ export const followUser = async (req, res) => {
   try {
     const { username: targetUsername } = req.params; // 要关注的目标用户名
     const token = req.headers.token || req.headers.authorization?.replace('Bearer ', '');
-    
+
     if (!token) {
       return res.status(401).json({ code: 1003, message: '未提供认证令牌' });
     }
 
     // 获取当前登录用户（临时使用username作为token）
     let currentUser = await User.findOne({ username: token });
-    
+
     if (!currentUser) {
       return res.status(401).json({ code: 1002, message: '用户不存在或令牌无效' });
     }
 
     // 获取目标用户
     let targetUser = await User.findOne({ username: targetUsername });
-    
+
     if (!targetUser) {
       // 尝试作为用户ID查询
       try {
@@ -322,7 +322,7 @@ export const followUser = async (req, res) => {
       // 取消关注
       currentUser.following.pull(targetUser._id);
       await currentUser.save();
-      
+
       res.status(200).json({
         code: 0,
         message: `已取消关注用户 ${targetUsername}`,
@@ -337,7 +337,7 @@ export const followUser = async (req, res) => {
       // 关注
       currentUser.following.push(targetUser._id);
       await currentUser.save();
-      
+
       res.status(200).json({
         code: 0,
         message: `已关注用户 ${targetUsername}`,
@@ -368,13 +368,13 @@ export const uploadAvatar = async (req, res) => {
     const file = req.file;
     // 尝试多种方式获取 token（FormData 中的字段会在 req.body 中）
     const token = req.headers.token || req.headers.authorization?.replace('Bearer ', '') || req.body?.token;
-    
+
     console.log('上传头像 - 请求头token:', req.headers.token);
     console.log('上传头像 - req.body.token:', req.body?.token);
     console.log('上传头像 - 最终Token:', token);
     console.log('上传头像 - 文件:', file ? { filename: file.filename, size: file.size } : '无文件');
     console.log('上传头像 - req.body:', req.body);
-    
+
     if (!token) {
       if (file) {
         fs.unlink(path.join(file.destination, file.filename), () => {});
@@ -385,7 +385,7 @@ export const uploadAvatar = async (req, res) => {
     // 获取当前登录用户（优先使用 username 作为 token，兼容 JWT）
     let user = await User.findOne({ username: token });
     console.log('上传头像 - 通过username查找用户:', token, '找到:', user?.username);
-    
+
     // 如果 username 方式找不到，尝试 JWT 验证
     if (!user) {
       try {
@@ -397,9 +397,9 @@ export const uploadAvatar = async (req, res) => {
         console.log('上传头像 - JWT验证失败:', jwtError.message);
       }
     }
-    
+
     console.log('上传头像 - 找到的用户:', user ? { username: user.username, _id: user._id } : '未找到');
-    
+
     if (!user) {
       if (file) {
         fs.unlink(path.join(file.destination, file.filename), () => {});

@@ -1,10 +1,7 @@
-import { User } from '../models/user.js'; // 这可以用于验证用户权限等
 import fs from 'fs';
 import path from 'path';
-import fetch from 'node-fetch';
 
 // ====== 配置区 ======
-const API_KEY = 'sk-btigmjrdoudrlhkivnxtvkmaeuwpcyinckkpoqunsjyvaqxn'; // ← 换成你的
 const OUTPUT_DIR = 'memesGen';
 const OUTPUT_NAME = 'result.png';
 
@@ -15,17 +12,22 @@ const API_URL = 'https://api.siliconflow.cn/v1/images/generations';
 export const generateImage = async (req, res) => {
   try {
     const { prompt } = req.body;
+    const apiKey = process.env.STICKER_API_KEY;
 
     // 确保提供了prompt
     if (!prompt || prompt.length === 0) {
       return res.status(400).json({ message: '请输入生成图像的描述（prompt）' });
     }
 
+    if (!apiKey) {
+      return res.status(503).json({ message: '未配置 STICKER_API_KEY' });
+    }
+
     // 调用生成 API
     const apiRes = await fetch(API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({

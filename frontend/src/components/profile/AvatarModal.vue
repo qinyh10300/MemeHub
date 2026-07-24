@@ -5,11 +5,11 @@
         <button class="close-button" @click="closeModal">×</button>
 
         <div class="form-header">
-          <h2>选择头像</h2>
-          <p>从以下头像中选择一个，或上传本地图片</p>
+          <h2>Select Avatar</h2>
+          <p>Choose from the following avatars or upload a local image</p>
         </div>
 
-        <!-- 本地上传头像 -->
+        <!-- Local upload avatar -->
         <div class="upload-section">
           <label class="upload-label">
             <input
@@ -21,13 +21,13 @@
             />
             <div class="upload-button">
               <span class="upload-icon">📷</span>
-              <span>上传本地图片</span>
+              <span>Upload local image</span>
             </div>
           </label>
           <div v-if="uploadedImagePreview" class="uploaded-preview">
-            <img :src="uploadedImagePreview" alt="上传预览" class="preview-image" />
+            <img :src="uploadedImagePreview" alt="Upload preview" class="preview-image" />
             <div class="preview-overlay">
-              <span class="preview-text">已选择</span>
+              <span class="preview-text">Selected</span>
             </div>
           </div>
         </div>
@@ -45,9 +45,9 @@
         </div>
 
         <div class="modal-actions">
-          <button class="cancel-btn" @click="closeModal">取消</button>
+          <button class="cancel-btn" @click="closeModal">Cancel</button>
           <button class="confirm-btn" @click="handleConfirm" :disabled="!selectedAvatar && !uploadedFile">
-            {{ saving ? '保存中...' : '确认' }}
+            {{ saving ? 'Saving...' : 'Confirm' }}
           </button>
         </div>
 
@@ -64,13 +64,13 @@ import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
-  currentAvatar: String, // 当前头像URL
+  currentAvatar: String, // Current avatar URL
 })
 
 const emit = defineEmits(['close', 'save'])
 
 const authStore = useAuthStore();
-const server_ip = authStore.server_ip // 后端服务器地址
+const server_ip = authStore.server_ip // Backend server address
 const user_token = authStore.user_token // user token
 
 const errorMsg = ref('')
@@ -81,7 +81,7 @@ const uploadedImagePreview = ref(null)
 const fileInput = ref(null)
 const isUploadedFile = ref(false)
 
-// 默认头像列表（改为项目内相对路径，本地打包即用）
+// Default avatar list (changed to project-relative paths for local packaging)
 const localAvatarFiles = [
   'avatar1.svg',
   'avatar2.svg',
@@ -160,7 +160,7 @@ const handleConfirm = async () => {
   console.log('确认保存 - selectedAvatar:', selectedAvatar.value)
   console.log('确认保存 - uploadedFile:', uploadedFile.value)
   console.log('确认保存 - isUploadedFile:', isUploadedFile.value)
-  
+
   if (!selectedAvatar.value && !uploadedFile.value) {
     errorMsg.value = '请选择一个头像或上传图片'
     return
@@ -175,12 +175,12 @@ const handleConfirm = async () => {
       console.log('走上传文件逻辑')
       const formData = new FormData()
       formData.append('avatar', uploadedFile.value)
-      
+
       // 获取 token（优先使用 username，因为后端当前使用 username 作为 token）
       const token = authStore.username || authStore.token || ''
       console.log('上传头像 - 前端发送的token:', token)
       console.log('上传头像 - authStore:', { username: authStore.username, token: authStore.token })
-      
+
       // 也将 token 添加到 FormData 中作为备选方案（某些情况下 headers 可能无法正确传递）
       if (token) {
         formData.append('token', token)
@@ -215,7 +215,7 @@ const handleConfirm = async () => {
     } else {
       // 如果是选择默认头像，调用更新接口
       console.log('走默认头像逻辑，选择的头像URL:', selectedAvatar.value)
-      
+
       // 确保 selectedAvatar 是默认头像列表中的一个
       if (!selectedAvatar.value || !defaultAvatars.value.includes(selectedAvatar.value)) {
         // 如果 selectedAvatar 不是默认头像（可能是 base64 预览），尝试从预览中恢复
@@ -228,7 +228,7 @@ const handleConfirm = async () => {
         saving.value = false
         return
       }
-      
+
       const headerToken = authStore.username || authStore.token || authStore.user_token || ''
       if (!headerToken) {
         errorMsg.value = '请先登录后再保存头像'

@@ -15,69 +15,69 @@ const getListenerUser = () => listenerUser.value || 'guest'
 const defaultTasks = [
   {
     id: 'daily-share',
-    title: '分享一个模因',
-    description: '在社区推荐页发布你今日最看好的模因/币种',
+    title: 'Share a Meme',
+    description: 'Post your top meme/coin pick in the community feed',
     rewardXp: 40,
     rewardCopper: 15,
     progress: 0,
     target: 1,
     type: 'daily',
-    tag: '社交',
+    tag: 'Social',
   },
   {
     id: 'daily-comment',
-    title: '发布 3 条高质量评论',
-    description: '与不同创作者互动，保持讨论热度',
+    title: 'Post 3 Quality Comments',
+    description: 'Engage with creators and keep the conversation active',
     rewardXp: 55,
     rewardCopper: 20,
     progress: 0,
     target: 3,
     type: 'daily',
-    tag: '互动',
+    tag: 'Engagement',
   },
   {
     id: 'daily-like',
-    title: '为 5 个模因点赞',
-    description: '帮助社区发现宝藏项目',
+    title: 'Like 5 Memes',
+    description: 'Help the community discover hidden gems',
     rewardXp: 35,
     rewardCopper: 10,
     progress: 0,
     target: 5,
     type: 'daily',
-    tag: '轻松',
+    tag: 'Easy',
   },
   {
     id: 'growth-follow',
-    title: '关注 2 名创作者',
-    description: '构建你的模因情报网络',
+    title: 'Follow 2 Creators',
+    description: 'Build your meme intelligence network',
     rewardXp: 80,
     rewardCopper: 30,
     progress: 0,
     target: 2,
     type: 'growth',
-    tag: '成长',
+    tag: 'Growth',
   },
   {
     id: 'growth-trade',
-    title: '完成 1 笔 C2C 交易',
-    description: '在私信页完成一次安全交易',
+    title: 'Complete 1 C2C Trade',
+    description: 'Finish a safe trade in direct messages',
     rewardXp: 120,
     rewardCopper: 60,
     progress: 0,
     target: 1,
     type: 'growth',
-    tag: '价值',
+    tag: 'Value',
   },
   {
     id: 'milestone-checkin',
-    title: '连续签到 7 天',
-    description: '每天登录，坚持活跃即可解锁徽章',
+    title: 'Check In 7 Days in a Row',
+    description: 'Log in daily to unlock a badge',
     rewardXp: 200,
     rewardCopper: 120,
     progress: 0,
     target: 7,
     type: 'milestone',
-    tag: '里程碑',
+    tag: 'Milestone',
   },
 ]
 
@@ -142,7 +142,7 @@ const persistCoins = async () => {
       body: JSON.stringify({ coins: getUsdtBalance() })
     })
   } catch (err) {
-    console.warn('同步 USDT 到服务器失败', err)
+    console.warn('Failed to sync USDT to server', err)
   }
 }
 
@@ -165,25 +165,25 @@ const syncUsdtFromProfile = async () => {
       setUsdtBalance(Number.isFinite(coins) ? coins : 0)
     }
   } catch (err) {
-    console.warn('同步账户 USDT 失败', err)
+    console.warn('Failed to sync account USDT', err)
   }
 }
 
 const exchangeGoldToUsdt = () => {
   const amountGold = Number(goldToUsdtInput.value || 0)
   if (!Number.isFinite(amountGold) || amountGold <= 0) {
-    goldExchangeMessage.value = '请输入兑换的金币数量'
+    goldExchangeMessage.value = 'Please enter the amount of coins to exchange'
     return
   }
   if (amountGold > gamificationState.value.copper) {
-    goldExchangeMessage.value = '金币不足'
+    goldExchangeMessage.value = 'Insufficient coins'
     return
   }
   const usdtGain = Math.round((amountGold / GOLD_TO_USDT_RATE) * 10000) / 10000
   adjustCopper(-amountGold)
   adjustUsdt(usdtGain)
-  goldExchangeMessage.value = `已兑换 ${usdtGain} USDT，消耗 ${amountGold} 金币`
-  pushActivity(`兑换 ${usdtGain} USDT（耗费 ${amountGold} 金币）`, 'exchange')
+  goldExchangeMessage.value = `Exchanged ${usdtGain} USDT for ${amountGold} coins`
+  pushActivity(`Exchanged ${usdtGain} USDT (cost ${amountGold} coins)`, 'exchange')
   persistCoins()
   goldToUsdtInput.value = ''
 }
@@ -191,20 +191,20 @@ const exchangeGoldToUsdt = () => {
 const exchangeUsdtToGold = () => {
   const amountUsdt = Number(usdtToGoldInput.value || 0)
   if (!Number.isFinite(amountUsdt) || amountUsdt <= 0) {
-    goldExchangeMessage.value = '请输入兑换的 USDT 数量'
+    goldExchangeMessage.value = 'Please enter the USDT amount to exchange'
     return
   }
   const balance = getUsdtBalance()
   const epsilon = 1e-6
   if (amountUsdt - balance > epsilon) {
-    goldExchangeMessage.value = `USDT 余额不足，可用 ${balance.toFixed(4)}`
+    goldExchangeMessage.value = `Insufficient USDT. Available: ${balance.toFixed(4)}`
     return
   }
   const goldGain = Math.round(amountUsdt * GOLD_TO_USDT_RATE)
   adjustUsdt(-amountUsdt)
   adjustCopper(goldGain)
-  goldExchangeMessage.value = `已兑换 ${goldGain} 金币，消耗 ${amountUsdt} USDT`
-  pushActivity(`兑换 ${goldGain} 金币（耗费 ${amountUsdt} USDT）`, 'exchange')
+  goldExchangeMessage.value = `Exchanged ${goldGain} coins for ${amountUsdt} USDT`
+  pushActivity(`Exchanged ${goldGain} coins (cost ${amountUsdt} USDT)`, 'exchange')
   persistCoins()
   usdtToGoldInput.value = ''
 }
@@ -218,11 +218,11 @@ const activeMainTab = ref('overview') // 'overview' | 'tasks' | 'games' | 'achie
 // 成就系统
 const activeAchCat = ref('all')
 const achievementCategories = [
-  { id: 'all', name: '全部', icon: '🎯' },
-  { id: 'trading', name: '交易', icon: '💰' },
-  { id: 'social', name: '社交', icon: '👥' },
-  { id: 'creation', name: '创作', icon: '🎨' },
-  { id: 'collection', name: '收藏', icon: '📦' }
+  { id: 'all', name: 'All', icon: '🎯' },
+  { id: 'trading', name: 'Trading', icon: '💰' },
+  { id: 'social', name: 'Social', icon: '👥' },
+  { id: 'creation', name: 'Creation', icon: '🎨' },
+  { id: 'collection', name: 'Collection', icon: '📦' }
 ]
 
 const achievements = ref([])
@@ -240,7 +240,7 @@ const fetchAchievements = async () => {
       achievementStats.value = data.data.stats || { unlockedCount: 0, totalCount: 0, totalPoints: 0, completionRate: 0 }
     }
   } catch (error) {
-    console.error('获取成就数据失败:', error)
+    console.error('Failed to fetch achievements:', error)
   }
 }
 
@@ -300,7 +300,7 @@ const flipMemoryCard = (card) => {
         const bonus = Math.max(10, 50 - memoryMoves.value * 2)
         gamificationState.value.xp += bonus
         adjustCopper(Math.round(bonus / 2))
-        pushActivity(`翻牌配对完成！+${bonus} XP`, 'game')
+        pushActivity(`Memory match completed! +${bonus} XP`, 'game')
       }
     } else {
       setTimeout(() => {
@@ -322,7 +322,7 @@ const coinFlipMessage = ref('')
 const flipCoin = () => {
   if (coinFlipSpinning.value) return
   if (gamificationState.value.copper < coinFlipBet.value) {
-    coinFlipMessage.value = '金币不足！'
+    coinFlipMessage.value = 'Not enough coins!'
     return
   }
   adjustCopper(-coinFlipBet.value)
@@ -338,11 +338,11 @@ const flipCoin = () => {
       const winnings = coinFlipBet.value * 2
       adjustCopper(winnings)
       gamificationState.value.xp += 15
-      coinFlipMessage.value = `🎉 赢了！+${winnings} 金币`
-      pushActivity(`硬币翻转赢得 ${winnings} 金币`, 'game')
+      coinFlipMessage.value = `🎉 You win! +${winnings} coins`
+      pushActivity(`Coin flip won ${winnings} coins`, 'game')
     } else {
-      coinFlipMessage.value = '😢 输了，再试一次！'
-      pushActivity(`硬币翻转输掉 ${coinFlipBet.value} 金币`, 'game')
+      coinFlipMessage.value = '😢 You lost. Try again!'
+      pushActivity(`Coin flip lost ${coinFlipBet.value} coins`, 'game')
     }
   }, 1500)
 }
@@ -357,7 +357,7 @@ const slotCost = 20
 const spinSlots = () => {
   if (slotSpinning.value) return
   if (gamificationState.value.copper < slotCost) {
-    slotMessage.value = '金币不足！'
+    slotMessage.value = 'Not enough coins!'
     return
   }
   adjustCopper(-slotCost)
@@ -387,14 +387,14 @@ const checkSlotWin = () => {
     const winnings = slotCost * multiplier
     adjustCopper(winnings)
     gamificationState.value.xp += multiplier * 5
-    slotMessage.value = `🎰 大奖！+${winnings} 金币`
-    pushActivity(`老虎机中奖 ${winnings} 金币！`, 'game')
+    slotMessage.value = `🎰 Jackpot! +${winnings} coins`
+    pushActivity(`Slots win: ${winnings} coins!`, 'game')
   } else if (a === b || b === c || a === c) {
     const winnings = slotCost
     adjustCopper(winnings)
-    slotMessage.value = `✨ 两个相同！+${winnings} 金币`
+    slotMessage.value = `✨ Two of a kind! +${winnings} coins`
   } else {
-    slotMessage.value = '再接再厉！'
+    slotMessage.value = 'Keep trying!'
   }
 }
 
@@ -529,7 +529,7 @@ const performGame24Calc = () => {
     case '*': result = card1.value * card2.value; break
     case '/':
       if (card2.value === 0) {
-        game24Message.value = '❌ 不能除以0'
+        game24Message.value = '❌ Cannot divide by 0'
         game24Selected.value = []
         game24Operator.value = null
         return
@@ -577,13 +577,13 @@ const checkGame24Win = (finalValue) => {
       gamificationState.value.game24DailyWins++
       gamificationState.value.xp += GAME24_REWARD_XP
       adjustCopper(GAME24_REWARD_COPPER)
-      game24Message.value = `🎉 正确！+${GAME24_REWARD_XP} XP / +${GAME24_REWARD_COPPER} 金币 (今日 ${gamificationState.value.game24DailyWins}/${GAME24_DAILY_LIMIT})`
-      pushActivity(`24点计算成功 +${GAME24_REWARD_XP} XP`, 'game')
+      game24Message.value = `🎉 Correct! +${GAME24_REWARD_XP} XP / +${GAME24_REWARD_COPPER} coins (today ${gamificationState.value.game24DailyWins}/${GAME24_DAILY_LIMIT})`
+      pushActivity(`24-point success +${GAME24_REWARD_XP} XP`, 'game')
     } else {
-      game24Message.value = `🎉 正确！但今日奖励已达上限 (${GAME24_DAILY_LIMIT}次)`
+      game24Message.value = `🎉 Correct! Daily rewards limit reached (${GAME24_DAILY_LIMIT})`
     }
   } else {
-    game24Message.value = `❌ 结果是 ${Number.isInteger(finalValue) ? finalValue : finalValue.toFixed(2)}，不是24。点击撤销重试`
+    game24Message.value = `❌ Result is ${Number.isInteger(finalValue) ? finalValue : finalValue.toFixed(2)}, not 24. Undo to try again.`
   }
 }
 
@@ -594,7 +594,7 @@ const undoGame24 = () => {
   game24Cards.value = last.cards
   game24Selected.value = []
   game24Operator.value = null
-  game24Message.value = '已撤销'
+  game24Message.value = 'Undone'
   game24Won.value = false
   game24GameActive.value = true
 }
@@ -607,30 +607,30 @@ const resetGame24 = () => {
   game24History.value = []
   game24Selected.value = []
   game24Operator.value = null
-  game24Message.value = '已重置'
+  game24Message.value = 'Reset'
   game24Won.value = false
   game24GameActive.value = true
 }
 
 // 跳过换题
 const skipGame24 = () => {
-  game24Message.value = '已跳过，换一组数字'
+  game24Message.value = 'Skipped. New numbers generated.'
   generateGame24Numbers()
 }
 
 const rewardPool = [
-  { id: 'xp-small', label: '+50 XP', type: 'xp', value: 50, rarity: '常规', weight: 30, accent: '#5ef38c' },
-  { id: 'coin-mid', label: '+80 金币', type: 'copper', value: 80, rarity: '常规', weight: 26, accent: '#f9c80e' },
-  { id: 'energy', label: '+15 体力', type: 'energy', value: 15, rarity: '稀有', weight: 16, accent: '#f18701' },
-  { id: 'xp-large', label: '+150 XP', type: 'xp', value: 150, rarity: '稀有', weight: 12, accent: '#7f5af0' },
-  { id: 'badge', label: '限定徽章', type: 'badge', value: 1, rarity: '传说', weight: 6, accent: '#ff5d8f' },
-  { id: 'coin-big', label: '+200 金币', type: 'copper', value: 200, rarity: '史诗', weight: 10, accent: '#ffd166' },
+  { id: 'xp-small', label: '+50 XP', type: 'xp', value: 50, rarity: 'Common', weight: 30, accent: '#5ef38c' },
+  { id: 'coin-mid', label: '+80 Coins', type: 'copper', value: 80, rarity: 'Common', weight: 26, accent: '#f9c80e' },
+  { id: 'energy', label: '+15 Energy', type: 'energy', value: 15, rarity: 'Rare', weight: 16, accent: '#f18701' },
+  { id: 'xp-large', label: '+150 XP', type: 'xp', value: 150, rarity: 'Rare', weight: 12, accent: '#7f5af0' },
+  { id: 'badge', label: 'Limited Badge', type: 'badge', value: 1, rarity: 'Legendary', weight: 6, accent: '#ff5d8f' },
+  { id: 'coin-big', label: '+200 Coins', type: 'copper', value: 200, rarity: 'Epic', weight: 10, accent: '#ffd166' },
 ]
 
 const activityFeed = ref([
-  { id: 'seed-1', label: '完成「分享模因」任务，获得 40 XP', time: '1 小时前', type: 'task' },
-  { id: 'seed-2', label: '签到成功：+60 XP / +18 金币', time: '昨天', type: 'checkin' },
-  { id: 'seed-3', label: '抽奖抽中 +80 金币', time: '2 天前', type: 'lottery' },
+  { id: 'seed-1', label: 'Completed "Share a Meme" task, earned 40 XP', time: '1 hour ago', type: 'task' },
+  { id: 'seed-2', label: 'Check-in success: +60 XP / +18 coins', time: 'Yesterday', type: 'checkin' },
+  { id: 'seed-3', label: 'Lottery win: +80 coins', time: '2 days ago', type: 'lottery' },
 ])
 
 const snapshotStateToStorage = (key, state) => {
@@ -670,7 +670,7 @@ const loadStateForKey = (key) => {
       window.localStorage.removeItem(LEGACY_STORAGE_KEY)
     }
   } catch (error) {
-    console.error('加载游戏化数据失败', error)
+    console.error('Failed to load gamification data', error)
     gamificationState.value = createDefaultState()
   }
 }
@@ -693,7 +693,7 @@ const pushActivity = (text, type) => {
   activityFeed.value.unshift({
     id: `${type}-${Date.now()}`,
     label: text,
-    time: '刚刚',
+    time: 'Just now',
     type,
   })
   if (activityFeed.value.length > 6) {
@@ -721,7 +721,7 @@ const applyTaskProgress = (taskId, increment = 1) => {
     gamificationState.value.xp += completedTask.rewardXp
     adjustCopper(completedTask.rewardCopper)
     pushActivity(
-      `完成「${completedTask.title}」 +${completedTask.rewardXp} XP / +${completedTask.rewardCopper} 金币`,
+      `Completed "${completedTask.title}" +${completedTask.rewardXp} XP / +${completedTask.rewardCopper} coins`,
       'task'
     )
   }
@@ -753,7 +753,7 @@ const checkInRewardPreview = computed(() => ({
 }))
 
 const checkInTimeline = computed(() => {
-  const labels = ['日', '一', '二', '三', '四', '五', '六']
+  const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date()
     date.setHours(0, 0, 0, 0)
@@ -761,7 +761,7 @@ const checkInTimeline = computed(() => {
     const key = formatDateKey(date)
     return {
       key,
-      label: `周${labels[date.getDay()]}`,
+      label: labels[date.getDay()],
       checked: gamificationState.value.checkIns?.includes(key),
       isToday: key === getDayKey(),
     }
@@ -852,7 +852,7 @@ const handleCheckIn = () => {
   adjustCopper(coins)
   gamificationState.value.energy = Math.min(100, gamificationState.value.energy + 6)
   applyTaskProgress('milestone-checkin', 1)
-  pushActivity(`签到成功：+${xp} XP / +${coins} 金币`, 'checkin')
+  pushActivity(`Check-in success: +${xp} XP / +${coins} coins`, 'checkin')
 }
 
 const taskRoutes = {
@@ -904,7 +904,7 @@ const drawReward = () => {
     const reward = weightedRewardPick()
     applyReward(reward)
     gamificationState.value.lastReward = reward
-    pushActivity(`抽中 ${reward.label}`, 'lottery')
+    pushActivity(`Won ${reward.label}`, 'lottery')
     isDrawing.value = false
   }, 1200)
 }
@@ -952,16 +952,16 @@ watch(
     <!-- 页面顶部统计栏（始终可见） -->
     <header class="page-header glass-border">
       <div>
-        <p class="eyebrow">游戏化中心</p>
-        <h1>保持活跃，持续解锁模因玩家荣誉</h1>
+        <p class="eyebrow">Gamification Center</p>
+        <h1>Stay active and keep unlocking meme honors</h1>
       </div>
       <div class="header-actions">
         <div class="chip">
           <span class="dot live"></span>
-          连续签到 {{ gamificationState.streak }} 天
+          Streak: {{ gamificationState.streak }} days
         </div>
         <button class="primary-btn" @click="handleCheckIn" :disabled="hasCheckedInToday">
-          {{ hasCheckedInToday ? '今天已签到' : `立即签到 +${checkInRewardPreview.xp} XP` }}
+          {{ hasCheckedInToday ? 'Checked in today' : `Check in now +${checkInRewardPreview.xp} XP` }}
         </button>
       </div>
     </header>
@@ -970,7 +970,7 @@ watch(
     <section class="stats-row">
       <article class="glass-card mini-stat">
         <div class="card-header">
-          <p>等级</p>
+          <p>Level</p>
           <span>Lv {{ playerLevel }}</span>
         </div>
         <h2>{{ gamificationState.xp }} XP</h2>
@@ -981,8 +981,8 @@ watch(
 
       <article class="glass-card mini-stat">
         <div class="card-header">
-          <p>金币</p>
-          <span>{{ gamificationState.badges }} 徽章</span>
+          <p>Coins</p>
+          <span>{{ gamificationState.badges }} Badges</span>
         </div>
         <h2>{{ displayCopper }}</h2>
         <div class="energy-track">
@@ -992,46 +992,46 @@ watch(
 
       <article class="glass-card mini-stat">
         <div class="card-header">
-          <p>签到</p>
-          <span>{{ gamificationState.streak }} 天</span>
+          <p>Check-in</p>
+          <span>{{ gamificationState.streak }} days</span>
         </div>
-        <h2>{{ hasCheckedInToday ? '已完成' : `+${checkInRewardPreview.xp}` }}</h2>
+        <h2>{{ hasCheckedInToday ? 'Done' : `+${checkInRewardPreview.xp}` }}</h2>
         <div class="pill-row compact">
-          <span class="pill highlight">连击 x{{ previewStreak }}</span>
+          <span class="pill highlight">Streak x{{ previewStreak }}</span>
         </div>
       </article>
 
       <article class="glass-card mini-stat">
         <div class="card-header">
-          <p>任务</p>
+          <p>Tasks</p>
           <span>{{ completedTaskCount }}/{{ gamificationState.tasks.length }}</span>
         </div>
         <h2>{{ totalTaskProgress }}%</h2>
-        <div class="chip secondary compact">势能 +{{ weekMomentum }}</div>
+        <div class="chip secondary compact">Momentum +{{ weekMomentum }}</div>
       </article>
     </section>
 
     <section class="exchange-row glass-card">
       <div>
-        <p class="eyebrow">金币兑换 USDT</p>
-        <h3>汇率 50:1</h3>
-        <p class="muted">当前：{{ displayCopper }} 金币 / {{ displayUsdt }} USDT</p>
+        <p class="eyebrow">Coins to USDT</p>
+        <h3>Rate 50:1</h3>
+        <p class="muted">Current: {{ displayCopper }} coins / {{ displayUsdt }} USDT</p>
         <p class="muted" v-if="goldExchangeMessage">{{ goldExchangeMessage }}</p>
       </div>
       <div class="exchange-controls">
         <div class="field-group">
-          <label>金币 → USDT</label>
+          <label>Coins → USDT</label>
           <div class="input-row">
-            <input v-model.number="goldToUsdtInput" type="number" min="0" placeholder="输入金币数量" />
-            <button class="primary-btn" @click="exchangeGoldToUsdt">兑换</button>
+            <input v-model.number="goldToUsdtInput" type="number" min="0" placeholder="Enter coin amount" />
+            <button class="primary-btn" @click="exchangeGoldToUsdt">Exchange</button>
           </div>
-          <p class="muted">最多可兑换 {{ maxUsdtExchange }} USDT（基于当前金币）</p>
+          <p class="muted">Up to {{ maxUsdtExchange }} USDT (based on current coins)</p>
         </div>
         <div class="field-group">
-          <label>USDT → 金币</label>
+          <label>USDT → Coins</label>
           <div class="input-row">
-            <input v-model.number="usdtToGoldInput" type="number" min="0" step="0.0001" placeholder="输入 USDT 数量" />
-            <button class="primary-btn" @click="exchangeUsdtToGold">兑换</button>
+            <input v-model.number="usdtToGoldInput" type="number" min="0" step="0.0001" placeholder="Enter USDT amount" />
+            <button class="primary-btn" @click="exchangeUsdtToGold">Exchange</button>
           </div>
         </div>
       </div>
@@ -1044,28 +1044,28 @@ watch(
         :class="{ active: activeMainTab === 'overview' }"
         @click="activeMainTab = 'overview'"
       >
-        📊 总览
+        📊 Overview
       </button>
       <button
         class="main-tab"
         :class="{ active: activeMainTab === 'tasks' }"
         @click="activeMainTab = 'tasks'"
       >
-        📋 任务
+        📋 Tasks
       </button>
       <button
         class="main-tab"
         :class="{ active: activeMainTab === 'games' }"
         @click="activeMainTab = 'games'"
       >
-        🎮 小游戏
+        🎮 Mini Games
       </button>
       <button
         class="main-tab"
         :class="{ active: activeMainTab === 'achievements' }"
         @click="activeMainTab = 'achievements'"
       >
-        🏅 成就
+        🏅 Achievements
       </button>
     </nav>
 
@@ -1075,11 +1075,11 @@ watch(
         <article class="glass-card checkin-card">
           <header class="section-header">
             <div>
-              <p class="eyebrow">签到日历</p>
-              <h3>保持节奏，累积 streak</h3>
+              <p class="eyebrow">Check-in Calendar</p>
+              <h3>Keep the rhythm and build your streak</h3>
             </div>
             <button class="ghost-btn" @click="handleCheckIn" :disabled="hasCheckedInToday">
-              {{ hasCheckedInToday ? '今日已签到' : '补上今天' }}
+              {{ hasCheckedInToday ? 'Checked in today' : 'Check in today' }}
             </button>
           </header>
           <div class="checkin-calendar">
@@ -1094,17 +1094,17 @@ watch(
             </div>
           </div>
           <p class="muted calendar-tip">
-            连续签到越久，奖励越高。满 {{ checkInRewardPreview.streak }} 天时解锁额外抽奖机会。
+            The longer your streak, the higher the rewards. Reach {{ checkInRewardPreview.streak }} days to unlock an extra draw.
           </p>
         </article>
 
         <article class="glass-card lottery-card">
           <header class="section-header">
             <div>
-              <p class="eyebrow">命运抽奖</p>
-              <h3>用人品赢取额外奖励</h3>
+              <p class="eyebrow">Lucky Draw</p>
+              <h3>Win extra rewards with a bit of luck</h3>
             </div>
-            <span class="chip">消耗 50 金币</span>
+            <span class="chip">Costs 50 coins</span>
           </header>
           <div class="lottery-body">
             <div class="wheel" :class="{ spinning: isDrawing }">
@@ -1114,7 +1114,7 @@ watch(
               </div>
             </div>
             <div class="lottery-info">
-              <p class="muted">奖池展示</p>
+              <p class="muted">Reward Pool</p>
               <div class="reward-grid">
                 <div v-for="reward in rewardPool" :key="reward.id" class="reward-chip" :style="{ borderColor: reward.accent }">
                   <span class="dot" :style="{ background: reward.accent }"></span>
@@ -1125,10 +1125,10 @@ watch(
                 </div>
               </div>
               <button class="primary-btn stretch" :disabled="isDrawing" @click="drawReward">
-                {{ isDrawing ? '抽奖中...' : '现在抽一发' }}
+                {{ isDrawing ? 'Drawing...' : 'Draw now' }}
               </button>
               <p v-if="lastReward" class="muted recent-reward">
-                上次抽中：<span>{{ lastReward.label }}</span>
+                Last win: <span>{{ lastReward.label }}</span>
               </p>
             </div>
           </div>
@@ -1139,8 +1139,8 @@ watch(
         <article class="glass-card activity-card">
           <header class="section-header">
             <div>
-              <p class="eyebrow">动态记录</p>
-              <h3>最近的活跃轨迹</h3>
+              <p class="eyebrow">Activity Feed</p>
+              <h3>Recent activity highlights</h3>
             </div>
           </header>
           <ul class="activity-feed">
@@ -1157,8 +1157,8 @@ watch(
         <article class="glass-card milestone-card">
           <header class="section-header">
             <div>
-              <p class="eyebrow">周势能</p>
-              <h3>冲刺奖励预览</h3>
+              <p class="eyebrow">Weekly Momentum</p>
+              <h3>Sprint reward preview</h3>
             </div>
           </header>
           <div class="milestone-body">
@@ -1176,21 +1176,21 @@ watch(
               </svg>
               <div class="radial-label">
                 <strong>{{ weekMomentum }}%</strong>
-                <span>完成度</span>
+                <span>Completion</span>
               </div>
             </div>
             <ul class="milestone-list">
               <li>
                 <span>50%+</span>
-                <p>额外 1 次抽奖机会</p>
+                <p>1 extra draw</p>
               </li>
               <li>
                 <span>80%+</span>
-                <p>双倍签到奖励</p>
+                <p>Double check-in rewards</p>
               </li>
               <li>
                 <span>100%</span>
-                <p>限定动态相框 + 随机徽章</p>
+                <p>Limited frame + random badge</p>
               </li>
             </ul>
           </div>
@@ -1203,8 +1203,8 @@ watch(
       <section class="tasks-section glass-card">
         <header class="section-header">
           <div>
-            <p class="eyebrow">任务中心</p>
-            <h3>完成任务即可翻倍成长</h3>
+            <p class="eyebrow">Task Center</p>
+            <h3>Complete tasks to level up faster</h3>
           </div>
           <div class="filter-row">
             <button
@@ -1214,7 +1214,7 @@ watch(
               :class="{ active: activeTaskFilter === type }"
               @click="activeTaskFilter = type"
             >
-              {{ type === 'daily' ? '每日任务' : type === 'growth' ? '成长任务' : '里程碑' }}
+              {{ type === 'daily' ? 'Daily' : type === 'growth' ? 'Growth' : 'Milestone' }}
             </button>
           </div>
         </header>
@@ -1225,14 +1225,14 @@ watch(
               <div>
                 <div class="task-meta">
                   <span class="task-tag">{{ task.tag }}</span>
-                  <span class="task-type">{{ task.type === 'daily' ? '每日' : task.type === 'growth' ? '成长' : '里程碑' }}</span>
+                  <span class="task-type">{{ task.type === 'daily' ? 'Daily' : task.type === 'growth' ? 'Growth' : 'Milestone' }}</span>
                 </div>
                 <h4>{{ task.title }}</h4>
                 <p class="muted">{{ task.description }}</p>
               </div>
               <div class="task-reward">
                 <span>+{{ task.rewardXp }} XP</span>
-                <span>+{{ task.rewardCopper }} 金币</span>
+                <span>+{{ task.rewardCopper }} coins</span>
               </div>
             </div>
             <div class="task-footer">
@@ -1243,7 +1243,7 @@ watch(
                 {{ task.progress }}/{{ task.target }}
               </span>
               <button class="ghost-btn" :disabled="task.progress >= task.target" @click="handleTaskAction(task)">
-                {{ task.progress >= task.target ? '已完成' : '去完成' }}
+                {{ task.progress >= task.target ? 'Completed' : 'Go' }}
               </button>
             </div>
           </article>
@@ -1260,53 +1260,53 @@ watch(
           :class="{ active: activeGameTab === 'game24' }"
           @click="activeGameTab = 'game24'"
         >
-          🔢 24点
+          🔢 24 Points
         </button>
         <button
           class="game-tab"
           :class="{ active: activeGameTab === 'memory' }"
           @click="activeGameTab = 'memory'"
         >
-          🧠 翻牌
+          🧠 Memory Match
         </button>
         <button
           class="game-tab"
           :class="{ active: activeGameTab === 'coinflip' }"
           @click="activeGameTab = 'coinflip'"
         >
-          🪙 硬币
+          🪙 Coin Flip
         </button>
         <button
           class="game-tab"
           :class="{ active: activeGameTab === 'slots' }"
           @click="activeGameTab = 'slots'"
         >
-          🎰 老虎机
+          🎰 Slots
         </button>
       </nav>
 
       <!-- 24点计算游戏 (经典交互模式) -->
       <article v-if="activeGameTab === 'game24'" class="glass-card game-card game24-card-full">
         <div class="game-header">
-          <h4>🔢 24点计算</h4>
-          <span class="game-badge">每日 {{ game24DailyWinsToday }}/{{ GAME24_DAILY_LIMIT }}</span>
+          <h4>🔢 24 Points</h4>
+          <span class="game-badge">Daily {{ game24DailyWinsToday }}/{{ GAME24_DAILY_LIMIT }}</span>
         </div>
-        <p class="muted">选择两张卡片和一个运算符，合并计算直到得出24。所有题目保证有解！</p>
+        <p class="muted">Choose two cards and an operator to reach 24. Every puzzle is solvable!</p>
 
         <div v-if="!game24GameActive && !game24Won" class="game-start">
           <button class="primary-btn" @click="generateGame24Numbers">
-            {{ game24CanEarnReward ? '开始挑战' : '继续练习（无奖励）' }}
+            {{ game24CanEarnReward ? 'Start Challenge' : 'Practice (no rewards)' }}
           </button>
         </div>
 
         <div v-else class="game24-board">
           <!-- 提示信息 -->
           <div class="game24-hint-bar">
-            <span v-if="game24Selected.length === 0">👆 选择第一张卡片</span>
-            <span v-else-if="game24Selected.length === 1 && !game24Operator">👆 选择运算符或第二张卡片</span>
-            <span v-else-if="game24Selected.length === 1 && game24Operator">👆 选择第二张卡片</span>
-            <span v-else-if="game24Selected.length === 2 && !game24Operator">👆 选择运算符完成计算</span>
-            <span v-else>✨ 即将计算...</span>
+            <span v-if="game24Selected.length === 0">👆 Select the first card</span>
+            <span v-else-if="game24Selected.length === 1 && !game24Operator">👆 Select an operator or a second card</span>
+            <span v-else-if="game24Selected.length === 1 && game24Operator">👆 Select the second card</span>
+            <span v-else-if="game24Selected.length === 2 && !game24Operator">👆 Select an operator to calculate</span>
+            <span v-else>✨ Calculating...</span>
           </div>
 
           <!-- 数字卡片区 -->
@@ -1338,13 +1338,13 @@ watch(
           <!-- 操作按钮 -->
           <div class="game24-actions">
             <button class="ghost-btn" :disabled="game24History.length === 0" @click="undoGame24">
-              ↩ 撤销
+              ↩ Undo
             </button>
             <button class="ghost-btn" :disabled="game24History.length === 0" @click="resetGame24">
-              🔄 重置
+              🔄 Reset
             </button>
             <button class="ghost-btn" @click="skipGame24">
-              ⏭ 换题
+              ⏭ New Puzzle
             </button>
           </div>
 
@@ -1355,7 +1355,7 @@ watch(
 
           <!-- 胜利后再来一题 -->
           <div v-if="game24Won" class="game-result win">
-            <button class="primary-btn" @click="generateGame24Numbers">再来一题</button>
+            <button class="primary-btn" @click="generateGame24Numbers">Play again</button>
           </div>
         </div>
       </article>
@@ -1363,19 +1363,19 @@ watch(
       <!-- 翻牌配对 -->
       <article v-if="activeGameTab === 'memory'" class="glass-card game-card">
         <div class="game-header">
-          <h4>🧠 翻牌配对</h4>
+          <h4>🧠 Memory Match</h4>
           <span class="game-badge">+XP +金币</span>
         </div>
-        <p class="muted">找到所有配对，步数越少奖励越高</p>
+        <p class="muted">Match all pairs — fewer moves means higher rewards</p>
 
         <div v-if="!memoryGameActive && !memoryGameWon" class="game-start">
-          <button class="primary-btn" @click="initMemoryGame">开始游戏</button>
+          <button class="primary-btn" @click="initMemoryGame">Start Game</button>
         </div>
 
         <div v-else class="memory-board">
           <div class="memory-stats">
-            <span>步数：{{ memoryMoves }}</span>
-            <span>配对：{{ memoryMatched.length / 2 }}/{{ memoryCards.length / 2 }}</span>
+            <span>Moves: {{ memoryMoves }}</span>
+            <span>Matches: {{ memoryMatched.length / 2 }}/{{ memoryCards.length / 2 }}</span>
           </div>
           <div class="memory-grid">
             <div
@@ -1392,8 +1392,8 @@ watch(
             </div>
           </div>
           <div v-if="memoryGameWon" class="game-result win">
-            <p>🎉 恭喜完成！用了 {{ memoryMoves }} 步</p>
-            <button class="ghost-btn" @click="initMemoryGame">再来一局</button>
+            <p>🎉 Great job! Completed in {{ memoryMoves }} moves</p>
+            <button class="ghost-btn" @click="initMemoryGame">Play again</button>
           </div>
         </div>
       </article>
@@ -1401,19 +1401,19 @@ watch(
       <!-- 硬币翻转 -->
       <article v-if="activeGameTab === 'coinflip'" class="glass-card game-card">
         <div class="game-header">
-          <h4>🪙 硬币翻转</h4>
+          <h4>🪙 Coin Flip</h4>
           <span class="game-badge">2x 赔率</span>
         </div>
-        <p class="muted">猜对正反面，赢取双倍金币</p>
+        <p class="muted">Guess heads or tails to win double coins</p>
 
         <div class="coin-flip-body">
           <div class="coin" :class="{ spinning: coinFlipSpinning, heads: coinFlipResult === 'heads', tails: coinFlipResult === 'tails' }">
-            <div class="coin-face front">正</div>
-            <div class="coin-face back">反</div>
+            <div class="coin-face front">Heads</div>
+            <div class="coin-face back">Tails</div>
           </div>
 
           <div class="bet-controls">
-            <label>下注金币</label>
+            <label>Bet (coins)</label>
             <div class="bet-row">
               <button @click="coinFlipBet = Math.max(5, coinFlipBet - 5)">-</button>
               <span>{{ coinFlipBet }}</span>
@@ -1427,19 +1427,19 @@ watch(
               :class="{ active: coinFlipChoice === 'heads' }"
               @click="coinFlipChoice = 'heads'"
             >
-              正面
+              Heads
             </button>
             <button
               class="choice-btn"
               :class="{ active: coinFlipChoice === 'tails' }"
               @click="coinFlipChoice = 'tails'"
             >
-              反面
+              Tails
             </button>
           </div>
 
           <button class="primary-btn stretch" :disabled="coinFlipSpinning" @click="flipCoin">
-            {{ coinFlipSpinning ? '翻转中...' : '开始翻转' }}
+            {{ coinFlipSpinning ? 'Flipping...' : 'Flip' }}
           </button>
 
           <p v-if="coinFlipMessage" class="game-message" :class="{ win: coinFlipMessage.includes('赢') }">
@@ -1451,10 +1451,10 @@ watch(
       <!-- 老虎机 -->
       <article v-if="activeGameTab === 'slots'" class="glass-card game-card">
         <div class="game-header">
-          <h4>🎰 幸运老虎机</h4>
+          <h4>🎰 Lucky Slots</h4>
           <span class="game-badge">最高 20x</span>
         </div>
-        <p class="muted">消耗 {{ slotCost }} 金币，三个相同赢大奖</p>
+        <p class="muted">Spend {{ slotCost }} coins — three of a kind wins big</p>
 
         <div class="slot-body">
           <div class="slot-display">
@@ -1467,11 +1467,11 @@ watch(
             <span>7️⃣ x20</span>
             <span>💎 x15</span>
             <span>⭐ x10</span>
-            <span>其他 x5</span>
+            <span>Others x5</span>
           </div>
 
           <button class="primary-btn stretch" :disabled="slotSpinning" @click="spinSlots">
-            {{ slotSpinning ? '转动中...' : `投币 ${slotCost} 开始` }}
+            {{ slotSpinning ? 'Spinning...' : `Spin (cost ${slotCost})` }}
           </button>
 
           <p v-if="slotMessage" class="game-message" :class="{ win: slotMessage.includes('奖') || slotMessage.includes('相同') }">
@@ -1486,8 +1486,8 @@ watch(
       <section class="glass-card">
         <header class="section-header">
           <div>
-            <p class="eyebrow">成就中心</p>
-            <h3>完成挑战，解锁徽章</h3>
+            <p class="eyebrow">Achievements</p>
+            <h3>Complete challenges to unlock badges</h3>
           </div>
         </header>
 
@@ -1495,15 +1495,15 @@ watch(
         <div class="achievement-stats">
           <div class="ach-stat">
             <span class="ach-stat-value">{{ unlockedAchievements }}/{{ totalAchievements }}</span>
-            <span class="ach-stat-label">已解锁</span>
+            <span class="ach-stat-label">Unlocked</span>
           </div>
           <div class="ach-stat">
             <span class="ach-stat-value">{{ achievementPoints }}</span>
-            <span class="ach-stat-label">成就点数</span>
+            <span class="ach-stat-label">Achievement Points</span>
           </div>
           <div class="ach-stat">
             <span class="ach-stat-value">{{ achievementRate }}%</span>
-            <span class="ach-stat-label">完成率</span>
+            <span class="ach-stat-label">Completion Rate</span>
           </div>
         </div>
 

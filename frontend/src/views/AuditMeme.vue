@@ -23,9 +23,9 @@ const manualComment = ref('')
 // AI 审核反馈
 const aiResult = ref(null)
 const decisionLabelMap = {
-  approve: '建议通过',
-  reject: '建议拒绝',
-  manual_review: '建议人工复审'
+  approve: 'Recommend Approve',
+  reject: 'Recommend Reject',
+  manual_review: 'Recommend Manual Review'
 }
 
 // 是否正在请求
@@ -66,9 +66,9 @@ async function fetchPendingMemeDetails() {
       data.memes.forEach(meme => {
         if (meme._id) {
           detailsMap[meme._id] = {
-            title: meme.title || '未命名模因',
+            title: meme.title || 'Untitled Meme',
             ticker: meme.ticker || 'N/A',
-            author: meme.author?.username || '未知',
+            author: meme.author?.username || 'Unknown',
             likes: meme.likes || 0,
             createdAt: meme.createdAt
           }
@@ -89,7 +89,7 @@ function selectMeme(meme) {
     memeId: meme,
     name: details?.title || "none",
     ticker: details?.ticker || "N/A",
-    creator: details?.author || "未知",
+    creator: details?.author || "Unknown",
     image: '',
     desc: '',
   }
@@ -120,7 +120,7 @@ const fetchMemeDetails = async (memeId) => {
       memeId: data._id,
       name: data.title,
       ticker: data.ticker || 'N/A',
-      creator: data.author?.username || "未知",
+      creator: data.author?.username || "Unknown",
       time: new Date(data.createdAt).toLocaleString(),
       mc: data.likes,
       mcPercent: Math.min(data.likes * 10, 100),
@@ -153,13 +153,13 @@ async function runAI() {
     aiResult.value = {
       decision: data.result?.decision || 'manual_review',
       riskScore: data.result?.riskScore ?? null,
-      summary: data.result?.summary || data.raw || 'AI 未返回总结',
+      summary: data.result?.summary || data.raw || 'AI did not return a summary',
       reasons: Array.isArray(data.result?.reasons) ? data.result.reasons : [],
       raw: data.raw
     }
   } catch (error) {
-    console.error('AI 审核失败:', error)
-    alert(error.response?.data?.message || 'AI 审核失败，请稍后重试')
+    console.error('AI review failed:', error)
+    alert(error.response?.data?.message || 'AI review failed. Please try again later.')
   } finally {
     loadingAI.value = false
   }
@@ -174,7 +174,7 @@ async function submitAudit(result) {
   if (!manualComment.value.trim()) {
      // 为了保险，通过时也要求填写一下，或者根据需求放开
      // 这里原逻辑是都要求填
-     alert("请填写人工审核意见后再提交。")
+    alert("Please enter a manual review note before submitting.")
      return
   }
 
@@ -182,8 +182,8 @@ async function submitAudit(result) {
   try {
     // 转换 result 为后端需要的 action
     const action = result === 'pass' ? 'approve' : 'reject';
-    
-    await axios.post(`${authStore.server_ip}/api/review/meme/${current.value.memeId}`, 
+
+    await axios.post(`${authStore.server_ip}/api/review/meme/${current.value.memeId}`,
       {
         action: action,
         description: manualComment.value, // 后端使用 description 字段
@@ -194,14 +194,14 @@ async function submitAudit(result) {
         }
       }
     )
-    alert("提交成功！")
+    alert("Submitted successfully!")
 
     // 刷新列表
     await fetchLists()
     current.value = null
   } catch (error) {
     console.error('提交审核失败:', error);
-    alert(error.response?.data?.message || "提交失败，请重试");
+    alert(error.response?.data?.message || "Submission failed. Please try again.");
   } finally {
     submitting.value = false
   }
@@ -216,7 +216,7 @@ onMounted(() => {
   <div class="audit-container">
     <!-- 左侧列表 -->
     <div class="left-panel">
-      <h2>待审核</h2>
+      <h2>Pending Review</h2>
       <div class="list">
         <div
           v-for="m in pendingList"
@@ -226,21 +226,21 @@ onMounted(() => {
           @click="selectMeme(m)"
         >
           <div class="meme-info">
-            <div class="meme-title">{{ pendingMemeDetails[m]?.title || '加载中...' }}</div>
+            <div class="meme-title">{{ pendingMemeDetails[m]?.title || 'Loading...' }}</div>
             <div class="meme-meta">
-              {{ pendingMemeDetails[m]?.author || '未知' }} •
+              {{ pendingMemeDetails[m]?.author || 'Unknown' }} •
               {{ pendingMemeDetails[m]?.ticker || 'N/A' }}
             </div>
           </div>
-          <span class="badge pending">待审核</span>
+          <span class="badge pending">Pending</span>
         </div>
       </div>
 
       <!-- <h2 style="margin-top: 25px;">已审核</h2>
       <div class="list">
-        <div 
-          v-for="m in finishedList" 
-          :key="m" 
+        <div
+          v-for="m in finishedList"
+          :key="m"
           class="list-item"
         >
           <span>{{ m.value.name }}</span>
@@ -252,76 +252,76 @@ onMounted(() => {
     <!-- 右侧详情 -->
     <div class="right-panel">
       <div v-if="!current" class="placeholder">
-        请选择左侧列表中的模因进行审核
+        Select a meme from the left list to review
       </div>
 
       <div v-else class="detail-box">
         <h2>{{ current?.name }}</h2>
 
         <div class="meta">
-          <p><strong>代号：</strong>{{ current?.ticker }}</p>
-          <p><strong>描述：</strong>{{ current?.desc }}</p>
+          <p><strong>Ticker:</strong>{{ current?.ticker }}</p>
+          <p><strong>Description:</strong>{{ current?.desc }}</p>
         </div>
 
         <img :src="current?.image" class="meme-image" />
 
-        <!-- AI 审核 -->
+        <!-- AI Review -->
         <div class="section">
-          <h3>AI 审核</h3>
+          <h3>AI Review</h3>
 
-          <button 
-            @click="runAI" 
+          <button
+            @click="runAI"
             :disabled="loadingAI || !current"
             class="btn ai-btn"
           >
-            {{ loadingAI ? 'AI 正在分析...' : '运行 AI 审核' }}
+            {{ loadingAI ? 'AI is analyzing...' : 'Run AI Review' }}
           </button>
 
           <div v-if="aiResult" class="ai-box">
-            <h4>AI 反馈：</h4>
+            <h4>AI Feedback:</h4>
             <div class="ai-summary">
-              <p><strong>结论：</strong>{{ decisionLabelMap[aiResult.decision] || aiResult.decision }}</p>
-              <p v-if="aiResult.riskScore !== null"><strong>风险值：</strong>{{ (aiResult.riskScore * 100).toFixed(1) }}%</p>
-              <p><strong>摘要：</strong>{{ aiResult.summary }}</p>
+              <p><strong>Decision:</strong>{{ decisionLabelMap[aiResult.decision] || aiResult.decision }}</p>
+              <p v-if="aiResult.riskScore !== null"><strong>Risk Score:</strong>{{ (aiResult.riskScore * 100).toFixed(1) }}%</p>
+              <p><strong>Summary:</strong>{{ aiResult.summary }}</p>
               <div v-if="aiResult.reasons.length" class="ai-reasons">
-                <strong>原因：</strong>
+                <strong>Reasons:</strong>
                 <ul>
                   <li v-for="reason in aiResult.reasons" :key="reason">{{ reason }}</li>
                 </ul>
               </div>
             </div>
             <details class="ai-raw">
-              <summary>查看原始响应</summary>
+              <summary>View Raw Response</summary>
               <pre>{{ aiResult.raw }}</pre>
             </details>
           </div>
         </div>
 
-        <!-- 人工审核 -->
+        <!-- Manual Review -->
         <div class="section">
-          <h3>人工审核意见</h3>
+          <h3>Manual Review Notes</h3>
 
-          <textarea 
-            v-model="manualComment" 
-            class="comment-box" 
-            placeholder="请输入人工审核意见..."
+          <textarea
+            v-model="manualComment"
+            class="comment-box"
+            placeholder="Enter manual review notes..."
           />
 
           <div class="btn-row">
-            <button 
+            <button
               class="btn pass"
               @click="submitAudit('pass')"
               :disabled="submitting"
             >
-              审核通过
+              Approve
             </button>
 
-            <button 
+            <button
               class="btn reject"
               @click="submitAudit('reject')"
               :disabled="submitting"
             >
-              审核不通过
+              Reject
             </button>
           </div>
         </div>

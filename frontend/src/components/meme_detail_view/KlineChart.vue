@@ -1,6 +1,6 @@
 <template>
   <div class="trading-chart">
-    <!-- 价格信息头部 -->
+    <!-- Price info header -->
     <div class="price-header">
       <div class="price-info">
         <div class="current-price">
@@ -27,7 +27,7 @@
       </div>
     </div>
 
-    <!-- 时间周期选择器 -->
+    <!-- Timeframe selector -->
     <div class="timeframe-selector">
       <button
         v-for="timeframe in timeframes"
@@ -39,22 +39,22 @@
       </button>
     </div>
 
-    <!-- K线图容器 (固定大小) -->
+    <!-- K-line chart container (fixed size) -->
     <div class="chart-container">
       <div v-if="loading" class="loading-overlay">
-        <div class="loading-spinner">加载中...</div>
+        <div class="loading-spinner">Loading...</div>
       </div>
       <div v-if="error" class="error-overlay">
         <div class="error-message">{{ error }}</div>
-        <button @click="changeTimeframe(active)" class="retry-btn">重试</button>
+        <button @click="changeTimeframe(active)" class="retry-btn">Retry</button>
       </div>
       <div id="chart_box" class="chart"></div>
     </div>
 
-    <!-- 技术指标选择器 -->
+    <!-- Technical indicator selector -->
     <div class="indicator-selector">
       <div class="indicator-group">
-        <span class="indicator-label">指标:</span>
+        <span class="indicator-label">Indicators:</span>
         <button
           :class="['indicator-btn', { active: selectedIndicators.MA }]"
           @click="toggleIndicator('MA')"
@@ -63,7 +63,7 @@
         </button>
       <!-- </div>
       <div class="indicator-group">
-        <span class="indicator-label">副图指标:</span> -->
+        <span class="indicator-label">Sub-indicators:</span> -->
         <button
           :class="['indicator-btn', { active: selectedIndicators.VOL }]"
           @click="toggleIndicator('VOL')"
@@ -121,33 +121,33 @@ const volume24h = ref(0);
 const loading = ref(false);
 const error = ref(null);
 const selectedIndicators = ref({
-  MA: false,  // 默认不显示MA，可在主图叠加
-  VOL: true,  // 默认显示成交量
+  MA: false,  // Default: MA not shown, can be overlaid on main chart
+  VOL: true,  // Default: Volume shown
   MACD: false,
   RSI: false
 });
 
 let chart;
 
-// 时间周期选项
+// Timeframe options
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
 const timeframeConfigs = {
-  '1M': { value: '1M', label: '1分', interval: '1m', durationMs: 1 * HOUR },
-  '5M': { value: '5M', label: '5分', interval: '5m', durationMs: 6 * HOUR },
-  '15M': { value: '15M', label: '15分', interval: '15m', durationMs: 24 * HOUR },
-  '30M': { value: '30M', label: '30分', interval: '30m', durationMs: 3 * DAY },
-  '1H': { value: '1H', label: '1小时', interval: '1h', durationMs: 7 * DAY },
-  '4H': { value: '4H', label: '4小时', interval: '4h', durationMs: 30 * DAY },
-  '1D': { value: '1D', label: '1天', interval: '1d', durationMs: 120 * DAY },
-  '1W': { value: '1W', label: '1周', interval: '1w', durationMs: 365 * DAY }
+  '1M': { value: '1M', label: '1min', interval: '1m', durationMs: 1 * HOUR },
+  '5M': { value: '5M', label: '5min', interval: '5m', durationMs: 6 * HOUR },
+  '15M': { value: '15M', label: '15min', interval: '15m', durationMs: 24 * HOUR },
+  '30M': { value: '30M', label: '30min', interval: '30m', durationMs: 3 * DAY },
+  '1H': { value: '1H', label: '1hr', interval: '1h', durationMs: 7 * DAY },
+  '4H': { value: '4H', label: '4hr', interval: '4h', durationMs: 30 * DAY },
+  '1D': { value: '1D', label: '1day', interval: '1d', durationMs: 120 * DAY },
+  '1W': { value: '1W', label: '1wk', interval: '1w', durationMs: 365 * DAY }
 };
 
 const timeframes = Object.values(timeframeConfigs);
 
-// 数值格式化
+// Number formatting
 const formatVolume = (volume = 0) => {
   if (volume === null || volume === undefined) return '--';
   if (Math.abs(volume) >= 1_000_000) {
@@ -165,9 +165,9 @@ const startAutoRefresh = () => {
   const config = timeframeConfigs[active.value];
   if (!config) return;
 
-  const intervalMs = 5000; // 固定每5秒刷新
+  const intervalMs = 5000; // Fixed 5 second refresh
   autoRefreshTimer = setInterval(() => {
-    // 等价于自动“点击”当前周期按钮
+    // Equivalent to automatically "clicking" current timeframe button
     changeTimeframe(active.value, { silent: true });
   }, intervalMs);
 };
@@ -229,7 +229,7 @@ const fetchPriceHistory = async (timeframe, { silent = false } = {}) => {
       const priceHistory = response.data.data;
       return processPriceData(priceHistory, latestPrice.data?.price);
     }
-    
+
     throw new Error(response.data?.message || '获取价格历史失败');
   } catch (err) {
     console.error('获取价格历史失败:', err);
@@ -263,7 +263,7 @@ const processPriceData = (priceHistory = [], latestPrice = null) => {
     };
   });
 
-  
+
   updatePriceStats(klineData, latestPrice);
   return klineData;
 };
@@ -398,6 +398,7 @@ const changeTimeframe = async (timeframe, silent = false) => {
   active.value = timeframe;
 
   const newData = await fetchPriceHistory(timeframe, { silent });
+  console.log('newdata: ', newData)
   if (chart && Array.isArray(newData) && newData.length) {
     chart.applyNewData(newData);
   }

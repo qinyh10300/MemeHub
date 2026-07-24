@@ -1,18 +1,18 @@
 <template>
   <div v-if="userData" class="profile-header">
-    <div 
+    <div
       :class="['avatar-wrapper', { 'clickable': isOwnProfile }]"
       @click="isOwnProfile ? openAvatarModal() : null"
     >
-      <img 
+      <img
         :key="avatarUrl"
-        :src="avatarUrl" 
-        alt="avatar" 
-        class="avatar" 
+        :src="avatarUrl"
+        alt="avatar"
+        class="avatar"
         @error="handleAvatarError"
       />
       <div v-if="isOwnProfile" class="avatar-overlay">
-        <span class="avatar-hint">点击更换头像</span>
+        <span class="avatar-hint">Click to change avatar</span>
       </div>
     </div>
     <div class="user-info">
@@ -21,7 +21,7 @@
       <p class="bio">{{ userData.bio }}</p>
     </div>
     <div class="action-container">
-      <button v-if="isOwnProfile" class="config-button" @click="openModal">编辑</button>
+      <button v-if="isOwnProfile" class="config-button" @click="openModal">Edit</button>
       <div v-else class="follow-wrapper">
         <div class="user-actions">
           <button
@@ -30,17 +30,17 @@
             :disabled="followLoading || !isLoggedIn"
             @click="handleFollowToggle"
           >
-            {{ followLoading ? '处理中...' : followButtonLabel }}
+            {{ followLoading ? 'Processing...' : followButtonLabel }}
           </button>
           <button class="message-button" @click="handleSendMessage">
-            私信
+            Message
           </button>
         </div>
         <p v-if="followError" class="follow-error">{{ followError }}</p>
       </div>
     </div>
 
-    <!-- 编辑资料弹窗 -->
+    <!-- Edit profile modal -->
     <EditModal
       v-if="isModalOpen"
       :nickname="userData?.nickname || ''"
@@ -50,7 +50,7 @@
       @save="handleSave"
     />
 
-    <!-- 头像选择弹窗 -->
+    <!-- Avatar selection modal -->
     <AvatarModal
       v-if="isAvatarModalOpen"
       :currentAvatar="userData?.avatar || ''"
@@ -77,34 +77,34 @@ const emit = defineEmits(['update:userData'])
 const router = useRouter()
 const authStore = useAuthStore()
 
-// 判断是否是当前用户自己的主页
+// Check if current user's own profile
 const isOwnProfile = computed(() => {
   const currentUsername = authStore.username
   const profileUsername = props.userData?.username?.replace('@', '')
   return currentUsername === profileUsername
 })
 
-// 默认头像URL
+// Default avatar URL
 const defaultAvatar = 'https://i.pravatar.cc/150?img=1'
 
-// 计算头像URL，如果为空或加载失败则使用默认头像
+// Compute avatar URL, use default avatar if empty or load failed
 const avatarUrl = computed(() => {
   return props.userData?.avatar || defaultAvatar
 })
 
-const serverIp = authStore.server_ip // 后端服务器地址
+const serverIp = authStore.server_ip // Backend server address
 // const serverIp = computed(() => authStore.server_ip || 'http://localhost:3000')
 const storedUserToken = computed(() => authStore.user_token || authStore.username || authStore.token || '')
 const isLoggedIn = computed(() => !!storedUserToken.value)
 const followLoading = ref(false)
 const followError = ref('')
-const followButtonLabel = computed(() => (props.userData?.isFollowing ? '取消关注' : '关注'))
+const followButtonLabel = computed(() => (props.userData?.isFollowing ? 'Unfollow' : 'Follow'))
 
-// 头像加载失败时的处理
+// Handle avatar load error
 const handleAvatarError = (event) => {
-  console.log('头像加载失败 - 当前URL:', event.target.src)
-  // 如果当前不是默认头像，且不是刚上传的头像，则切换到默认头像
-  // 避免刚上传的头像因为加载延迟而被误判为失败
+  console.log('Avatar load failed - Current URL:', event.target.src)
+  // If not default avatar and not just uploaded, switch to default avatar
+  // Avoid mistaking newly uploaded avatars as failed due to loading delay
   const currentSrc = event.target.src
   if (currentSrc !== defaultAvatar && !currentSrc.includes('/avatars/')) {
     console.log('切换到默认头像')
@@ -113,7 +113,7 @@ const handleAvatarError = (event) => {
     // 如果是上传的头像加载失败，可能是URL问题，尝试重新加载
     console.log('上传的头像加载失败，尝试重新加载')
     // 添加时间戳强制重新加载
-    const urlWithTimestamp = currentSrc.includes('?') 
+    const urlWithTimestamp = currentSrc.includes('?')
       ? currentSrc.split('?')[0] + '?t=' + Date.now()
       : currentSrc + '?t=' + Date.now()
     event.target.src = urlWithTimestamp
@@ -135,7 +135,7 @@ const openAvatarModal = () => {
   // 只有当前用户才能更换头像
   const currentUsername = authStore.username
   const profileUsername = props.userData?.username?.replace('@', '')
-  
+
   if (currentUsername === profileUsername) {
     isAvatarModalOpen.value = true
   }
